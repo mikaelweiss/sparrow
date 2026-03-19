@@ -18,6 +18,22 @@ public enum CSSGenerator {
         --color-success: #34C759;
         --color-warning: #FF9500;
         --color-info: #5AC8FA;
+        --color-red: #FF3B30;
+        --color-orange: #FF9500;
+        --color-yellow: #FFCC00;
+        --color-green: #34C759;
+        --color-mint: #00C7BE;
+        --color-teal: #30B0C7;
+        --color-cyan: #32ADE6;
+        --color-blue: #007AFF;
+        --color-indigo: #5856D6;
+        --color-purple: #AF52DE;
+        --color-pink: #FF2D55;
+        --color-brown: #A2845E;
+        --color-gray: #8E8E93;
+        --color-white: #FFFFFF;
+        --color-black: #000000;
+        --color-clear: transparent;
         --spacing-0: 0px;
         --spacing-1: 4px;
         --spacing-2: 8px;
@@ -59,6 +75,19 @@ public enum CSSGenerator {
             --color-success: #30D158;
             --color-warning: #FF9F0A;
             --color-info: #64D2FF;
+            --color-red: #FF453A;
+            --color-orange: #FF9F0A;
+            --color-yellow: #FFD60A;
+            --color-green: #30D158;
+            --color-mint: #63E6E2;
+            --color-teal: #40CBE0;
+            --color-cyan: #64D2FF;
+            --color-blue: #0A84FF;
+            --color-indigo: #5E5CE6;
+            --color-purple: #BF5AF2;
+            --color-pink: #FF375F;
+            --color-brown: #AC8E68;
+            --color-gray: #8E8E93;
         }
     }
 
@@ -140,6 +169,22 @@ public enum CSSGenerator {
     .fg-success { color: var(--color-success); }
     .fg-warning { color: var(--color-warning); }
     .fg-info { color: var(--color-info); }
+    .fg-red { color: var(--color-red); }
+    .fg-orange { color: var(--color-orange); }
+    .fg-yellow { color: var(--color-yellow); }
+    .fg-green { color: var(--color-green); }
+    .fg-mint { color: var(--color-mint); }
+    .fg-teal { color: var(--color-teal); }
+    .fg-cyan { color: var(--color-cyan); }
+    .fg-blue { color: var(--color-blue); }
+    .fg-indigo { color: var(--color-indigo); }
+    .fg-purple { color: var(--color-purple); }
+    .fg-pink { color: var(--color-pink); }
+    .fg-brown { color: var(--color-brown); }
+    .fg-gray { color: var(--color-gray); }
+    .fg-white { color: var(--color-white); }
+    .fg-black { color: var(--color-black); }
+    .fg-clear { color: transparent; }
 
     /* Background colors */
     .bg-primary { background: var(--color-primary); }
@@ -149,6 +194,22 @@ public enum CSSGenerator {
     .bg-background { background: var(--color-background); }
     .bg-error { background: var(--color-error); }
     .bg-success { background: var(--color-success); }
+    .bg-red { background: var(--color-red); }
+    .bg-orange { background: var(--color-orange); }
+    .bg-yellow { background: var(--color-yellow); }
+    .bg-green { background: var(--color-green); }
+    .bg-mint { background: var(--color-mint); }
+    .bg-teal { background: var(--color-teal); }
+    .bg-cyan { background: var(--color-cyan); }
+    .bg-blue { background: var(--color-blue); }
+    .bg-indigo { background: var(--color-indigo); }
+    .bg-purple { background: var(--color-purple); }
+    .bg-pink { background: var(--color-pink); }
+    .bg-brown { background: var(--color-brown); }
+    .bg-gray { background: var(--color-gray); }
+    .bg-white { background: var(--color-white); }
+    .bg-black { background: var(--color-black); }
+    .bg-clear { background: transparent; }
 
     /* Border radius */
     .rounded-none { border-radius: var(--radius-none); }

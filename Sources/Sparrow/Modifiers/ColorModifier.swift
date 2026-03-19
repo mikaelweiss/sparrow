@@ -1,5 +1,6 @@
 /// Semantic colors from the design system.
 public enum SemanticColor: Sendable {
+    // MARK: Semantic (role-based)
     case primary
     case secondary
     case accent
@@ -13,6 +14,26 @@ public enum SemanticColor: Sendable {
     case success
     case warning
     case info
+
+    // MARK: Named palette (appearance-based)
+    case red
+    case orange
+    case yellow
+    case green
+    case mint
+    case teal
+    case cyan
+    case blue
+    case indigo
+    case purple
+    case pink
+    case brown
+    case gray
+    case white
+    case black
+    case clear
+
+    // MARK: Escape hatch
     case hex(String)
 
     var cssValue: String {
@@ -30,6 +51,22 @@ public enum SemanticColor: Sendable {
         case .success: "success"
         case .warning: "warning"
         case .info: "info"
+        case .red: "red"
+        case .orange: "orange"
+        case .yellow: "yellow"
+        case .green: "green"
+        case .mint: "mint"
+        case .teal: "teal"
+        case .cyan: "cyan"
+        case .blue: "blue"
+        case .indigo: "indigo"
+        case .purple: "purple"
+        case .pink: "pink"
+        case .brown: "brown"
+        case .gray: "gray"
+        case .white: "white"
+        case .black: "black"
+        case .clear: "clear"
         case .hex(let value): "[\(value)]"
         }
     }
