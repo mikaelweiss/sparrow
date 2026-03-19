@@ -283,6 +283,26 @@ public enum CSSGenerator {
 
     /* Markdown */
     .markdown { line-height: 1.6; }
+    .markdown h1 { font: 700 34px/1.2 var(--font-body); margin-top: var(--spacing-8); margin-bottom: var(--spacing-4); }
+    .markdown h2 { font: 700 28px/1.2 var(--font-body); margin-top: var(--spacing-6); margin-bottom: var(--spacing-3); }
+    .markdown h3 { font: 600 22px/1.3 var(--font-body); margin-top: var(--spacing-5); margin-bottom: var(--spacing-2); }
+    .markdown h4 { font: 600 20px/1.3 var(--font-body); margin-top: var(--spacing-4); margin-bottom: var(--spacing-2); }
+    .markdown p { margin-bottom: var(--spacing-3); }
+    .markdown ul, .markdown ol { padding-left: var(--spacing-6); margin-bottom: var(--spacing-3); }
+    .markdown li { margin-bottom: var(--spacing-1); }
+    .markdown code { font-family: 'SF Mono', SFMono-Regular, ui-monospace, Menlo, monospace; font-size: 0.9em; background: var(--color-surface); padding: 2px 6px; border-radius: var(--radius-sm); }
+    .markdown pre { background: var(--color-surface); padding: var(--spacing-4); border-radius: var(--radius-md); overflow-x: auto; margin-bottom: var(--spacing-3); }
+    .markdown pre code { background: none; padding: 0; font-size: 0.85em; }
+    .markdown blockquote { border-left: 3px solid var(--color-primary); padding-left: var(--spacing-4); color: var(--color-textSecondary); margin-bottom: var(--spacing-3); }
+    .markdown a { color: var(--color-primary); text-decoration: none; }
+    .markdown a:hover { text-decoration: underline; }
+    .markdown hr { border: none; border-top: 1px solid var(--color-surfaceSecondary); margin: var(--spacing-6) 0; }
+    .markdown img { max-width: 100%; height: auto; border-radius: var(--radius-md); }
+    .markdown table { width: 100%; border-collapse: collapse; margin-bottom: var(--spacing-3); }
+    .markdown th, .markdown td { padding: var(--spacing-2) var(--spacing-3); border: 1px solid var(--color-surfaceSecondary); text-align: left; }
+    .markdown th { background: var(--color-surface); font-weight: 600; }
+    .markdown strong { font-weight: 600; }
+    .markdown s { text-decoration: line-through; color: var(--color-textSecondary); }
 
     /* Input */
     .input {

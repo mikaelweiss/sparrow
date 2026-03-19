@@ -1,3 +1,5 @@
+import SparrowMarkdown
+
 /// Renders a View tree into an HTML string.
 /// Each render pass creates a fresh RenderState that allocates element IDs
 /// and collects event handlers for interactive elements.
@@ -191,9 +193,8 @@ public struct HTMLRenderer: Sendable {
         let classes = ["markdown"] + context.cssClasses
         let classAttr = " class=\"\(classes.joined(separator: " "))\""
         let styleAttr = context.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(context.inlineStyles))\""
-        // Markdown rendering is a placeholder — full parser to be added later
-        let escaped = escapeHTML(md.content)
-        return "        <div id=\"\(id)\"\(classAttr)\(styleAttr)>\(escaped)</div>"
+        let html = MarkdownParser.html(from: md.content)
+        return "        <div id=\"\(id)\"\(classAttr)\(styleAttr)>\(html)</div>"
     }
 
     private func renderTextField(_ field: TextField, context: ModifierContext) -> String {
