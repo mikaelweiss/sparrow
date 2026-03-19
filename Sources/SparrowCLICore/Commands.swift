@@ -4,6 +4,19 @@ import Foundation
 
 private let devLocalPath = "/Users/mikaelweiss/code/code-puppies/sparrow"
 
+// MARK: - JSON Output
+
+private func jsonOutput(_ dict: [String: Any]) {
+    if let data = try? JSONSerialization.data(withJSONObject: dict, options: []),
+       let str = String(data: data, encoding: .utf8) {
+        print(str)
+    }
+}
+
+private func jsonError(_ message: String, code: String = "error") {
+    jsonOutput(["status": "error", "message": message, "code": code])
+}
+
 public struct Serve: ParsableCommand {
     public static let configuration = CommandConfiguration(abstract: "Start the development server")
 
@@ -13,24 +26,38 @@ public struct Serve: ParsableCommand {
     @Flag(name: .long, help: "Show verbose build output")
     var verbose: Bool = false
 
+    @Flag(name: .long, help: "Structured JSON output (LLM mode)")
+    var json: Bool = false
+
+    @Flag(name: .long, help: "Don't open browser on start")
+    var noBrowser: Bool = false
+
     public init() {}
 
     public func run() throws {
-        print("  Starting Sparrow development server...")
+        if !json { print("  Starting Sparrow development server...") }
 
         let cwd = FileManager.default.currentDirectoryPath
 
         // Initial build
-        print("  Building...")
+        if !json { print("  Building...") }
         let buildResult = build(cwd: cwd)
         guard buildResult == 0 else {
-            print("  Build failed.")
+            if json {
+                jsonError("Build failed", code: "build_failed")
+            } else {
+                print("  Build failed.")
+            }
             throw ExitCode.failure
         }
 
         let executableName = discoverExecutable(in: cwd) ?? "App"
-        print("  Build succeeded. Starting \(executableName) on port \(port)...")
-        print("  Watching for file changes...")
+        let url = "http://localhost:\(port)"
+
+        if !json {
+            print("  Build succeeded. Starting \(executableName) on port \(port)...")
+            print("  Watching for file changes...")
+        }
 
         // Track the running server process
         var serverProcess: Process? = nil
@@ -39,7 +66,11 @@ public struct Serve: ParsableCommand {
             // Run the binary directly (not via `swift run`) so env vars propagate
             let binaryPath = cwd + "/.build/debug/" + executableName
             guard FileManager.default.fileExists(atPath: binaryPath) else {
-                print("  Binary not found at \(binaryPath)")
+                if json {
+                    jsonError("Binary not found at \(binaryPath)", code: "binary_not_found")
+                } else {
+                    print("  Binary not found at \(binaryPath)")
+                }
                 return nil
             }
             let process = Process()
@@ -62,17 +93,34 @@ public struct Serve: ParsableCommand {
         // Launch initial server
         serverProcess = launchServer()
 
+        if json {
+            jsonOutput([
+                "status": "running",
+                "url": url,
+                "pid": serverProcess?.processIdentifier ?? -1,
+            ])
+        }
+
+        // Open browser (unless --no-browser or --json)
+        if !noBrowser && !json {
+            shell(["open", url], cwd: cwd)
+        }
+
         // Set up file watcher
         let watcher = FileWatcher(path: cwd) {
-            print("\n  File changed. Rebuilding...")
+            if !json { print("\n  File changed. Rebuilding...") }
             killServer()
 
             let result = build(cwd: cwd)
             if result == 0 {
-                print("  Build succeeded. Restarting server...")
+                if !json { print("  Build succeeded. Restarting server...") }
                 serverProcess = launchServer()
             } else {
-                print("  Build failed. Waiting for changes...")
+                if json {
+                    jsonError("Build failed", code: "build_failed")
+                } else {
+                    print("  Build failed. Waiting for changes...")
+                }
                 // Don't restart — wait for next file change
             }
         }
@@ -84,7 +132,7 @@ public struct Serve: ParsableCommand {
         signal(SIGTERM, SIG_IGN)
 
         interruptSource.setEventHandler {
-            print("\n  Shutting down...")
+            if !json { print("\n  Shutting down...") }
             watcher.stop()
             killServer()
             Foundation.exit(0)
@@ -113,17 +161,34 @@ public struct Serve: ParsableCommand {
 public struct Build: ParsableCommand {
     public static let configuration = CommandConfiguration(abstract: "Build for production")
 
+    @Flag(name: .long, help: "Structured JSON output (LLM mode)")
+    var json: Bool = false
+
     public init() {}
 
     public func run() throws {
-        print("  Building for production...")
+        if !json { print("  Building for production...") }
         let cwd = FileManager.default.currentDirectoryPath
         let result = shell(["swift", "build", "-c", "release"], cwd: cwd)
         guard result == 0 else {
-            print("  Build failed.")
+            if json {
+                jsonError("Build failed", code: "build_failed")
+            } else {
+                print("  Build failed.")
+            }
             throw ExitCode.failure
         }
-        print("  Build complete.")
+
+        let executableName = discoverExecutable(in: cwd) ?? "App"
+        if json {
+            jsonOutput([
+                "status": "ok",
+                "binary": ".build/release/\(executableName)",
+                "assets": ".build/release/public/",
+            ])
+        } else {
+            print("  Build complete.")
+        }
     }
 }
 
@@ -136,12 +201,18 @@ public struct New: ParsableCommand {
     @Flag(name: .long, help: "Use local Sparrow checkout instead of GitHub (for development)")
     var local = false
 
+    @Flag(name: .long, help: "Structured JSON output (LLM mode)")
+    var json: Bool = false
+
     public init() {}
 
     public func run() throws {
         let name: String
         if let provided = self.name {
             name = provided
+        } else if json {
+            jsonError("Project name is required in JSON mode", code: "missing_name")
+            throw ExitCode.failure
         } else {
             print("  Project name: ", terminator: "")
             guard let input = readLine()?.trimmingCharacters(in: .whitespaces), !input.isEmpty else {
@@ -151,7 +222,7 @@ public struct New: ParsableCommand {
             name = input
         }
 
-        print("  Creating new Sparrow project: \(name)")
+        if !json { print("  Creating new Sparrow project: \(name)") }
 
         let fm = FileManager.default
         let projectDir = fm.currentDirectoryPath + "/\(name)"
@@ -241,25 +312,35 @@ public struct New: ParsableCommand {
         """
         try gitignore.write(toFile: projectDir + "/.gitignore", atomically: true, encoding: .utf8)
 
-        print("  Created \(name)/Package.swift")
-        print("  Created \(name)/Sources/App.swift")
-        print("  Created \(name)/.gitignore")
-        print("")
+        let createdFiles = ["\(name)/Package.swift", "\(name)/Sources/App.swift", "\(name)/.gitignore"]
 
-        // Ask about git initialization
-        print("  Initialize git repository? [y/n] ", terminator: "")
-        let gitAnswer = readLine()?.trimmingCharacters(in: .whitespaces).lowercased() ?? ""
-        if gitAnswer == "y" || gitAnswer == "yes" {
-            shell(["git", "init"], cwd: projectDir)
-            shell(["git", "add", "."], cwd: projectDir)
-            shell(["git", "commit", "-m", "Initial Commit"], cwd: projectDir)
-            print("  Initialized git repository.")
+        if !json {
+            for file in createdFiles {
+                print("  Created \(file)")
+            }
+            print("")
+
+            // Ask about git initialization (skip in JSON mode — no interactive prompts)
+            print("  Initialize git repository? [y/n] ", terminator: "")
+            let gitAnswer = readLine()?.trimmingCharacters(in: .whitespaces).lowercased() ?? ""
+            if gitAnswer == "y" || gitAnswer == "yes" {
+                shell(["git", "init"], cwd: projectDir)
+                shell(["git", "add", "."], cwd: projectDir)
+                shell(["git", "commit", "-m", "Initial Commit"], cwd: projectDir)
+                print("  Initialized git repository.")
+            }
+
+            print("")
+            print("  Next steps:")
+            print("    cd \(name)")
+            print("    sparrow serve  (or: kln serve)")
+        } else {
+            jsonOutput([
+                "status": "ok",
+                "path": "\(name)/",
+                "files": createdFiles,
+            ])
         }
-
-        print("")
-        print("  Next steps:")
-        print("    cd \(name)")
-        print("    sparrow serve  (or: kln serve)")
     }
 }
 
