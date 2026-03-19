@@ -108,7 +108,14 @@ private func handleWebSocket(
                   let event = json["event"] as? String,
                   let session else { continue }
 
-            if let patches = await session.handleEvent(id: id, event: event) {
+            // Extract value — may be a string, bool, or number from JSON
+            let value: String?
+            if let s = json["value"] as? String { value = s }
+            else if let b = json["value"] as? Bool { value = String(b) }
+            else if let n = json["value"] as? NSNumber { value = n.stringValue }
+            else { value = nil }
+
+            if let patches = await session.handleEvent(id: id, event: event, value: value) {
                 let patchJSON = patches.map { $0.toJSON() }.joined(separator: ",")
                 let response = "{\"type\":\"patch\",\"patches\":[\(patchJSON)]}"
                 try await outbound.write(.text(response))

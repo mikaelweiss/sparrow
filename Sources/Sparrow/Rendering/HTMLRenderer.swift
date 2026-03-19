@@ -198,54 +198,75 @@ public struct HTMLRenderer: Sendable {
 
     private func renderTextField(_ field: TextField, context: ModifierContext) -> String {
         let id = renderState.allocateId()
+        let binding = field.text
+        renderState.registerValueHandler(id: id) { newValue in
+            binding.wrappedValue = newValue
+        }
         let classes = ["input"] + context.cssClasses
         let classAttr = " class=\"\(classes.joined(separator: " "))\""
         let styleAttr = context.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(context.inlineStyles))\""
         let placeholder = escapeHTML(field.placeholder)
-        let value = escapeHTML(field.text)
-        return "        <input id=\"\(id)\" type=\"text\" placeholder=\"\(placeholder)\" value=\"\(value)\"\(classAttr)\(styleAttr)>"
+        let value = escapeHTML(binding.wrappedValue)
+        return "        <input id=\"\(id)\" type=\"text\" placeholder=\"\(placeholder)\" value=\"\(value)\"\(classAttr) data-sparrow-event=\"input\" data-sparrow-debounce=\"300\"\(styleAttr)>"
     }
 
     private func renderSecureField(_ field: SecureField, context: ModifierContext) -> String {
         let id = renderState.allocateId()
+        let binding = field.text
+        renderState.registerValueHandler(id: id) { newValue in
+            binding.wrappedValue = newValue
+        }
         let classes = ["input"] + context.cssClasses
         let classAttr = " class=\"\(classes.joined(separator: " "))\""
         let styleAttr = context.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(context.inlineStyles))\""
         let placeholder = escapeHTML(field.placeholder)
-        let value = escapeHTML(field.text)
-        return "        <input id=\"\(id)\" type=\"password\" placeholder=\"\(placeholder)\" value=\"\(value)\"\(classAttr)\(styleAttr)>"
+        let value = escapeHTML(binding.wrappedValue)
+        return "        <input id=\"\(id)\" type=\"password\" placeholder=\"\(placeholder)\" value=\"\(value)\"\(classAttr) data-sparrow-event=\"input\" data-sparrow-debounce=\"300\"\(styleAttr)>"
     }
 
     private func renderTextEditor(_ editor: TextEditor, context: ModifierContext) -> String {
         let id = renderState.allocateId()
+        let binding = editor.text
+        renderState.registerValueHandler(id: id) { newValue in
+            binding.wrappedValue = newValue
+        }
         let classes = ["textarea"] + context.cssClasses
         let classAttr = " class=\"\(classes.joined(separator: " "))\""
         let styleAttr = context.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(context.inlineStyles))\""
-        let escaped = escapeHTML(editor.text)
-        return "        <textarea id=\"\(id)\"\(classAttr)\(styleAttr)>\(escaped)</textarea>"
+        let escaped = escapeHTML(binding.wrappedValue)
+        return "        <textarea id=\"\(id)\"\(classAttr) data-sparrow-event=\"input\" data-sparrow-debounce=\"300\"\(styleAttr)>\(escaped)</textarea>"
     }
 
     private func renderToggle(_ toggle: Toggle, context: ModifierContext) -> String {
         let id = renderState.allocateId()
+        let binding = toggle.isOn
+        renderState.registerValueHandler(id: id) { newValue in
+            binding.wrappedValue = (newValue == "true")
+        }
         let classes = ["toggle"] + context.cssClasses
         let classAttr = " class=\"\(classes.joined(separator: " "))\""
         let styleAttr = context.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(context.inlineStyles))\""
-        let checked = toggle.isOn ? " checked" : ""
+        let checked = binding.wrappedValue ? " checked" : ""
         let escaped = escapeHTML(toggle.label)
-        return "        <label id=\"\(id)\"\(classAttr)\(styleAttr)><input type=\"checkbox\"\(checked)> \(escaped)</label>"
+        return "        <label\(classAttr)\(styleAttr)><input id=\"\(id)\" type=\"checkbox\"\(checked) data-sparrow-event=\"change\"> \(escaped)</label>"
     }
 
     private func renderPicker(_ picker: Picker, context: ModifierContext) -> String {
         let id = renderState.allocateId()
+        let binding = picker.selection
+        renderState.registerValueHandler(id: id) { newValue in
+            binding.wrappedValue = newValue
+        }
+        let selected = binding.wrappedValue
         let classes = ["picker"] + context.cssClasses
         let classAttr = " class=\"\(classes.joined(separator: " "))\""
         let styleAttr = context.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(context.inlineStyles))\""
         let options = picker.options.map { opt in
-            let selected = opt.value == picker.selection ? " selected" : ""
-            return "            <option value=\"\(escapeHTML(opt.value))\"\(selected)>\(escapeHTML(opt.label))</option>"
+            let selectedAttr = opt.value == selected ? " selected" : ""
+            return "            <option value=\"\(escapeHTML(opt.value))\"\(selectedAttr)>\(escapeHTML(opt.label))</option>"
         }.joined(separator: "\n")
         return """
-                <select id="\(id)" aria-label="\(escapeHTML(picker.label))"\(classAttr)\(styleAttr)>
+                <select id="\(id)" aria-label="\(escapeHTML(picker.label))"\(classAttr) data-sparrow-event="change"\(styleAttr)>
         \(options)
                 </select>
         """
@@ -253,19 +274,29 @@ public struct HTMLRenderer: Sendable {
 
     private func renderSlider(_ slider: Slider, context: ModifierContext) -> String {
         let id = renderState.allocateId()
+        let binding = slider.value
+        renderState.registerValueHandler(id: id) { newValue in
+            if let d = Double(newValue) {
+                binding.wrappedValue = d
+            }
+        }
         let classes = ["slider"] + context.cssClasses
         let classAttr = " class=\"\(classes.joined(separator: " "))\""
         let styleAttr = context.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(context.inlineStyles))\""
-        return "        <input id=\"\(id)\" type=\"range\" min=\"\(slider.range.lowerBound)\" max=\"\(slider.range.upperBound)\" step=\"\(slider.step)\" value=\"\(slider.value)\"\(classAttr)\(styleAttr)>"
+        return "        <input id=\"\(id)\" type=\"range\" min=\"\(slider.range.lowerBound)\" max=\"\(slider.range.upperBound)\" step=\"\(slider.step)\" value=\"\(binding.wrappedValue)\"\(classAttr) data-sparrow-event=\"input\"\(styleAttr)>"
     }
 
     private func renderDatePicker(_ dp: DatePicker, context: ModifierContext) -> String {
         let id = renderState.allocateId()
+        let binding = dp.selection
+        renderState.registerValueHandler(id: id) { newValue in
+            binding.wrappedValue = newValue
+        }
         let classes = ["input"] + context.cssClasses
         let classAttr = " class=\"\(classes.joined(separator: " "))\""
         let styleAttr = context.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(context.inlineStyles))\""
-        let value = escapeHTML(dp.selection)
-        return "        <input id=\"\(id)\" type=\"date\" aria-label=\"\(escapeHTML(dp.label))\" value=\"\(value)\"\(classAttr)\(styleAttr)>"
+        let value = escapeHTML(binding.wrappedValue)
+        return "        <input id=\"\(id)\" type=\"date\" aria-label=\"\(escapeHTML(dp.label))\" value=\"\(value)\"\(classAttr) data-sparrow-event=\"change\"\(styleAttr)>"
     }
 
     private func renderImage(_ img: Image, context: ModifierContext) -> String {

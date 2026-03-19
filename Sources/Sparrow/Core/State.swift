@@ -22,4 +22,21 @@ public struct State<Value: Sendable>: Sendable {
             store.set(key, value: newValue)
         }
     }
+
+    /// Access the binding via `$state`. The returned Binding reads and writes
+    /// through StateStorage.current, which is set during rendering and event handling.
+    public var projectedValue: Binding<Value> {
+        let key = self.key
+        let defaultValue = self.defaultValue
+        return Binding(
+            get: {
+                guard let store = StateStorage.current else { return defaultValue }
+                return store.get(key, default: defaultValue)
+            },
+            set: { newValue in
+                guard let store = StateStorage.current else { return }
+                store.set(key, value: newValue)
+            }
+        )
+    }
 }

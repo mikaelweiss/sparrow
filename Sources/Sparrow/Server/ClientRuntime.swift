@@ -198,7 +198,7 @@ enum ClientRuntime {
             root.addEventListener("change", function(e) {
                 var target = e.target.closest("[data-sparrow-event*=\\"change\\"]");
                 if (target && target.id) {
-                    var value = target.type === "checkbox" ? target.checked : target.value;
+                    var value = target.type === "checkbox" ? String(target.checked) : target.value;
                     send({type: "event", id: target.id, event: "change", value: value});
                 }
             });
@@ -215,6 +215,28 @@ enum ClientRuntime {
                 }
             });
         }
+
+        // --- Menu toggle (client-side, no server round-trip) ---
+
+        document.addEventListener("click", function(e) {
+            var trigger = e.target.closest(".menu-trigger");
+            if (trigger) {
+                e.stopPropagation();
+                var menu = trigger.closest(".menu");
+                if (menu) {
+                    var content = menu.querySelector(".menu-content");
+                    if (content) {
+                        content.style.display = content.style.display === "block" ? "none" : "block";
+                    }
+                }
+                return;
+            }
+            // Close all open menus when clicking outside
+            var openMenus = document.querySelectorAll(".menu-content");
+            for (var i = 0; i < openMenus.length; i++) {
+                openMenus[i].style.display = "none";
+            }
+        });
 
         // --- Navigation (intercept internal links) ---
 

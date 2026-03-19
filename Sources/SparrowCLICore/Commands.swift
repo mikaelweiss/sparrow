@@ -284,6 +284,20 @@ public struct New: ParsableCommand {
             }
         }
 
+        struct Greeter: View {
+            @State var name = ""
+
+            var body: some View {
+                VStack(spacing: 12) {
+                    TextField("Your name", text: \\$name)
+                    if !name.isEmpty {
+                        Text("Hello, \\(name)!")
+                            .font(.title2)
+                    }
+                }
+            }
+        }
+
         @main
         struct \(name): App {
             init() {}
@@ -293,6 +307,7 @@ public struct New: ParsableCommand {
                     VStack(spacing: 24) {
                         Text("Welcome to \(name)")
                             .font(.largeTitle)
+                        Greeter()
                         Counter()
                         Link("sparrowframework.dev", url: "https://sparrowframework.dev")
                     }

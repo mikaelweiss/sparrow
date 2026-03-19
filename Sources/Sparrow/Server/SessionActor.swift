@@ -27,6 +27,7 @@ actor SessionActor {
     private let renderBody: @Sendable (HTMLRenderer) -> String
     private var lastHTML: String
     private var eventHandlers: [String: @Sendable () -> Void]
+    private var valueHandlers: [String: @Sendable (String) -> Void]
 
     init(sessionId: String, renderBody: @escaping @Sendable (HTMLRenderer) -> String) {
         self.sessionId = sessionId
@@ -34,11 +35,13 @@ actor SessionActor {
         self.renderBody = renderBody
         self.lastHTML = ""
         self.eventHandlers = [:]
+        self.valueHandlers = [:]
 
-        // Initial render to populate lastHTML and event handlers
-        let (html, handlers) = Self.doRender(renderBody: renderBody, stateStore: stateStore)
-        self.lastHTML = html
-        self.eventHandlers = handlers
+        // Initial render to populate lastHTML and handlers
+        let result = Self.doRender(renderBody: renderBody, stateStore: stateStore)
+        self.lastHTML = result.html
+        self.eventHandlers = result.eventHandlers
+        self.valueHandlers = result.valueHandlers
     }
 
     /// Returns the current rendered HTML (for initial page sync).
@@ -47,38 +50,58 @@ actor SessionActor {
     }
 
     /// Handle a client event. Returns patches if the DOM changed, nil otherwise.
-    func handleEvent(id: String, event: String) -> [Patch]? {
-        guard let handler = eventHandlers[id] else { return nil }
+    func handleEvent(id: String, event: String, value: String?) -> [Patch]? {
+        switch event {
+        case "click":
+            guard let handler = eventHandlers[id] else { return nil }
+            StateStorage.$current.withValue(stateStore) {
+                handler()
+            }
 
-        // Execute the handler within the session's state context.
-        // The handler may mutate @State values via the nonmutating setter.
-        StateStorage.$current.withValue(stateStore) {
-            handler()
+        case "input", "change":
+            guard let value, let handler = valueHandlers[id] else { return nil }
+            StateStorage.$current.withValue(stateStore) {
+                handler(value)
+            }
+
+        default:
+            return nil
         }
 
         // Re-render with updated state
-        let (newHTML, newHandlers) = Self.doRender(renderBody: renderBody, stateStore: stateStore)
-        self.eventHandlers = newHandlers
+        let result = Self.doRender(renderBody: renderBody, stateStore: stateStore)
+        self.eventHandlers = result.eventHandlers
+        self.valueHandlers = result.valueHandlers
 
-        if newHTML != lastHTML {
-            self.lastHTML = newHTML
-            return [Patch(op: "replace", target: "#sparrow-root", html: newHTML, value: nil)]
+        if result.html != lastHTML {
+            self.lastHTML = result.html
+            return [Patch(op: "replace", target: "#sparrow-root", html: result.html, value: nil)]
         }
         return nil
     }
 
     /// Pure render function: creates a renderer, renders within the state context,
-    /// and returns the HTML + collected event handlers.
+    /// and returns the HTML + collected handlers.
     private static func doRender(
         renderBody: @Sendable (HTMLRenderer) -> String,
         stateStore: StateStorage
-    ) -> (String, [String: @Sendable () -> Void]) {
+    ) -> RenderResult {
         let renderer = HTMLRenderer()
         let html = StateStorage.$current.withValue(stateStore) {
             renderBody(renderer)
         }
-        return (html, renderer.renderState.eventHandlers)
+        return RenderResult(
+            html: html,
+            eventHandlers: renderer.renderState.eventHandlers,
+            valueHandlers: renderer.renderState.valueHandlers
+        )
     }
+}
+
+private struct RenderResult {
+    let html: String
+    let eventHandlers: [String: @Sendable () -> Void]
+    let valueHandlers: [String: @Sendable (String) -> Void]
 }
 
 // MARK: - JSON helpers

@@ -1,10 +1,11 @@
 /// A selection control. Renders to `<select>` with options.
+/// Accepts a `Binding<String>` to round-trip the selected value from the browser.
 public struct Picker: PrimitiveView, Sendable {
     public let label: String
-    public let selection: String
+    public let selection: Binding<String>
     public let options: [PickerOption]
 
-    public init(_ label: String, selection: String, options: [PickerOption]) {
+    public init(_ label: String, selection: Binding<String>, options: [PickerOption]) {
         self.label = label
         self.selection = selection
         self.options = options
