@@ -288,6 +288,249 @@ extension ForEach: HTMLRenderable {
     }
 }
 
+// MARK: - Tooltip
+
+extension Tooltip: HTMLRenderable {
+    func renderHTML(with renderer: HTMLRenderer, modifierContext: ModifierContext) -> String {
+        let id = renderer.renderState.allocateId()
+        let children = flattenChildren(content)
+        let childrenHTML = renderer.renderChildren(children)
+        let classes = ["tooltip-wrapper", "desktop-only-hover"] + modifierContext.cssClasses
+        let classAttr = " class=\"\(classes.joined(separator: " "))\""
+        let styleAttr = modifierContext.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(modifierContext.inlineStyles))\""
+        let escaped = escapeHTML(text)
+        return """
+                <div id="\(id)"\(classAttr)\(styleAttr)>
+        \(childrenHTML)
+                    <span class="tooltip-text" role="tooltip">\(escaped)</span>
+                </div>
+        """
+    }
+}
+
+// MARK: - Popover
+
+extension Popover: HTMLRenderable {
+    func renderHTML(with renderer: HTMLRenderer, modifierContext: ModifierContext) -> String {
+        let id = renderer.renderState.allocateId()
+        let children = flattenChildren(content)
+        let childrenHTML = renderer.renderChildren(children)
+        // Desktop: floating popover. Mobile: bottom sheet (via CSS).
+        var classes = ["popover"] + modifierContext.cssClasses
+        if isPresented {
+            classes.append("popover-open")
+        }
+        let classAttr = " class=\"\(classes.joined(separator: " "))\""
+        let styleAttr = modifierContext.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(modifierContext.inlineStyles))\""
+        return """
+                <div id="\(id)"\(classAttr)\(styleAttr)>
+                    <div class="popover-content">
+        \(childrenHTML)
+                    </div>
+                </div>
+        """
+    }
+}
+
+// MARK: - HoverCard
+
+extension HoverCard: HTMLRenderable {
+    func renderHTML(with renderer: HTMLRenderer, modifierContext: ModifierContext) -> String {
+        let id = renderer.renderState.allocateId()
+        let triggerChildren = flattenChildren(trigger)
+        let triggerHTML = renderer.renderChildren(triggerChildren)
+        let contentChildren = flattenChildren(content)
+        let contentHTML = renderer.renderChildren(contentChildren)
+        let classes = ["hover-card", "desktop-only-hover"] + modifierContext.cssClasses
+        let classAttr = " class=\"\(classes.joined(separator: " "))\""
+        let styleAttr = modifierContext.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(modifierContext.inlineStyles))\""
+        return """
+                <div id="\(id)"\(classAttr)\(styleAttr)>
+                    <div class="hover-card-trigger">
+        \(triggerHTML)
+                    </div>
+                    <div class="hover-card-content">
+        \(contentHTML)
+                    </div>
+                </div>
+        """
+    }
+}
+
+// MARK: - Drawer
+
+extension Drawer: HTMLRenderable {
+    func renderHTML(with renderer: HTMLRenderer, modifierContext: ModifierContext) -> String {
+        let id = renderer.renderState.allocateId()
+        let children = flattenChildren(content)
+        let childrenHTML = renderer.renderChildren(children)
+        var classes = ["drawer", "drawer-\(edge.rawValue)"] + modifierContext.cssClasses
+        if isPresented {
+            classes.append("drawer-open")
+        }
+        let classAttr = " class=\"\(classes.joined(separator: " "))\""
+        let styleAttr = modifierContext.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(modifierContext.inlineStyles))\""
+        return """
+                <div id="\(id)"\(classAttr)\(styleAttr)>
+                    <div class="drawer-backdrop"></div>
+                    <div class="drawer-panel">
+        \(childrenHTML)
+                    </div>
+                </div>
+        """
+    }
+}
+
+// MARK: - DisclosureGroup
+
+extension DisclosureGroup: HTMLRenderable {
+    func renderHTML(with renderer: HTMLRenderer, modifierContext: ModifierContext) -> String {
+        let id = renderer.renderState.allocateId()
+        let children = flattenChildren(content)
+        let childrenHTML = renderer.renderChildren(children)
+        let classes = ["disclosure"] + modifierContext.cssClasses
+        let classAttr = " class=\"\(classes.joined(separator: " "))\""
+        let styleAttr = modifierContext.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(modifierContext.inlineStyles))\""
+        let open = isExpanded ? " open" : ""
+        let escaped = escapeHTML(label)
+        return """
+                <details id="\(id)"\(classAttr)\(styleAttr)\(open)>
+                    <summary class="disclosure-header">\(escaped)</summary>
+                    <div class="disclosure-content">
+        \(childrenHTML)
+                    </div>
+                </details>
+        """
+    }
+}
+
+// MARK: - TabView
+
+extension TabView: HTMLRenderable {
+    func renderHTML(with renderer: HTMLRenderer, modifierContext: ModifierContext) -> String {
+        let id = renderer.renderState.allocateId()
+        let children = flattenChildren(content)
+        let classes = ["tab-view"] + modifierContext.cssClasses
+        let classAttr = " class=\"\(classes.joined(separator: " "))\""
+        let styleAttr = modifierContext.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(modifierContext.inlineStyles))\""
+
+        // Extract Tab children
+        var tabBarHTML = ""
+        var tabContentHTML = ""
+        for child in children {
+            if let tab = child as? any TabProtocol {
+                let tabId = renderer.renderState.allocateId()
+                let isActive = tab.tag == selection
+                let activeCls = isActive ? " tab-btn-active" : ""
+                let iconHTML = tab.icon.map { "<span class=\"tab-icon\" data-icon=\"\(escapeHTML($0))\"></span>" } ?? ""
+                tabBarHTML += "            <button id=\"\(tabId)\" class=\"tab-btn\(activeCls)\" role=\"tab\" data-sparrow-event=\"click\">\(iconHTML)\(escapeHTML(tab.label))</button>\n"
+                if isActive {
+                    tabContentHTML = tab.renderContent(with: renderer)
+                }
+            } else {
+                // Non-Tab children rendered directly
+                tabContentHTML += renderer.renderAnyErased(child, modifierContext: ModifierContext())
+            }
+        }
+
+        return """
+                <div id="\(id)"\(classAttr)\(styleAttr)>
+                    <div class="tab-bar" role="tablist">
+        \(tabBarHTML)            </div>
+                    <div class="tab-content" role="tabpanel">
+        \(tabContentHTML)
+                    </div>
+                </div>
+        """
+    }
+}
+
+// MARK: - Tab
+
+extension Tab: HTMLRenderable {
+    func renderHTML(with renderer: HTMLRenderer, modifierContext: ModifierContext) -> String {
+        // Tab is rendered by TabView, not independently
+        let children = flattenChildren(content)
+        return renderer.renderChildren(children, modifierContext: modifierContext)
+    }
+}
+
+// MARK: - NavigationBar
+
+extension NavigationBar: HTMLRenderable {
+    func renderHTML(with renderer: HTMLRenderer, modifierContext: ModifierContext) -> String {
+        let id = renderer.renderState.allocateId()
+        let classes = ["nav-bar"] + modifierContext.cssClasses
+        let classAttr = " class=\"\(classes.joined(separator: " "))\""
+        let styleAttr = modifierContext.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(modifierContext.inlineStyles))\""
+
+        let leadingChildren = flattenChildren(leading)
+        let leadingHTML = renderer.renderChildren(leadingChildren)
+        let trailingChildren = flattenChildren(trailing)
+        let trailingHTML = renderer.renderChildren(trailingChildren)
+        let escaped = escapeHTML(title)
+
+        return """
+                <nav id="\(id)"\(classAttr)\(styleAttr)>
+                    <div class="nav-bar-leading">
+        \(leadingHTML)
+                    </div>
+                    <div class="nav-bar-title">\(escaped)</div>
+                    <div class="nav-bar-trailing">
+        \(trailingHTML)
+                    </div>
+                </nav>
+        """
+    }
+}
+
+// MARK: - Sidebar
+
+extension Sidebar: HTMLRenderable {
+    func renderHTML(with renderer: HTMLRenderer, modifierContext: ModifierContext) -> String {
+        let id = renderer.renderState.allocateId()
+        let children = flattenChildren(content)
+        let childrenHTML = renderer.renderChildren(children)
+        let classes = ["sidebar"] + modifierContext.cssClasses
+        let classAttr = " class=\"\(classes.joined(separator: " "))\""
+        let styleAttr = modifierContext.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(modifierContext.inlineStyles))\""
+        return """
+                <aside id="\(id)"\(classAttr)\(styleAttr)>
+        \(childrenHTML)
+                </aside>
+        """
+    }
+}
+
+// MARK: - SidebarLayout
+
+extension SidebarLayout: HTMLRenderable {
+    func renderHTML(with renderer: HTMLRenderer, modifierContext: ModifierContext) -> String {
+        let id = renderer.renderState.allocateId()
+        let sidebarChildren = flattenChildren(sidebar)
+        let sidebarHTML = renderer.renderChildren(sidebarChildren)
+        let mainChildren = flattenChildren(main)
+        let mainHTML = renderer.renderChildren(mainChildren)
+        let classes = ["sidebar-layout"] + modifierContext.cssClasses
+        let classAttr = " class=\"\(classes.joined(separator: " "))\""
+        let styleAttr = modifierContext.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(modifierContext.inlineStyles))\""
+
+        let toggleId = renderer.renderState.allocateId()
+
+        return """
+                <div id="\(id)"\(classAttr)\(styleAttr)>
+                    <button id="\(toggleId)" class="sidebar-toggle mobile-only" data-sparrow-event="click" aria-label="Toggle menu">☰</button>
+                    <div class="sidebar-layout-sidebar">
+        \(sidebarHTML)
+                    </div>
+                    <div class="sidebar-layout-main">
+        \(mainHTML)
+                    </div>
+                </div>
+        """
+    }
+}
+
 // MARK: - Child flattening
 
 /// Extract child views from a ViewBuilder result, handling TupleView nesting.
