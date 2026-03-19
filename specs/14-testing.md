@@ -2,102 +2,24 @@
 
 ## Overview
 
-Sparrow ships a built-in test runner. You test views in isolation, test data operations, and test full page rendering. Tests use Swift's built-in testing framework (`swift-testing`).
+Sparrow ships a built-in test runner focused on business logic. The UI is its own test — you look at it. Automated tests cover the things you can't see: data operations, auth flows, business rules, and route behavior. Tests use Swift's built-in testing framework (`swift-testing`).
+
+## Philosophy
+
+**Don't test the UI.** If a button is the wrong color, you'll see it. If a layout is broken, you'll see it. Writing assertions about HTML structure and CSS classes creates brittle tests that break when you change a font size. The `#Preview` system (see below) is the right tool for visual verification.
+
+**Test what matters:**
+- Data layer: queries return correct results, mutations persist correctly, constraints work
+- Auth: sign-in succeeds with valid credentials, fails with invalid ones, guards block unauthorized access
+- Business logic: computed values are correct, state transitions are valid, edge cases are handled
+- Routes: the right page renders for the right URL, auth redirects work, 404s fire
 
 ## Running Tests
 
 ```
 sparrow test                    # run all tests
-sparrow test Views/             # run tests in a directory
+sparrow test Models/            # run tests in a directory
 sparrow test --filter "Login"   # run tests matching a name
-```
-
-## View Testing
-
-Test that a view renders the expected HTML given specific inputs:
-
-```swift
-import SparrowTesting
-
-@Test
-func profileCardRendersUserName() async throws {
-    let user = User(name: "Mikael", email: "mikael@test.com")
-    let html = try render(ProfileCard(user: user))
-
-    #expect(html.contains(text: "Mikael"))
-    #expect(html.contains(tag: "h2", withClass: "font-title"))
-    #expect(html.contains(tag: "img", withAttribute: "alt", value: "Mikael"))
-}
-
-@Test
-func profileCardShowsBadgeForVerifiedUsers() async throws {
-    let user = User(name: "Mikael", email: "mikael@test.com", isVerified: true)
-    let html = try render(ProfileCard(user: user))
-
-    #expect(html.contains(selector: ".badge-success"))
-}
-
-@Test
-func profileCardHidesBadgeForUnverifiedUsers() async throws {
-    let user = User(name: "Mikael", email: "mikael@test.com", isVerified: false)
-    let html = try render(ProfileCard(user: user))
-
-    #expect(!html.contains(selector: ".badge-success"))
-}
-```
-
-### The `render()` Function
-
-`render(someView)` takes any `View` and returns a `RenderedHTML` object that supports:
-
-```swift
-html.contains(text: "...")                              // text content exists
-html.contains(tag: "h2")                                // element exists
-html.contains(tag: "h2", withClass: "font-title")       // element with class
-html.contains(tag: "img", withAttribute: "src", value: "...") // attribute match
-html.contains(selector: ".badge-success")                // CSS selector match
-html.text                                                // full text content (no tags)
-html.raw                                                 // raw HTML string
-```
-
-## State Testing
-
-Test that state changes produce the expected re-render:
-
-```swift
-@Test
-func counterIncrements() async throws {
-    let session = try TestSession(Counter())
-
-    // Initial state
-    var html = session.currentHTML
-    #expect(html.contains(text: "Count: 0"))
-
-    // Simulate button click
-    try await session.click("#increment_button")
-
-    // After state change
-    html = session.currentHTML
-    #expect(html.contains(text: "Count: 1"))
-}
-```
-
-### TestSession
-
-`TestSession` simulates a full server-side session with state management:
-
-```swift
-let session = try TestSession(MyView())
-
-// Simulate interactions
-try await session.click("#element_id")
-try await session.input("#text_field_id", value: "hello")
-try await session.submit("#form_id", values: ["email": "a@b.com"])
-try await session.navigate("/other-page")
-
-// Inspect state
-let html = session.currentHTML
-let patches = session.lastPatches     // the diff patches from last interaction
 ```
 
 ## Data Layer Testing
@@ -105,6 +27,8 @@ let patches = session.lastPatches     // the diff patches from last interaction
 Test database operations against a real test database:
 
 ```swift
+import SparrowTesting
+
 @Test
 func createUserSavesToDatabase() async throws {
     try await withTestDatabase { db in
@@ -119,7 +43,6 @@ func createUserSavesToDatabase() async throws {
 @Test
 func queryFiltersCorrectly() async throws {
     try await withTestDatabase { db in
-        // Seed data
         try await User(name: "Active", email: "a@test.com", isActive: true).save(on: db)
         try await User(name: "Inactive", email: "b@test.com", isActive: false).save(on: db)
 
@@ -131,32 +54,67 @@ func queryFiltersCorrectly() async throws {
         #expect(active[0].name == "Active")
     }
 }
+
+@Test
+func uniqueEmailConstraint() async throws {
+    try await withTestDatabase { db in
+        var user1 = User(name: "First", email: "same@test.com")
+        try await user1.save(on: db)
+
+        var user2 = User(name: "Second", email: "same@test.com")
+        #expect(throws: DatabaseError.uniqueViolation("email")) {
+            try await user2.save(on: db)
+        }
+    }
+}
 ```
 
 ### Test Database
 
 `withTestDatabase` creates an isolated test database:
-- Creates a temporary Postgres database (or schema) for each test
+- Creates a temporary database (or schema) for each test
 - Runs all pending migrations
 - Executes the test
 - Drops the database after the test completes
 - Tests run in parallel with isolated databases
 
-Configuration in `Sparrow.toml`:
+Configuration:
 
-```toml
-[test.database]
-url = "postgres://localhost:5432/myapp_test"
+```swift
+// In App config or test setup
+TestDatabase(.postgres("postgres://localhost:5432/myapp_test"))
 ```
 
 ## Auth Testing
 
 ```swift
 @Test
+func signInWithValidCredentials() async throws {
+    try await withTestAuth { auth in
+        try await auth.register(email: "test@example.com", password: "password123", name: "Test")
+        try await auth.signOut()
+
+        let session = try await auth.signIn(email: "test@example.com", password: "password123")
+        #expect(session.user.email == "test@example.com")
+    }
+}
+
+@Test
+func signInWithWrongPasswordFails() async throws {
+    try await withTestAuth { auth in
+        try await auth.register(email: "test@example.com", password: "password123", name: "Test")
+        try await auth.signOut()
+
+        #expect(throws: AuthError.invalidCredentials) {
+            try await auth.signIn(email: "test@example.com", password: "wrong")
+        }
+    }
+}
+
+@Test
 func dashboardRequiresAuth() async throws {
     let session = try TestSession(MyApp())
 
-    // Unauthenticated — should redirect
     try await session.navigate("/dashboard")
     #expect(session.currentURL == "/login")
 }
@@ -165,11 +123,41 @@ func dashboardRequiresAuth() async throws {
 func dashboardShowsUserName() async throws {
     let session = try TestSession(MyApp())
 
-    // Authenticate
     try await session.signIn(email: "mikael@test.com", password: "password123")
-
     try await session.navigate("/dashboard")
     #expect(session.currentHTML.contains(text: "Welcome, Mikael"))
+}
+```
+
+## Business Logic Testing
+
+Test your domain logic directly — computed properties, validation rules, state machines:
+
+```swift
+@Test
+func cartTotalCalculation() async throws {
+    var state = AppState()
+    state.cartItems = [
+        CartItem(name: "Widget", price: 9.99, quantity: 2),
+        CartItem(name: "Gadget", price: 24.99, quantity: 1),
+    ]
+
+    #expect(state.cartTotal == 44.97)
+}
+
+@Test
+func discountCodeApplied() async throws {
+    var state = AppState()
+    state.cartItems = [CartItem(name: "Widget", price: 100, quantity: 1)]
+    state.discountCode = "SAVE20"
+
+    #expect(state.discountedTotal == 80)
+}
+
+@Test
+func emptyCartHasZeroTotal() async throws {
+    let state = AppState()
+    #expect(state.cartTotal == 0)
 }
 ```
 
@@ -180,7 +168,6 @@ func dashboardShowsUserName() async throws {
 func homePageReturns200() async throws {
     let response = try await testRequest(.GET, "/")
     #expect(response.status == .ok)
-    #expect(response.html.contains(text: "Welcome"))
 }
 
 @Test
@@ -188,11 +175,54 @@ func notFoundPageReturns404() async throws {
     let response = try await testRequest(.GET, "/nonexistent")
     #expect(response.status == .notFound)
 }
+
+@Test
+func redirectWorks() async throws {
+    let response = try await testRequest(.GET, "/old-path")
+    #expect(response.status == .redirect)
+    #expect(response.headers["Location"] == "/new-path")
+}
 ```
+
+## State Testing
+
+Test that state changes produce the expected behavior:
+
+```swift
+@Test
+func counterIncrements() async throws {
+    let session = try TestSession(Counter())
+
+    #expect(session.currentHTML.contains(text: "Count: 0"))
+
+    try await session.click("#increment_button")
+    #expect(session.currentHTML.contains(text: "Count: 1"))
+}
+```
+
+### TestSession
+
+`TestSession` simulates a full server-side session:
+
+```swift
+let session = try TestSession(MyView())
+
+// Simulate interactions
+try await session.click("#element_id")
+try await session.input("#text_field_id", value: "hello")
+try await session.submit("#form_id", values: ["email": "a@b.com"])
+try await session.navigate("/other-page")
+
+// Inspect
+let html = session.currentHTML
+let patches = session.lastPatches
+```
+
+Use `TestSession` when you need to test interaction flows — not to assert on HTML structure.
 
 ## Component Preview (#Preview)
 
-Sparrow supports `#Preview` macros for visual component testing in development:
+`#Preview` is the right tool for visual verification. It replaces UI tests.
 
 ```swift
 struct ProfileCard: View {
@@ -224,22 +254,18 @@ Opens a browser page showing all `#Preview` blocks, organized by component. Each
 - Resize the viewport (phone/tablet/desktop)
 - View the generated HTML
 
-### IDE Extension
-
-A VS Code / Zed extension that shows previews in a side panel next to the code, updating live as you edit.
-
 ## Test File Organization
 
 Test files can live anywhere in the project with a `Tests` suffix or in a `Tests/` directory:
 
 ```
 MyApp/
-  Views/
-    ProfileCard.swift
-    ProfileCardTests.swift     # co-located with the component
+  Models/
+    User.swift
+    UserTests.swift            # co-located with the model
   Tests/
     AuthTests.swift            # or in a dedicated directory
-    DataTests.swift
+    CartLogicTests.swift
 ```
 
 Sparrow discovers test files by the `@Test` macro usage.

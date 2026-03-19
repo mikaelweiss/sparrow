@@ -2,11 +2,57 @@
 
 ## Overview
 
-Sparrow ships built-in authentication. Session-based auth with Postgres as the session store. Email/password by default. No external auth provider required.
+Sparrow ships built-in authentication with an adapter pattern that matches the data layer. The view-level API is always the same — `auth.signIn()`, `@Environment(\.currentUser)`, `.authenticated()` — regardless of which auth backend is active.
+
+## Auth Adapters
+
+Pick your auth backend in the App config:
+
+```swift
+@main
+struct MyApp: App {
+    var config: some Config {
+        Auth(.builtin)
+        // or
+        Auth(.convex)
+        // or
+        Auth(.supabase("$SUPABASE_URL", key: "$SUPABASE_KEY"))
+    }
+}
+```
+
+### Built-In Adapter (`.builtin`)
+
+Session-based auth with your configured database as the session store. Email/password. No external auth provider required. This is the self-hosted, zero-dependency option.
+
+- Passwords hashed with bcrypt (cost factor 12)
+- Sessions stored in a `sparrow_sessions` table (auto-created)
+- Session ID in an HTTP-only, secure, SameSite cookie
+- CSRF tokens automatically embedded in forms
+
+### Convex Adapter (`.convex`)
+
+Uses Convex's built-in auth system. Supports email/password and OAuth providers through Convex's auth configuration.
+
+### Supabase Adapter (`.supabase`)
+
+Uses Supabase Auth. Supports email/password, magic links, OAuth providers, and phone auth through Supabase's auth configuration.
+
+### Adapter Protocol
+
+```swift
+protocol AuthAdapter {
+    func signIn(email: String, password: String) async throws -> AuthSession
+    func register(email: String, password: String, metadata: [String: Any]) async throws -> AuthSession
+    func signOut(session: AuthSession) async throws
+    func validateSession(_ token: String) async throws -> AuthUser?
+    func changePassword(session: AuthSession, current: String, new: String) async throws
+}
+```
 
 ## User Model
 
-Sparrow provides a built-in `AuthUser` model. You extend it with your own fields:
+Sparrow provides a built-in `AuthUser` protocol. You extend it with your own fields:
 
 ```swift
 @Model
@@ -22,7 +68,9 @@ struct User: AuthUser {
 }
 ```
 
-The `AuthUser` protocol requires `id`, `email`, and `passwordHash`. Sparrow handles password hashing (bcrypt), session management, and cookie handling.
+The `AuthUser` protocol requires `id`, `email`, and `passwordHash`. Sparrow handles password hashing, session management, and cookie handling.
+
+Note: When using Convex or Supabase adapters, `passwordHash` is managed by the external service. The field exists on the protocol for the built-in adapter but is ignored by external adapters.
 
 ## Protecting Routes
 
@@ -67,7 +115,7 @@ struct NavBar: View {
 }
 ```
 
-`currentUser` is automatically injected into the environment by Sparrow. It's `nil` when not authenticated.
+`currentUser` is automatically injected into the environment by Sparrow. It's `nil` when not authenticated. This works the same regardless of auth adapter.
 
 ## Built-In Auth Views
 
@@ -120,7 +168,7 @@ struct LoginView: View {
 
 ## Auth API
 
-The `auth` environment object provides:
+The `auth` environment object provides the same API regardless of adapter:
 
 ```swift
 @Environment(\.auth) var auth
@@ -140,21 +188,25 @@ let user = auth.currentUser    // User?
 
 ## Sessions
 
-- Sessions are stored in Postgres (a `sparrow_sessions` table, auto-created)
-- Session ID is stored in an HTTP-only, secure, SameSite cookie
-- Sessions expire after a configurable duration (default: 30 days)
-- The session is validated on every WebSocket connection and HTTP request
+Session behavior varies by adapter but the developer-facing behavior is consistent:
 
-Configuration in `Sparrow.toml`:
+| Behavior | Built-In | Convex | Supabase |
+|---|---|---|---|
+| Storage | Database table | Convex-managed | Supabase-managed |
+| Token delivery | HTTP-only cookie | HTTP-only cookie | HTTP-only cookie |
+| Default duration | 30 days | Convex default | Supabase default |
+| Validation | Every request | Every request | Every request |
 
-```toml
-[auth]
-sessionDuration = "30d"          # 30 days
-cookieName = "sparrow_session"
-secureCookies = true              # requires HTTPS (auto-enabled in production)
+### Session Configuration (Built-In Adapter)
+
+```swift
+Auth(.builtin, session: .init(
+    duration: .days(30),
+    secureCookies: true    // auto-enabled in production
+))
 ```
 
-## Password Handling
+## Password Handling (Built-In Adapter)
 
 - Passwords are hashed with bcrypt (cost factor 12)
 - Sparrow provides `auth.register()` and `auth.signIn()` — the developer never hashes passwords manually
@@ -167,6 +219,19 @@ secureCookies = true              # requires HTTPS (auto-enabled in production)
   )
   ```
 
+### Password Requirements (Built-In Adapter)
+
+```swift
+Auth(.builtin, password: .init(
+    minLength: 8,
+    requireUppercase: false,
+    requireNumber: false,
+    requireSpecial: false
+))
+```
+
+These are intentionally relaxed defaults. The developer can tighten them. Sparrow validates passwords at registration and password change time, returning `AuthError.weakPassword` with a human-readable message.
+
 ## Auth Errors
 
 ```swift
@@ -176,33 +241,50 @@ enum AuthError: Error {
     case unauthenticated           // no active session
     case sessionExpired            // session timed out
     case weakPassword(String)      // password doesn't meet requirements
+    case adapterError(String)      // adapter-specific error
 }
 ```
 
-## Password Requirements
-
-Default requirements (configurable):
-
-```toml
-[auth.password]
-minLength = 8
-requireUppercase = false
-requireNumber = false
-requireSpecial = false
-```
-
-These are intentionally relaxed defaults. The developer can tighten them. Sparrow validates passwords at registration and password change time, returning `AuthError.weakPassword` with a human-readable message.
+All adapters map their native errors to these common types.
 
 ## CSRF Protection
 
-Sparrow automatically includes CSRF tokens in forms and validates them on submission. The developer doesn't need to think about this. The token is embedded in the HTML by the renderer and validated by the server on form submission events.
+Sparrow automatically includes CSRF tokens in forms and validates them on submission. The developer doesn't need to think about this. The token is embedded in the HTML by the renderer and validated by the server on form submission events. This works with all auth adapters.
 
-## Additional Auth Features
+## OAuth Providers
 
-- OAuth providers (Google, GitHub, Apple)
-- Email verification
-- Password reset via email
-- Two-factor authentication (TOTP)
-- Role-based access control (`@RequiresRole(.admin)`)
-- Organization-based access
-- Rate limiting on auth endpoints
+OAuth support varies by adapter:
+
+### Built-In Adapter
+
+```swift
+Auth(.builtin, oauth: [
+    .google(clientId: "$GOOGLE_CLIENT_ID", clientSecret: "$GOOGLE_CLIENT_SECRET"),
+    .github(clientId: "$GITHUB_CLIENT_ID", clientSecret: "$GITHUB_CLIENT_SECRET"),
+    .apple(clientId: "$APPLE_CLIENT_ID", teamId: "$APPLE_TEAM_ID"),
+])
+```
+
+Sparrow handles the OAuth flow, callback routes, and user creation/linking.
+
+### Convex / Supabase Adapters
+
+OAuth is configured in the respective service's dashboard. Sparrow surfaces the sign-in buttons:
+
+```swift
+Button("Sign in with Google", style: .ghost) {
+    try await auth.signIn(provider: .google)
+}
+```
+
+## Role-Based Access Control
+
+```swift
+RouteGroup {
+    Page("/admin") { AdminView() }
+}
+.authenticated()
+.requireRole(.admin)
+```
+
+Roles are stored on the User model and checked by the router middleware. This works the same regardless of auth adapter.
