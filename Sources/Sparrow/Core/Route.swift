@@ -2,7 +2,7 @@
 public struct Route: Sendable {
     public let path: String
     public let title: String?
-    private let _renderBody: @Sendable (HTMLRenderer) -> String
+    let _renderBody: @Sendable (HTMLRenderer) -> String
 
     public init<V: View & Sendable>(path: String, title: String? = nil, view: V) {
         self.path = path
@@ -12,10 +12,16 @@ public struct Route: Sendable {
         }
     }
 
-    /// Render the full HTML document for this route.
+    /// Render just the body HTML (used by SessionActor for re-renders).
+    func renderBody(with renderer: HTMLRenderer) -> String {
+        _renderBody(renderer)
+    }
+
+    /// Render the full HTML document for this route (SSR).
     public func renderDocument(with renderer: HTMLRenderer) -> String {
         let bodyHTML = _renderBody(renderer)
         let devScript = DevReload.scriptTag
+        let runtimeScript = ClientRuntime.script
         return """
         <!DOCTYPE html>
         <html lang="en">
@@ -29,6 +35,7 @@ public struct Route: Sendable {
             <div id="sparrow-root">
         \(bodyHTML)
             </div>\(devScript)
+            \(runtimeScript)
         </body>
         </html>
         """

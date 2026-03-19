@@ -229,5 +229,30 @@ public enum CSSGenerator {
 
     /* Divider */
     .divider { border: none; border-top: 1px solid var(--color-surfaceSecondary); width: 100%; }
+
+    /* Link */
+    .link { color: var(--color-primary); text-decoration: none; cursor: pointer; }
+    .link:hover { text-decoration: underline; }
+
+    /* Button */
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: var(--spacing-2) var(--spacing-4);
+        font: 600 17px/1.4 var(--font-body);
+        color: var(--color-white);
+        background: var(--color-primary);
+        border: none;
+        border-radius: var(--radius-md);
+        cursor: pointer;
+        transition: opacity 0.15s ease;
+    }
+
+    /* Clip shapes */
+    .clip-circle { border-radius: var(--radius-full); aspect-ratio: 1; padding: var(--spacing-2); }
+    .btn:hover { opacity: 0.85; }
+    .btn:active { opacity: 0.7; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
     """
 }

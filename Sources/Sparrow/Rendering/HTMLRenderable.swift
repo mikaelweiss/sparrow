@@ -8,6 +8,7 @@ protocol HTMLRenderable {
 
 extension VStack: HTMLRenderable {
     func renderHTML(with renderer: HTMLRenderer, modifierContext: ModifierContext) -> String {
+        let id = renderer.renderState.allocateId()
         let children = flattenChildren(content)
         let childrenHTML = renderer.renderChildren(children)
         var classes = ["flex", "flex-col", alignment.cssClass] + modifierContext.cssClasses
@@ -17,7 +18,7 @@ extension VStack: HTMLRenderable {
         let classAttr = " class=\"\(classes.joined(separator: " "))\""
         let styleAttr = modifierContext.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(modifierContext.inlineStyles))\""
         return """
-                <div\(classAttr)\(styleAttr)>
+                <div id="\(id)"\(classAttr)\(styleAttr)>
         \(childrenHTML)
                 </div>
         """
@@ -28,6 +29,7 @@ extension VStack: HTMLRenderable {
 
 extension HStack: HTMLRenderable {
     func renderHTML(with renderer: HTMLRenderer, modifierContext: ModifierContext) -> String {
+        let id = renderer.renderState.allocateId()
         let children = flattenChildren(content)
         let childrenHTML = renderer.renderChildren(children)
         var classes = ["flex", "flex-row", alignment.cssClass] + modifierContext.cssClasses
@@ -37,7 +39,7 @@ extension HStack: HTMLRenderable {
         let classAttr = " class=\"\(classes.joined(separator: " "))\""
         let styleAttr = modifierContext.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(modifierContext.inlineStyles))\""
         return """
-                <div\(classAttr)\(styleAttr)>
+                <div id="\(id)"\(classAttr)\(styleAttr)>
         \(childrenHTML)
                 </div>
         """

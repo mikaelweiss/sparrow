@@ -194,17 +194,36 @@ public struct New: ParsableCommand {
         let appSwift = """
         import Sparrow
 
+        struct Counter: View {
+            @State var count = 0
+
+            var body: some View {
+                HStack(spacing: 16) {
+                    Button("-") {
+                        count -= 1
+                    }
+                    .clipShape(.circle)
+                    Text("\\(count)")
+                        .font(.title)
+                    Button("+") {
+                        count += 1
+                    }
+                    .clipShape(.circle)
+                }
+            }
+        }
+
         @main
         struct \(name): App {
             init() {}
 
             var routes: [Route] {
                 Page("/") {
-                    VStack(spacing: 16) {
+                    VStack(spacing: 24) {
                         Text("Welcome to \(name)")
                             .font(.largeTitle)
-                        Text("Edit Sources/App.swift to get started.")
-                            .foreground(.textSecondary)
+                        Counter()
+                        Link("sparrowframework.dev", url: "https://sparrowframework.dev")
                     }
                     .padding(32)
                 }
