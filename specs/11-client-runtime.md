@@ -22,7 +22,7 @@ Sparrow ships a small JavaScript runtime (~5-10KB minified+gzipped) that runs in
 On page load, after the SSR HTML is rendered:
 
 ```javascript
-Sparrow.connect("ws://localhost:3000/sparrow/ws", "session_token");
+Sparrow.connect("ws://localhost:5456/sparrow/ws", "session_token");
 ```
 
 The session token is embedded in the SSR HTML by the server. It identifies the session actor on the server.

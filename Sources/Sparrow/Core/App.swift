@@ -6,7 +6,8 @@ public protocol App {
 }
 
 extension App {
-    public var port: Int { 3000 }
+    /// Default port: 5456 — "KILN" on a phone keypad.
+    public var port: Int { 5456 }
 
     /// Entry point — starts the Sparrow server.
     public static func main() async throws {

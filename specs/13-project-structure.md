@@ -26,7 +26,7 @@ import Sparrow
 @main
 struct MyApp: App {
     var config: some Config {
-        Server(port: 3000)
+        Server(port: 5456)
         Database(.postgres("$DATABASE_URL"))
         Auth(.builtin)
     }
@@ -54,7 +54,7 @@ The `config` property declares all infrastructure:
 ```swift
 var config: some Config {
     // Server
-    Server(port: 3000, host: "0.0.0.0")
+    Server(port: 5456, host: "0.0.0.0")
 
     // Database — pick one adapter
     Database(.postgres("$DATABASE_URL"))
@@ -107,7 +107,7 @@ Because it's Swift, you can use `#if`:
 ```swift
 var config: some Config {
     #if DEBUG
-    Server(port: 3000)
+    Server(port: 5456)
     Database(.postgres("postgres://localhost:5432/myapp_dev"))
     #else
     Server(port: 8080)

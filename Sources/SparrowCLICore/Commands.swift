@@ -8,7 +8,7 @@ public struct Serve: ParsableCommand {
     public static let configuration = CommandConfiguration(abstract: "Start the development server")
 
     @Option(name: .long, help: "Port to run on")
-    var port: Int = 3000
+    var port: Int = 5456
 
     @Flag(name: .long, help: "Show verbose build output")
     var verbose: Bool = false

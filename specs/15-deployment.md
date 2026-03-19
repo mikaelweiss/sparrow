@@ -34,7 +34,7 @@ The binary starts the HTTP server, connects to Postgres, and serves your app. Th
 | Variable | Required | Default | Description |
 |---|---|---|---|
 | `DATABASE_URL` | Yes | — | Postgres connection string |
-| `PORT` | No | `3000` | HTTP server port |
+| `PORT` | No | `5456` | HTTP server port |
 | `HOST` | No | `0.0.0.0` | Bind address |
 | `SPARROW_ENV` | No | `production` | Environment (`development` or `production`) |
 | `SPARROW_SECRET` | Yes (prod) | auto-generated (dev) | Secret key for session signing |
@@ -65,7 +65,7 @@ FROM swift:6.2-slim
 WORKDIR /app
 COPY --from=builder /app/.build/release/MyApp .
 COPY --from=builder /app/.build/release/public ./public
-EXPOSE 3000
+EXPOSE 5456
 CMD ["./MyApp"]
 ```
 
@@ -75,7 +75,7 @@ Build and run:
 $ sparrow build --docker --run
 
   ✓ Built Docker image: myapp:latest
-  ✓ Running on http://localhost:3000
+  ✓ Running on http://localhost:5456
 ```
 
 ## Platform Deployment
@@ -116,7 +116,7 @@ $ sparrow deploy --render
 
 ```
 myapp.com {
-    reverse_proxy localhost:3000
+    reverse_proxy localhost:5456
 }
 ```
 
@@ -164,7 +164,7 @@ Or in your deployment script:
 Sparrow uses Swift's `swift-log` for structured logging:
 
 ```
-[2026-03-19 14:30:00] INFO  Server started on :3000
+[2026-03-19 14:30:00] INFO  Server started on :5456
 [2026-03-19 14:30:01] INFO  Database connected (pool: 20)
 [2026-03-19 14:30:05] INFO  GET /  200 12ms
 [2026-03-19 14:30:06] INFO  WS connected session=abc123

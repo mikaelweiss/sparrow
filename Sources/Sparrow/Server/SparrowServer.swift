@@ -5,7 +5,7 @@ import Hummingbird
 public struct SparrowServer: Sendable {
     let port: Int
 
-    public init(port: Int = 3000) {
+    public init(port: Int = 5456) {
         self.port = port
     }
 

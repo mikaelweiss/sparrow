@@ -99,7 +99,7 @@ $ sparrow run
   ✓ Compiled MyApp (1.2s)
   ✓ Connected to Postgres
   ✓ Migrations up to date
-  ✓ Server running at http://localhost:3000
+  ✓ Server running at http://localhost:5456
 
   Watching for changes...
 ```
@@ -115,7 +115,7 @@ What `sparrow run` does:
 
 **Flags:**
 ```
-sparrow run                    # default: localhost:3000
+sparrow run                    # default: localhost:5456
 sparrow run --port 8080        # custom port
 sparrow run --no-browser       # don't open browser
 sparrow run --verbose          # detailed build output
@@ -188,7 +188,7 @@ $ sparrow new --json '{"name": "MyApp"}'
 {"status": "ok", "path": "MyApp/"}
 
 $ sparrow run --json
-{"status": "running", "url": "http://localhost:3000", "pid": 12345}
+{"status": "running", "url": "http://localhost:5456", "pid": 12345}
 
 $ sparrow build --json
 {"status": "ok", "binary": ".build/release/MyApp", "assets": ".build/release/public/"}
