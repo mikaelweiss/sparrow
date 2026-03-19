@@ -8,7 +8,6 @@ let package = Package(
     products: [
         .library(name: "Sparrow", targets: ["Sparrow"]),
         .executable(name: "sparrow", targets: ["SparrowCLI"]),
-        .executable(name: "kln", targets: ["KilnCLI"]),
     ],
     dependencies: [
         .package(url: "https://github.com/hummingbird-project/hummingbird.git", from: "2.0.0"),
@@ -29,13 +28,6 @@ let package = Package(
         ),
         .executableTarget(
             name: "SparrowCLI",
-            dependencies: [
-                "SparrowCLICore",
-                .product(name: "ArgumentParser", package: "swift-argument-parser"),
-            ]
-        ),
-        .executableTarget(
-            name: "KilnCLI",
             dependencies: [
                 "SparrowCLICore",
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
