@@ -23,10 +23,10 @@
 ### CLI changes (SparrowCLI, KilnCLI, SparrowCLICore)
 
 ```
-edit → swift package experimental-uninstall sparrow && swift package experimental-install → test
+edit → ./package-dev.sh → test
 ```
 
-The CLI is a compiled binary installed to `~/.swiftpm/bin`. You must uninstall and reinstall after changes (there's no overwrite flag).
+The CLI is a compiled binary installed to `~/.swiftpm/bin`. `package-dev.sh` handles uninstalling, reinstalling, and symlinking `kln`.
 
 ### Library changes (Sparrow framework)
 
