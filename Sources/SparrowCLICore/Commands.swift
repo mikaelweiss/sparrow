@@ -226,6 +226,18 @@ public struct New: ParsableCommand {
         print("  Created \(name)/Sources/App.swift")
         print("  Created \(name)/.gitignore")
         print("")
+
+        // Ask about git initialization
+        print("  Initialize git repository? [y/n] ", terminator: "")
+        let gitAnswer = readLine()?.trimmingCharacters(in: .whitespaces).lowercased() ?? ""
+        if gitAnswer == "y" || gitAnswer == "yes" {
+            shell(["git", "init"], cwd: projectDir)
+            shell(["git", "add", "."], cwd: projectDir)
+            shell(["git", "commit", "-m", "Initial Commit"], cwd: projectDir)
+            print("  Initialized git repository.")
+        }
+
+        print("")
         print("  Next steps:")
         print("    cd \(name)")
         print("    sparrow serve  (or: kln serve)")
