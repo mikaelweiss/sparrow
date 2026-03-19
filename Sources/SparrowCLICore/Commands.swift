@@ -1,9 +1,10 @@
 import ArgumentParser
+import Dispatch
 import Foundation
 
 private let devLocalPath = "/Users/mikaelweiss/code/code-puppies/sparrow"
 
-public struct Run: ParsableCommand {
+public struct Serve: ParsableCommand {
     public static let configuration = CommandConfiguration(abstract: "Start the development server")
 
     @Option(name: .long, help: "Port to run on")
@@ -31,7 +32,7 @@ public struct Run: ParsableCommand {
         let executableName = discoverExecutable(in: cwd) ?? "App"
         print("  Build succeeded. Starting \(executableName) on port \(port)...")
 
-        let runResult = shell(["swift", "run", executableName], cwd: cwd)
+        let runResult = shellWithSignalForwarding(["swift", "run", executableName], cwd: cwd)
         if runResult != 0 {
             print("  Server exited with error.")
             throw ExitCode.failure
@@ -157,7 +158,7 @@ public struct New: ParsableCommand {
         print("")
         print("  Next steps:")
         print("    cd \(name)")
-        print("    sparrow run  (or: kln run)")
+        print("    sparrow serve  (or: kln serve)")
     }
 }
 
@@ -171,6 +172,40 @@ public func shell(_ args: [String], cwd: String) -> Int32 {
     process.currentDirectoryURL = URL(fileURLWithPath: cwd)
     try? process.run()
     process.waitUntilExit()
+    return process.terminationStatus
+}
+
+/// Runs a subprocess and forwards SIGINT/SIGTERM to it so Ctrl+C kills the child.
+@discardableResult
+public func shellWithSignalForwarding(_ args: [String], cwd: String) -> Int32 {
+    let process = Process()
+    process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
+    process.arguments = args
+    process.currentDirectoryURL = URL(fileURLWithPath: cwd)
+
+    // Forward SIGINT and SIGTERM to the child process
+    let interruptSource = DispatchSource.makeSignalSource(signal: SIGINT, queue: .main)
+    let termSource = DispatchSource.makeSignalSource(signal: SIGTERM, queue: .main)
+
+    // Ignore default signal handling so we can handle it ourselves
+    signal(SIGINT, SIG_IGN)
+    signal(SIGTERM, SIG_IGN)
+
+    interruptSource.setEventHandler {
+        if process.isRunning { process.interrupt() }
+    }
+    termSource.setEventHandler {
+        if process.isRunning { process.terminate() }
+    }
+    interruptSource.resume()
+    termSource.resume()
+
+    try? process.run()
+    process.waitUntilExit()
+
+    interruptSource.cancel()
+    termSource.cancel()
+
     return process.terminationStatus
 }
 
