@@ -1,6 +1,8 @@
 import ArgumentParser
 import Foundation
 
+private let devLocalPath = "/Users/mikaelweiss/code/code-puppies/sparrow"
+
 public struct Run: ParsableCommand {
     public static let configuration = CommandConfiguration(abstract: "Start the development server")
 
@@ -60,6 +62,9 @@ public struct New: ParsableCommand {
     @Argument(help: "Project name (will prompt if not provided)")
     var name: String?
 
+    @Flag(name: .long, help: "Use local Sparrow checkout instead of GitHub (for development)")
+    var local = false
+
     public init() {}
 
     public func run() throws {
@@ -84,6 +89,13 @@ public struct New: ParsableCommand {
         try fm.createDirectory(atPath: sourcesDir, withIntermediateDirectories: true)
 
         // Package.swift
+        let depLine: String
+        if local {
+            depLine = ".package(path: \"\(devLocalPath)\"),"
+        } else {
+            depLine = ".package(url: \"https://github.com/mikaelweiss/sparrow.git\", branch: \"main\"),"
+        }
+
         let packageSwift = """
         // swift-tools-version: 6.2
         import PackageDescription
@@ -92,7 +104,7 @@ public struct New: ParsableCommand {
             name: "\(name)",
             platforms: [.macOS(.v15)],
             dependencies: [
-                .package(url: "https://github.com/mikaelweiss/sparrow.git", branch: "main"),
+                \(depLine)
             ],
             targets: [
                 .executableTarget(
