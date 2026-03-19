@@ -160,9 +160,6 @@ enum ClientRuntime {
             if (msg.title) {
                 document.title = msg.title;
             }
-            if (msg.url) {
-                window.history.pushState({}, "", msg.url);
-            }
             window.scrollTo(0, 0);
         }
 
