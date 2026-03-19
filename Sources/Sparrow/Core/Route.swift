@@ -15,6 +15,7 @@ public struct Route: Sendable {
     /// Render the full HTML document for this route.
     public func renderDocument(with renderer: HTMLRenderer) -> String {
         let bodyHTML = _renderBody(renderer)
+        let devScript = DevReload.scriptTag
         return """
         <!DOCTYPE html>
         <html lang="en">
@@ -27,7 +28,7 @@ public struct Route: Sendable {
         <body>
             <div id="sparrow-root">
         \(bodyHTML)
-            </div>
+            </div>\(devScript)
         </body>
         </html>
         """

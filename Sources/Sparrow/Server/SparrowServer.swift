@@ -1,3 +1,4 @@
+import Foundation
 import Hummingbird
 
 /// The Sparrow HTTP server. Serves rendered HTML pages.
@@ -32,6 +33,21 @@ public struct SparrowServer: Sendable {
                 headers: [.contentType: "application/json"],
                 body: .init(byteBuffer: .init(string: "{\"status\": \"ok\"}"))
             )
+        }
+
+        // Dev reload: returns the server PID so the client can detect restarts
+        if DevReload.isDevMode {
+            let pid = "\(ProcessInfo.processInfo.processIdentifier)"
+            router.get("/_sparrow/build-id") { _, _ -> Response in
+                Response(
+                    status: .ok,
+                    headers: [
+                        .contentType: "text/plain",
+                        .cacheControl: "no-cache, no-store",
+                    ],
+                    body: .init(byteBuffer: .init(string: pid))
+                )
+            }
         }
 
         let app = Application(

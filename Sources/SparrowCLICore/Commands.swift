@@ -20,23 +20,93 @@ public struct Serve: ParsableCommand {
 
         let cwd = FileManager.default.currentDirectoryPath
 
+        // Initial build
         print("  Building...")
-        let buildArgs = verbose ? ["swift", "build", "--verbose"] : ["swift", "build"]
-        let buildResult = shell(buildArgs, cwd: cwd)
+        let buildResult = build(cwd: cwd)
         guard buildResult == 0 else {
             print("  Build failed.")
             throw ExitCode.failure
         }
 
-        // Discover the executable target name from Package.swift
         let executableName = discoverExecutable(in: cwd) ?? "App"
         print("  Build succeeded. Starting \(executableName) on port \(port)...")
+        print("  Watching for file changes...")
 
-        let runResult = shellWithSignalForwarding(["swift", "run", executableName], cwd: cwd)
-        if runResult != 0 {
-            print("  Server exited with error.")
-            throw ExitCode.failure
+        // Track the running server process
+        var serverProcess: Process? = nil
+
+        func launchServer() -> Process? {
+            // Run the binary directly (not via `swift run`) so env vars propagate
+            let binaryPath = cwd + "/.build/debug/" + executableName
+            guard FileManager.default.fileExists(atPath: binaryPath) else {
+                print("  Binary not found at \(binaryPath)")
+                return nil
+            }
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: binaryPath)
+            process.currentDirectoryURL = URL(fileURLWithPath: cwd)
+            // Tell the framework we're in dev mode and give it a unique build ID
+            var env = ProcessInfo.processInfo.environment
+            env["SPARROW_DEV"] = "1"
+            process.environment = env
+            try? process.run()
+            return process
         }
+
+        func killServer() {
+            guard let process = serverProcess, process.isRunning else { return }
+            process.terminate()
+            process.waitUntilExit()
+        }
+
+        // Launch initial server
+        serverProcess = launchServer()
+
+        // Set up file watcher
+        let watcher = FileWatcher(path: cwd) {
+            print("\n  File changed. Rebuilding...")
+            killServer()
+
+            let result = build(cwd: cwd)
+            if result == 0 {
+                print("  Build succeeded. Restarting server...")
+                serverProcess = launchServer()
+            } else {
+                print("  Build failed. Waiting for changes...")
+                // Don't restart — wait for next file change
+            }
+        }
+
+        // Forward SIGINT/SIGTERM to kill the server and exit
+        let interruptSource = DispatchSource.makeSignalSource(signal: SIGINT, queue: .main)
+        let termSource = DispatchSource.makeSignalSource(signal: SIGTERM, queue: .main)
+        signal(SIGINT, SIG_IGN)
+        signal(SIGTERM, SIG_IGN)
+
+        interruptSource.setEventHandler {
+            print("\n  Shutting down...")
+            watcher.stop()
+            killServer()
+            Foundation.exit(0)
+        }
+        termSource.setEventHandler {
+            watcher.stop()
+            killServer()
+            Foundation.exit(0)
+        }
+        interruptSource.resume()
+        termSource.resume()
+
+        // Start watching (schedules on current run loop)
+        watcher.start()
+
+        // Run the run loop to keep the process alive and receive FSEvents
+        CFRunLoopRun()
+    }
+
+    private func build(cwd: String) -> Int32 {
+        let args = verbose ? ["swift", "build", "--verbose"] : ["swift", "build"]
+        return shell(args, cwd: cwd)
     }
 }
 
