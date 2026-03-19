@@ -39,6 +39,4 @@ Developers building new web projects with AI assistance. People who want to ship
 |---|---|
 | SwiftUI | Declarative component model, property wrappers, modifier chains |
 | Phoenix LiveView | Server-rendered interactivity over WebSocket, no client-side framework |
-| Rails/Laravel | Batteries-included philosophy, CLI generators, conventions over configuration |
-| Tailwind | Design tokens as CSS custom properties, utility-class approach (generated, not hand-written) |
 | Apple HIG | Professional default design system that works for 90% of apps |

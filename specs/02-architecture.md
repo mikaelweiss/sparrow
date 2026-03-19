@@ -6,8 +6,8 @@ Sparrow is a server-side Swift framework that renders HTML and manages UI state 
 
 ```
 ┌─────────────────────────────────────────────┐
-│                   Browser                    │
-│                                              │
+│                   Browser                   │
+│                                             │
 │  ┌──────────┐  ┌──────────┐  ┌───────────┐  │
 │  │   DOM    │  │ Sparrow  │  │ Generated │  │
 │  │ (HTML)   │  │ Client   │  │    CSS    │  │
@@ -15,48 +15,48 @@ Sparrow is a server-side Swift framework that renders HTML and manages UI state 
 │  │          │  │ (~5-10KB │  │           │  │
 │  │          │  │   JS)    │  │           │  │
 │  └──────────┘  └────┬─────┘  └───────────┘  │
-│                     │                        │
-└─────────────────────┼────────────────────────┘
+│                     │                       │
+└─────────────────────┼───────────────────────┘
                       │ WebSocket
 ┌─────────────────────┼────────────────────────┐
-│                     │       Server            │
-│               ┌─────┴──────┐                  │
-│               │ Hummingbird│                  │
-│               │  (HTTP +   │                  │
-│               │ WebSocket) │                  │
-│               └─────┬──────┘                  │
-│                     │                         │
-│  ┌──────────────────┴───────────────────┐     │
-│  │         Sparrow Runtime              │     │
-│  │                                      │     │
-│  │  ┌──────────┐  ┌──────────────────┐  │     │
-│  │  │  Router  │  │ Session Actors   │  │     │
-│  │  │          │  │                  │  │     │
-│  │  │ URL →    │  │ Actor per user:  │  │     │
-│  │  │ Page     │  │ - @State values  │  │     │
-│  │  │ mapping  │  │ - Current view   │  │     │
-│  │  │          │  │   tree           │  │     │
-│  │  │          │  │ - Last rendered  │  │     │
-│  │  │          │  │   HTML           │  │     │
-│  │  └──────────┘  └──────────────────┘  │     │
-│  │                                      │     │
-│  │  ┌──────────┐  ┌──────────────────┐  │     │
-│  │  │ Renderer │  │  Differ          │  │     │
-│  │  │          │  │                  │  │     │
-│  │  │ View →   │  │ Old HTML vs     │  │     │
-│  │  │ HTML     │  │ New HTML →      │  │     │
-│  │  │ string   │  │ Minimal patches │  │     │
-│  │  └──────────┘  └──────────────────┘  │     │
-│  └──────────────────────────────────────┘     │
-│                                               │
-│  ┌──────────────────────────────────────┐     │
-│  │         Data Layer                   │     │
-│  │  ┌───────────┐  ┌────────────────┐   │     │
-│  │  │  Postgres │  │  Auth/Session  │   │     │
-│  │  │  Adapter  │  │  Store         │   │     │
-│  │  └───────────┘  └────────────────┘   │     │
-│  └──────────────────────────────────────┘     │
-└───────────────────────────────────────────────┘
+│                     │       Server           │
+│               ┌─────┴──────┐                 │
+│               │ Hummingbird│                 │
+│               │  (HTTP +   │                 │
+│               │ WebSocket) │                 │
+│               └─────┬──────┘                 │
+│                     │                        │
+│  ┌──────────────────┴───────────────────┐    │
+│  │         Sparrow Runtime              │    │
+│  │                                      │    │
+│  │  ┌──────────┐  ┌──────────────────┐  │    │
+│  │  │  Router  │  │ Session Actors   │  │    │
+│  │  │          │  │                  │  │    │
+│  │  │ URL →    │  │ Actor per user:  │  │    │
+│  │  │ Page     │  │ - @State values  │  │    │
+│  │  │ mapping  │  │ - Current view   │  │    │
+│  │  │          │  │   tree           │  │    │
+│  │  │          │  │ - Last rendered  │  │    │
+│  │  │          │  │   HTML           │  │    │
+│  │  └──────────┘  └──────────────────┘  │    │
+│  │                                      │    │
+│  │  ┌──────────┐  ┌──────────────────┐  │    │
+│  │  │ Renderer │  │  Differ          │  │    │
+│  │  │          │  │                  │  │    │
+│  │  │ View →   │  │ Old HTML vs      │  │    │
+│  │  │ HTML     │  │ New HTML →       │  │    │
+│  │  │ string   │  │ Minimal patches  │  │    │
+│  │  └──────────┘  └──────────────────┘  │    │
+│  └──────────────────────────────────────┘    │
+│                                              │
+│  ┌──────────────────────────────────────┐    │
+│  │         Data Layer                   │    │
+│  │  ┌───────────┐  ┌────────────────┐   │    │
+│  │  │  Postgres │  │  Auth/Session  │   │    │
+│  │  │  Adapter  │  │  Store         │   │    │
+│  │  └───────────┘  └────────────────┘   │    │
+│  └──────────────────────────────────────┘    │
+└──────────────────────────────────────────────┘
 ```
 
 ## Request Lifecycle
@@ -112,7 +112,6 @@ Sparrow is a server-side Swift framework that renders HTML and manages UI state 
 | Dependency | Purpose | Why |
 |---|---|---|
 | Hummingbird | HTTP server, WebSocket, routing | Production-tested, async/await native, lightweight |
-| PostgresNIO | Postgres database driver | Direct, no ORM overhead for the adapter layer |
 | SwiftNIO | Underlying networking | Hummingbird depends on it |
 | swift-crypto | Password hashing, session tokens | Apple's official crypto library |
 
