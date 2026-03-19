@@ -89,13 +89,13 @@ MyView()
 
 Environment values propagate down the tree. Any descendant can read them. Setting a value on a subtree overrides the ancestor's value for that subtree only (just like SwiftUI).
 
-### @Store — Global Observable State
+### @Observable — Shared State
 
-For app-wide state that any component can read and react to. Defined as an `@Observable` struct.
+For app-wide state that multiple components can read and react to. Uses Swift's Observation framework directly — no extra property wrapper needed.
 
 ```swift
 @Observable
-struct AppState {
+class AppState {
     var cartItems: [CartItem] = []
     var isOnboarded: Bool = false
 
@@ -104,17 +104,15 @@ struct AppState {
     }
 }
 
-// In the app root
+// In the app root — just inject via @Environment
 @main
 struct MyApp: App {
-    @Store var appState = AppState()
-
     var body: some Scene {
         Routes {
             Page("/") { HomeView() }
             Page("/cart") { CartView() }
         }
-        .environment(\.appState, appState)
+        .environment(\.appState, AppState())
     }
 }
 
@@ -128,7 +126,14 @@ struct CartBadge: View {
 }
 ```
 
-`@Observable` uses Swift's observation framework. The framework tracks which properties each component reads and only re-renders components that depend on changed properties. If `CartBadge` only reads `cartItems.count`, it won't re-render when `isOnboarded` changes.
+The framework tracks which properties each component reads and only re-renders components that depend on changed properties. If `CartBadge` only reads `cartItems.count`, it won't re-render when `isOnboarded` changes.
+
+There is no `@Store` wrapper. `@Observable` + `@Environment` covers this case. Fewer wrappers = less confusion. This is the lesson SwiftUI learned when it collapsed `@StateObject`/`@ObservedObject`/`@EnvironmentObject` into `@Observable`.
+
+**Guidelines for `@Observable` types:**
+- Keep them small and focused. One model per domain concern, not a god object.
+- Observation of items inside arrays has known sharp edges. If a view reads `items[i].name`, mutations to `items[i].name` must go through the `@Observable` tracking to trigger re-renders. Prefer flat data over deeply nested observable graphs.
+- `@Observable` requires `class`, not `struct`. This is intentional — shared mutable state needs reference semantics.
 
 ## Derived State
 
@@ -249,6 +254,17 @@ actor SessionActor {
 
 State is identified by component identity (position in the view tree + any explicit `id`). This matches SwiftUI's state identity model.
 
+### Session Memory Management
+
+Every concurrent WebSocket connection holds state in server memory. This is the fundamental scalability constraint of the LiveView model. A baseline connection is cheap (~40KB), but real applications store view trees, state values, and data in each session.
+
+**Rules:**
+- **Keep session assigns minimal.** The session actor should hold only what is needed to render the current view. Shared data (e.g., product catalog, user lists) should live in a shared cache or the database, not copied into every session.
+- **Large collections must use temporary assigns or streams.** If a view renders 10,000 rows, the session must not hold all 10,000 in memory after the render. Temporary assigns are freed after rendering — the HTML is already generated, the data is no longer needed. Streams handle append-only data (chat messages, logs) without growing memory.
+- **Throttle broadcasts.** When notifying sessions of database changes (see Cross-Tab Reactivity below), send small signals, not full payloads. Each session fetches what it needs.
+
+The framework should provide `temporaryAssign` and `stream` primitives so developers don't have to think about this — but the defaults must be safe. If a developer puts a large list in `@State`, the framework should warn or automatically treat it as temporary after render.
+
 ## Multiple Tabs / Cross-Tab Reactivity
 
 Each browser tab is a separate WebSocket connection with its own session actor and its own `@State` tree.
@@ -259,11 +275,13 @@ Each browser tab is a separate WebSocket connection with its own session actor a
 
 This works because the server already holds all session actors in memory. On a database mutation:
 1. The session actor that triggered the write updates its view as normal
-2. The server looks up all other active session actors for the same authenticated user
-3. Each of those actors re-renders any views that depend on the changed data
+2. The server broadcasts a lightweight signal (not the full data) to other active session actors for the same user
+3. Each notified actor fetches the changed data it needs and re-renders affected views
 4. Patches are sent to each tab's WebSocket connection
 
 The developer doesn't think about any of this. They write to the database, and every tab showing that data updates.
+
+**Important:** Never broadcast full data payloads to all sessions. A naive implementation that sends the entire updated dataset to N sessions multiplies memory by N. Send a signal ("cart changed"), let each session fetch what it needs.
 
 ## State Lifecycle
 
@@ -274,3 +292,30 @@ The developer doesn't think about any of this. They write to the database, and e
 - On reconnect, the page re-renders from scratch using database state
 
 This means: UI preferences (modal open, tab selected, scroll position) reset on reconnect. User data (profile, cart, saved items) persists because it's in the database. This is the correct behavior — ephemeral state is ephemeral, persistent state is persistent.
+
+### Surviving Reconnects
+
+State loss on disconnect (crash, deploy, network blip) is inherent to the server-state model. To minimize user-visible disruption:
+
+- **Navigational state goes in the URL.** Active tab, pagination, filters, sort order — these must be URL parameters, not `@State`. This way they survive reconnects and support the back button.
+- **Form inputs auto-recover.** The client runtime should snapshot form field values and replay them on reconnect. Phoenix LiveView does this and it works well.
+- **Accept the reset for everything else.** A modal closing or an accordion collapsing on reconnect is fine. Do not try to persist all UI state — the complexity is not worth it.
+
+## Latency and Client-Side Escape Hatch
+
+Every user interaction round-trips to the server. At <50ms latency this is invisible. At 100ms+ it's noticeable. At 250ms+ it degrades the experience for fast interactions like toggles, dropdowns, and text formatting.
+
+The framework's position is "zero JS written by the developer," and that should remain the default path. But the spec must acknowledge reality: some interactions cannot tolerate a round-trip.
+
+**Approach:** Provide a `clientSide` modifier or JS hooks system for developers who need zero-latency interactions. The developer writes a small JS snippet that handles the immediate UI feedback, and the server still processes the authoritative state change.
+
+```swift
+Toggle("Dark mode", isOn: $darkMode)
+    .clientHint(.toggle)  // client toggles immediately, server confirms
+```
+
+This is not a contradiction of the framework's philosophy — it's the same pattern every successful LiveView framework converges on (Phoenix hooks, Livewire's `wire:model.live` vs `wire:model.blur`, Alpine.js integration). Ship the escape hatch from day one rather than bolting it on later.
+
+## Offline
+
+Sparrow apps do not work offline. This is inherent to the architecture and not a bug. If the WebSocket disconnects, the app shows a reconnecting state and resumes when the connection returns. Do not attempt to build offline support — it contradicts the server-state model. Be honest about this in documentation.
