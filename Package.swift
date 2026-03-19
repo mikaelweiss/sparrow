@@ -41,5 +41,13 @@ let package = Package(
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
             ]
         ),
+        .testTarget(
+            name: "SparrowTests",
+            dependencies: ["Sparrow"]
+        ),
+        .testTarget(
+            name: "SparrowCLICoreTests",
+            dependencies: ["SparrowCLICore"]
+        ),
     ]
 )
