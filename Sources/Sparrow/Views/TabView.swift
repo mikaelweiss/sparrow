@@ -18,7 +18,8 @@ public struct TabView<Content: View>: View {
 
 extension TabView: Sendable where Content: Sendable {}
 
-/// Protocol for type-erased access to Tab properties during rendering.
+/// Erases Tab's generic Content parameter so TabView's HTMLRenderable conformance
+/// can iterate tabs without knowing each tab's content type.
 protocol TabProtocol {
     var label: String { get }
     var icon: String? { get }

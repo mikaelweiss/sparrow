@@ -60,6 +60,8 @@ public final class FileWatcher {
         }
     }
 
+    /// Filters FSEvents to only trigger on .swift files outside .build/ and Migrations/.
+    /// Uses debouncing so rapid successive saves collapse into a single rebuild.
     fileprivate func handleEvents(paths: [String]) {
         let dominated = paths.contains { path in
             let dominated = path.hasSuffix(".swift")

@@ -1,5 +1,7 @@
-/// Protocol for types that know how to render themselves to HTML.
-/// This enables type-erased rendering of structural types like VStack, TupleView, etc.
+/// Adopted by structural view types (VStack, TupleView, ModifiedView, etc.) so the
+/// renderer can dispatch to them via a single protocol check instead of enumerating
+/// every container type in `renderKnown`. Primitive views (Text, Button, etc.) are
+/// handled directly in HTMLRenderer and don't need this.
 protocol HTMLRenderable {
     func renderHTML(with renderer: HTMLRenderer, modifierContext: ModifierContext) -> String
 }

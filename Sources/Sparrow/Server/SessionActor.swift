@@ -49,7 +49,9 @@ actor SessionActor {
         lastHTML
     }
 
-    /// Handle a client event. Returns patches if the DOM changed, nil otherwise.
+    /// Handle a client event. Invokes the registered handler, re-renders, and
+    /// returns a full-root replace patch if the HTML changed, nil otherwise.
+    /// Currently always diffs at the root level — no fine-grained patching yet.
     func handleEvent(id: String, event: String, value: String?) -> [Patch]? {
         switch event {
         case "click":
@@ -80,8 +82,9 @@ actor SessionActor {
         return nil
     }
 
-    /// Pure render function: creates a renderer, renders within the state context,
-    /// and returns the HTML + collected handlers.
+    /// Static so it can be called from `init` before `self` is fully initialized.
+    /// Runs the render closure inside a `StateStorage.$current.withValue` scope
+    /// so that @State property wrappers resolve against this session's storage.
     private static func doRender(
         renderBody: @Sendable (HTMLRenderer) -> String,
         stateStore: StateStorage

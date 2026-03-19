@@ -1,8 +1,8 @@
 import Markdown
 
-/// Converts a Markdown string to an HTML string using swift-markdown.
-/// Lives in its own target to avoid name collisions between the
-/// `Markdown` module and Sparrow's `Markdown` view struct.
+/// Lives in its own target (SparrowMarkdown) to avoid the name collision between
+/// the `Markdown` SPM module and Sparrow's `Markdown` view struct. If this were
+/// in the main Sparrow target, `import Markdown` would be ambiguous.
 public enum MarkdownParser {
     public static func html(from markdown: String) -> String {
         let document = Document(parsing: markdown)

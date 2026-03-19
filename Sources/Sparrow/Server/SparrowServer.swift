@@ -77,7 +77,9 @@ public struct SparrowServer: Sendable {
 
 // MARK: - WebSocket handler
 
-/// Handles a single WebSocket connection lifecycle.
+/// Handles a single WebSocket connection lifecycle. Messages are JSON objects
+/// with a "type" field: "init" (page load), "event" (user interaction),
+/// "navigate" (client-side navigation), or "ping" (keepalive).
 private func handleWebSocket(
     inbound: WebSocketInboundStream,
     outbound: WebSocketOutboundWriter,

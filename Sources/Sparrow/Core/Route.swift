@@ -2,6 +2,8 @@
 public struct Route: Sendable {
     public let path: String
     public let title: String?
+    /// Closure instead of a stored View because Route is not generic — it needs to
+    /// hold any view type. The closure captures the concrete view at init time.
     let _renderBody: @Sendable (HTMLRenderer) -> String
 
     public init<V: View & Sendable>(path: String, title: String? = nil, view: V) {

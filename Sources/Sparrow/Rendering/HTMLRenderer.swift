@@ -17,16 +17,21 @@ public struct HTMLRenderer: Sendable {
 
     // MARK: - Internal rendering
 
+    /// Main dispatch: tries known primitives/structurals first. If unrecognized,
+    /// assumes it's a user-defined view and recurses into its `body`.
+    /// Modifier context resets on body resolution — modifiers only apply to the
+    /// view they're attached to, not to its children.
     private func renderAny(_ view: some View, modifierContext: ModifierContext) -> String {
-        // Check for known primitive/structural types first, then fall back to resolving body.
         if let result = renderKnown(view, modifierContext: modifierContext) {
             return result
         }
-        // User-defined view: resolve its body
         return renderAny(view.body, modifierContext: ModifierContext())
     }
 
-    /// Try to render known types. Returns nil if the type isn't recognized as a primitive.
+    /// Try to render known types. Returns nil if the type isn't recognized,
+    /// which causes `renderAny` to fall through to resolving the view's `body`.
+    /// Primitive views are matched here by type; structural containers (VStack, etc.)
+    /// fall through to the `HTMLRenderable` protocol check at the bottom.
     private func renderKnown(_ view: some View, modifierContext: ModifierContext) -> String? {
         // Text
         if let text = view as? Text {
@@ -185,6 +190,8 @@ public struct HTMLRenderer: Sendable {
 
     // MARK: - Primitive renderers
 
+    /// Text renders as the semantic HTML tag from its font modifier (h1 for .largeTitle,
+    /// h2 for .title, etc.) or falls back to `<p>` if no font modifier is applied.
     private func renderText(_ text: Text, context: ModifierContext) -> String {
         let id = renderState.allocateId()
         let classes = context.cssClasses
@@ -193,7 +200,6 @@ public struct HTMLRenderer: Sendable {
         let classAttr = classes.isEmpty ? "" : " class=\"\(classes.joined(separator: " "))\""
         let styleAttr = styles.isEmpty ? "" : " style=\"\(formatStyles(styles))\""
 
-        // Determine HTML tag based on font modifier
         let tag = context.htmlTag ?? "p"
         let escaped = escapeHTML(text.content)
         return "        <\(tag)\(idAttr)\(classAttr)\(styleAttr)>\(escaped)</\(tag)>"
@@ -253,6 +259,8 @@ public struct HTMLRenderer: Sendable {
         return "        <div id=\"\(id)\"\(classAttr)\(styleAttr)>\(html)</div>"
     }
 
+    /// Input fields use `data-sparrow-debounce="300"` — the client JS debounces input
+    /// events by 300ms before sending to the server to avoid flooding the WebSocket.
     private func renderTextField(_ field: TextField, context: ModifierContext) -> String {
         let id = renderState.allocateId()
         let binding = field.text
@@ -735,6 +743,8 @@ public struct HTMLRenderer: Sendable {
         views.map { renderAnyErased($0, modifierContext: modifierContext) }.joined(separator: "\n")
     }
 
+    /// Render an existential `any View`. The local generic function opens the
+    /// existential so we can call the generic `renderAny` with a concrete type.
     func renderAnyErased(_ view: any View, modifierContext: ModifierContext) -> String {
         func doRender<V: View>(_ v: V) -> String {
             renderAny(v, modifierContext: modifierContext)

@@ -17,6 +17,9 @@ private func jsonError(_ message: String, code: String = "error") {
     jsonOutput(["status": "error", "message": message, "code": code])
 }
 
+/// Builds the project, launches the dev server, watches for `.swift` file changes,
+/// and automatically rebuilds + restarts on save. Runs the compiled binary directly
+/// (not `swift run`) so `SPARROW_DEV=1` propagates to enable hot-reload polling.
 public struct Serve: ParsableCommand {
     public static let configuration = CommandConfiguration(abstract: "Start the development server")
 
