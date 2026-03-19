@@ -126,8 +126,11 @@ public struct Serve: ParsableCommand {
         }
 
         // Forward SIGINT/SIGTERM to kill the server and exit
-        let interruptSource = DispatchSource.makeSignalSource(signal: SIGINT, queue: .main)
-        let termSource = DispatchSource.makeSignalSource(signal: SIGTERM, queue: .main)
+        // Use a dedicated queue — the main thread blocks during builds/kills,
+        // which would prevent signal handlers on .main from firing.
+        let signalQueue = DispatchQueue(label: "sparrow.signals")
+        let interruptSource = DispatchSource.makeSignalSource(signal: SIGINT, queue: signalQueue)
+        let termSource = DispatchSource.makeSignalSource(signal: SIGTERM, queue: signalQueue)
         signal(SIGINT, SIG_IGN)
         signal(SIGTERM, SIG_IGN)
 
