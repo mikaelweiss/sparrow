@@ -41,6 +41,7 @@ Detailed specs in `specs/`. Read the relevant spec before implementing a feature
 | Semantic HTML, ARIA, focus, keyboard | `specs/16-accessibility.md` |
 | Transitions, animation curves, CSS-based | `specs/17-animations.md` |
 | Forms, validators, file upload | `specs/18-forms-validation.md` |
+| Plain text & markdown routes, llms.txt | `specs/20-plain-text-routes.md` |
 | Vision, philosophy, inspirations | `specs/01-vision.md` |
 | Full architecture diagram, request lifecycle | `specs/02-architecture.md` |
 

@@ -18,6 +18,7 @@
 
 ## Routing
 - [06 — Routing](06-routing.md)
+- [20 — Plain Text Routes](20-plain-text-routes.md)
 
 ## Infrastructure
 - [10 — Rendering Pipeline](10-rendering-pipeline.md)
