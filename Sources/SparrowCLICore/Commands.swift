@@ -57,12 +57,24 @@ public struct Build: ParsableCommand {
 public struct New: ParsableCommand {
     public static let configuration = CommandConfiguration(abstract: "Create a new Sparrow project")
 
-    @Argument(help: "Project name")
-    var name: String
+    @Argument(help: "Project name (will prompt if not provided)")
+    var name: String?
 
     public init() {}
 
     public func run() throws {
+        let name: String
+        if let provided = self.name {
+            name = provided
+        } else {
+            print("  Project name: ", terminator: "")
+            guard let input = readLine()?.trimmingCharacters(in: .whitespaces), !input.isEmpty else {
+                print("  Error: project name is required.")
+                throw ExitCode.failure
+            }
+            name = input
+        }
+
         print("  Creating new Sparrow project: \(name)")
 
         let fm = FileManager.default
