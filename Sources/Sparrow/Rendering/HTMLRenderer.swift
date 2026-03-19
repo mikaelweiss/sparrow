@@ -46,6 +46,74 @@ public struct HTMLRenderer: Sendable {
         if view is Divider {
             return renderDivider(context: modifierContext)
         }
+        // Label
+        if let label = view as? Label {
+            return renderLabel(label, context: modifierContext)
+        }
+        // Markdown
+        if let md = view as? Markdown {
+            return renderMarkdown(md, context: modifierContext)
+        }
+        // TextField
+        if let field = view as? TextField {
+            return renderTextField(field, context: modifierContext)
+        }
+        // SecureField
+        if let field = view as? SecureField {
+            return renderSecureField(field, context: modifierContext)
+        }
+        // TextEditor
+        if let editor = view as? TextEditor {
+            return renderTextEditor(editor, context: modifierContext)
+        }
+        // Toggle
+        if let toggle = view as? Toggle {
+            return renderToggle(toggle, context: modifierContext)
+        }
+        // Picker
+        if let picker = view as? Picker {
+            return renderPicker(picker, context: modifierContext)
+        }
+        // Slider
+        if let slider = view as? Slider {
+            return renderSlider(slider, context: modifierContext)
+        }
+        // DatePicker
+        if let dp = view as? DatePicker {
+            return renderDatePicker(dp, context: modifierContext)
+        }
+        // Image
+        if let img = view as? Image {
+            return renderImage(img, context: modifierContext)
+        }
+        // Icon
+        if let icon = view as? Icon {
+            return renderIcon(icon, context: modifierContext)
+        }
+        // NavigationLink
+        if let navLink = view as? NavigationLink {
+            return renderNavigationLink(navLink, context: modifierContext)
+        }
+        // Alert
+        if let alert = view as? Alert {
+            return renderAlert(alert, context: modifierContext)
+        }
+        // Toast
+        if let toast = view as? Toast {
+            return renderToast(toast, context: modifierContext)
+        }
+        // Badge
+        if let badge = view as? Badge {
+            return renderBadge(badge, context: modifierContext)
+        }
+        // ProgressView
+        if let pv = view as? ProgressView {
+            return renderProgressView(pv, context: modifierContext)
+        }
+        // Spinner
+        if view is Spinner {
+            return renderSpinner(context: modifierContext)
+        }
         // EmptyView
         if view is EmptyView {
             return ""
@@ -106,6 +174,193 @@ public struct HTMLRenderer: Sendable {
         let classes = ["divider"] + context.cssClasses
         let classAttr = " class=\"\(classes.joined(separator: " "))\""
         return "        <hr id=\"\(id)\"\(classAttr)>"
+    }
+
+    private func renderLabel(_ label: Label, context: ModifierContext) -> String {
+        let id = renderState.allocateId()
+        let classes = ["label"] + context.cssClasses
+        let classAttr = " class=\"\(classes.joined(separator: " "))\""
+        let styleAttr = context.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(context.inlineStyles))\""
+        let escapedTitle = escapeHTML(label.title)
+        let escapedIcon = escapeHTML(label.icon)
+        return "        <span id=\"\(id)\"\(classAttr)\(styleAttr)><span class=\"label-icon\">\(escapedIcon)</span> \(escapedTitle)</span>"
+    }
+
+    private func renderMarkdown(_ md: Markdown, context: ModifierContext) -> String {
+        let id = renderState.allocateId()
+        let classes = ["markdown"] + context.cssClasses
+        let classAttr = " class=\"\(classes.joined(separator: " "))\""
+        let styleAttr = context.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(context.inlineStyles))\""
+        // Markdown rendering is a placeholder — full parser to be added later
+        let escaped = escapeHTML(md.content)
+        return "        <div id=\"\(id)\"\(classAttr)\(styleAttr)>\(escaped)</div>"
+    }
+
+    private func renderTextField(_ field: TextField, context: ModifierContext) -> String {
+        let id = renderState.allocateId()
+        let classes = ["input"] + context.cssClasses
+        let classAttr = " class=\"\(classes.joined(separator: " "))\""
+        let styleAttr = context.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(context.inlineStyles))\""
+        let placeholder = escapeHTML(field.placeholder)
+        let value = escapeHTML(field.text)
+        return "        <input id=\"\(id)\" type=\"text\" placeholder=\"\(placeholder)\" value=\"\(value)\"\(classAttr)\(styleAttr)>"
+    }
+
+    private func renderSecureField(_ field: SecureField, context: ModifierContext) -> String {
+        let id = renderState.allocateId()
+        let classes = ["input"] + context.cssClasses
+        let classAttr = " class=\"\(classes.joined(separator: " "))\""
+        let styleAttr = context.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(context.inlineStyles))\""
+        let placeholder = escapeHTML(field.placeholder)
+        let value = escapeHTML(field.text)
+        return "        <input id=\"\(id)\" type=\"password\" placeholder=\"\(placeholder)\" value=\"\(value)\"\(classAttr)\(styleAttr)>"
+    }
+
+    private func renderTextEditor(_ editor: TextEditor, context: ModifierContext) -> String {
+        let id = renderState.allocateId()
+        let classes = ["textarea"] + context.cssClasses
+        let classAttr = " class=\"\(classes.joined(separator: " "))\""
+        let styleAttr = context.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(context.inlineStyles))\""
+        let escaped = escapeHTML(editor.text)
+        return "        <textarea id=\"\(id)\"\(classAttr)\(styleAttr)>\(escaped)</textarea>"
+    }
+
+    private func renderToggle(_ toggle: Toggle, context: ModifierContext) -> String {
+        let id = renderState.allocateId()
+        let classes = ["toggle"] + context.cssClasses
+        let classAttr = " class=\"\(classes.joined(separator: " "))\""
+        let styleAttr = context.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(context.inlineStyles))\""
+        let checked = toggle.isOn ? " checked" : ""
+        let escaped = escapeHTML(toggle.label)
+        return "        <label id=\"\(id)\"\(classAttr)\(styleAttr)><input type=\"checkbox\"\(checked)> \(escaped)</label>"
+    }
+
+    private func renderPicker(_ picker: Picker, context: ModifierContext) -> String {
+        let id = renderState.allocateId()
+        let classes = ["picker"] + context.cssClasses
+        let classAttr = " class=\"\(classes.joined(separator: " "))\""
+        let styleAttr = context.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(context.inlineStyles))\""
+        let options = picker.options.map { opt in
+            let selected = opt.value == picker.selection ? " selected" : ""
+            return "            <option value=\"\(escapeHTML(opt.value))\"\(selected)>\(escapeHTML(opt.label))</option>"
+        }.joined(separator: "\n")
+        return """
+                <select id="\(id)" aria-label="\(escapeHTML(picker.label))"\(classAttr)\(styleAttr)>
+        \(options)
+                </select>
+        """
+    }
+
+    private func renderSlider(_ slider: Slider, context: ModifierContext) -> String {
+        let id = renderState.allocateId()
+        let classes = ["slider"] + context.cssClasses
+        let classAttr = " class=\"\(classes.joined(separator: " "))\""
+        let styleAttr = context.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(context.inlineStyles))\""
+        return "        <input id=\"\(id)\" type=\"range\" min=\"\(slider.range.lowerBound)\" max=\"\(slider.range.upperBound)\" step=\"\(slider.step)\" value=\"\(slider.value)\"\(classAttr)\(styleAttr)>"
+    }
+
+    private func renderDatePicker(_ dp: DatePicker, context: ModifierContext) -> String {
+        let id = renderState.allocateId()
+        let classes = ["input"] + context.cssClasses
+        let classAttr = " class=\"\(classes.joined(separator: " "))\""
+        let styleAttr = context.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(context.inlineStyles))\""
+        let value = escapeHTML(dp.selection)
+        return "        <input id=\"\(id)\" type=\"date\" aria-label=\"\(escapeHTML(dp.label))\" value=\"\(value)\"\(classAttr)\(styleAttr)>"
+    }
+
+    private func renderImage(_ img: Image, context: ModifierContext) -> String {
+        let id = renderState.allocateId()
+        let classes = ["img"] + context.cssClasses
+        let classAttr = " class=\"\(classes.joined(separator: " "))\""
+        let styleAttr = context.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(context.inlineStyles))\""
+        let src: String
+        switch img.source {
+        case .asset(let name): src = "/assets/\(escapeHTML(name))"
+        case .url(let url): src = escapeHTML(url)
+        }
+        return "        <img id=\"\(id)\" src=\"\(src)\"\(classAttr)\(styleAttr)>"
+    }
+
+    private func renderIcon(_ icon: Icon, context: ModifierContext) -> String {
+        let id = renderState.allocateId()
+        let classes = ["icon"] + context.cssClasses
+        let classAttr = " class=\"\(classes.joined(separator: " "))\""
+        let styleAttr = context.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(context.inlineStyles))\""
+        let escaped = escapeHTML(icon.systemName)
+        return "        <span id=\"\(id)\" data-icon=\"\(escaped)\"\(classAttr)\(styleAttr)></span>"
+    }
+
+    private func renderNavigationLink(_ navLink: NavigationLink, context: ModifierContext) -> String {
+        let id = renderState.allocateId()
+        let classes = ["nav-link"] + context.cssClasses
+        let classAttr = " class=\"\(classes.joined(separator: " "))\""
+        let styleAttr = context.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(context.inlineStyles))\""
+        let escaped = escapeHTML(navLink.label)
+        let dest = escapeHTML(navLink.destination)
+        return "        <a id=\"\(id)\" href=\"\(dest)\" data-sparrow-nav\(classAttr)\(styleAttr)>\(escaped)</a>"
+    }
+
+    private func renderAlert(_ alert: Alert, context: ModifierContext) -> String {
+        let id = renderState.allocateId()
+        let classes = ["alert"] + context.cssClasses
+        let classAttr = " class=\"\(classes.joined(separator: " "))\""
+        let styleAttr = context.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(context.inlineStyles))\""
+        let titleHTML = escapeHTML(alert.title)
+        let messageHTML = alert.message.isEmpty ? "" : "\n            <p class=\"alert-message\">\(escapeHTML(alert.message))</p>"
+        return "        <div id=\"\(id)\" role=\"alert\"\(classAttr)\(styleAttr)>\n            <p class=\"alert-title\">\(titleHTML)</p>\(messageHTML)\n        </div>"
+    }
+
+    private func renderToast(_ toast: Toast, context: ModifierContext) -> String {
+        let id = renderState.allocateId()
+        let styleName: String
+        switch toast.style {
+        case .info: styleName = "info"
+        case .success: styleName = "success"
+        case .warning: styleName = "warning"
+        case .error: styleName = "error"
+        }
+        let classes = ["toast", "toast-\(styleName)"] + context.cssClasses
+        let classAttr = " class=\"\(classes.joined(separator: " "))\""
+        let styleAttr = context.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(context.inlineStyles))\""
+        let escaped = escapeHTML(toast.message)
+        return "        <div id=\"\(id)\"\(classAttr)\(styleAttr)>\(escaped)</div>"
+    }
+
+    private func renderBadge(_ badge: Badge, context: ModifierContext) -> String {
+        let id = renderState.allocateId()
+        let styleName: String
+        switch badge.style {
+        case .default: styleName = "default"
+        case .success: styleName = "success"
+        case .warning: styleName = "warning"
+        case .error: styleName = "error"
+        case .info: styleName = "info"
+        }
+        let classes = ["badge", "badge-\(styleName)"] + context.cssClasses
+        let classAttr = " class=\"\(classes.joined(separator: " "))\""
+        let styleAttr = context.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(context.inlineStyles))\""
+        let escaped = escapeHTML(badge.text)
+        return "        <span id=\"\(id)\"\(classAttr)\(styleAttr)>\(escaped)</span>"
+    }
+
+    private func renderProgressView(_ pv: ProgressView, context: ModifierContext) -> String {
+        let id = renderState.allocateId()
+        let classes = ["progress"] + context.cssClasses
+        let classAttr = " class=\"\(classes.joined(separator: " "))\""
+        let styleAttr = context.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(context.inlineStyles))\""
+        if let value = pv.value {
+            return "        <progress id=\"\(id)\" value=\"\(value)\" max=\"\(pv.total)\"\(classAttr)\(styleAttr)></progress>"
+        } else {
+            return "        <progress id=\"\(id)\"\(classAttr)\(styleAttr)></progress>"
+        }
+    }
+
+    private func renderSpinner(context: ModifierContext) -> String {
+        let id = renderState.allocateId()
+        let classes = ["spinner"] + context.cssClasses
+        let classAttr = " class=\"\(classes.joined(separator: " "))\""
+        let styleAttr = context.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(context.inlineStyles))\""
+        return "        <div id=\"\(id)\"\(classAttr)\(styleAttr)></div>"
     }
 
     // MARK: - Helpers (internal, used by HTMLRenderable conformances)
