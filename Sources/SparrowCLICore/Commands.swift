@@ -80,7 +80,7 @@ public struct New: ParsableCommand {
             name: "\(name)",
             platforms: [.macOS(.v15)],
             dependencies: [
-                .package(url: "https://github.com/code-puppies/sparrow.git", branch: "main"),
+                .package(url: "https://github.com/mikaelweiss/sparrow.git", branch: "main"),
             ],
             targets: [
                 .executableTarget(
