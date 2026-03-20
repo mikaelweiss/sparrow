@@ -89,7 +89,13 @@ public struct Serve: ParsableCommand {
 
         func killServer() {
             guard let process = serverProcess, process.isRunning else { return }
+            let pid = process.processIdentifier
             process.terminate()
+            // Force-kill after 2 seconds if graceful shutdown stalls
+            // (e.g. server waiting on open WebSocket connections)
+            DispatchQueue.global().asyncAfter(deadline: .now() + 2) {
+                kill(pid, SIGKILL)
+            }
             process.waitUntilExit()
         }
 
