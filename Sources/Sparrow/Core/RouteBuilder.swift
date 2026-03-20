@@ -39,13 +39,13 @@ public func Page<Content: View & Sendable>(
     Route(path: path, title: title, view: content())
 }
 
-/// Convenience for declaring a plain text route. Content type is inferred from
+/// Convenience for declaring a file route. Content type is inferred from
 /// the path extension: `.md` → markdown, everything else → plain text.
-public func TextRoute(
+public func FileRoute(
     _ path: String,
-    contentType: RouteContentType? = nil,
-    content: @Sendable @escaping () -> String
+    file: String,
+    contentType: RouteContentType? = nil
 ) -> Route {
     let resolved = contentType ?? (path.hasSuffix(".md") ? .markdown : .plain)
-    return Route(path: path, contentType: resolved, text: content)
+    return Route(path: path, contentType: resolved, file: file)
 }

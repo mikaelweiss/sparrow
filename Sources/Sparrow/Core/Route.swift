@@ -1,3 +1,5 @@
+import Foundation
+
 /// Content type for a route response.
 public enum RouteContentType: Sendable {
     case html
@@ -31,12 +33,15 @@ public struct Route: Sendable {
         }
     }
 
-    /// Create a text route that serves raw text content (no HTML wrapping).
-    public init(path: String, contentType: RouteContentType = .plain, text: @Sendable @escaping () -> String) {
+    /// Create a file route that serves a file from disk (no HTML wrapping).
+    /// The `file` parameter is a path relative to the project root.
+    public init(path: String, contentType: RouteContentType = .plain, file: String) {
         self.path = path
         self.title = nil
         self.contentType = contentType
-        self._renderBody = { _ in text() }
+        self._renderBody = { _ in
+            (try? String(contentsOfFile: file, encoding: .utf8)) ?? ""
+        }
     }
 
     /// Render just the body HTML (used by SessionActor for re-renders).
