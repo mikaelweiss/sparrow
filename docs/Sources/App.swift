@@ -54,54 +54,90 @@ struct SparrowDocs: App {
     var routes: [Route] {
         // Home page
         Page("/", title: "Sparrow Documentation") {
-            VStack(alignment: .leading, spacing: 32) {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Sparrow")
-                        .font(.largeTitle)
-                    Text("A batteries-included Swift web framework. SwiftUI-like code on the server, HTML/CSS in the browser.")
-                        .foreground(.textSecondary)
-                }
-
-                HStack(spacing: 16) {
-                    NavigationLink("API Reference", destination: "/api")
-                }
-
+            SidebarLayout {
+                NavigationLink("Sparrow", destination: "/")
+                    .font(.title3)
                 Divider()
+                SymbolListView(symbols: resolvedSymbols)
+            } main: {
+                VStack(alignment: .leading, spacing: 32) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Sparrow")
+                            .font(.largeTitle)
+                        Text("A batteries-included Swift web framework. SwiftUI-like code on the server, HTML/CSS in the browser.")
+                            .foreground(.textSecondary)
+                    }
 
-                Markdown("""
-                ## Getting Started
+                    HStack(spacing: 16) {
+                        NavigationLink("API Reference", destination: "/api")
+                    }
 
-                ```swift
-                import Sparrow
+                    Divider()
 
-                @main
-                struct MyApp: App {
-                    init() {}
+                    Markdown("""
+                    ## Getting Started
 
-                    var routes: [Route] {
-                        Page("/") {
-                            Text("Hello, world!")
-                                .font(.largeTitle)
+                    ```swift
+                    import Sparrow
+
+                    @main
+                    struct MyApp: App {
+                        init() {}
+
+                        var routes: [Route] {
+                            Page("/") {
+                                Text("Hello, world!")
+                                    .font(.largeTitle)
+                            }
                         }
                     }
-                }
-                ```
+                    ```
 
-                Run with `sparrow serve` and open your browser.
-                """)
+                    Run with `sparrow serve` and open your browser.
+                    """)
+                }
+                .padding(32)
+
+                Spacer()
+                Footer {
+                    Text("Built with Sparrow")
+                }
             }
-            .padding(32)
         }
 
         // API index
         Page("/api", title: "API Reference — Sparrow") {
-            APIIndexView(symbols: resolvedSymbols)
+            SidebarLayout {
+                NavigationLink("Sparrow", destination: "/")
+                    .font(.title3)
+                Divider()
+                SymbolListView(symbols: resolvedSymbols)
+            } main: {
+                APIIndexView(symbols: resolvedSymbols)
+
+                Spacer()
+                Footer {
+                    Text("Built with Sparrow")
+                }
+            }
         }
 
         // Individual symbol detail pages
         for sym in resolvedSymbols {
             Page("/api/\(sym.slug)", title: "\(sym.name) — Sparrow") {
-                SymbolDetailView(symbol: sym)
+                SidebarLayout {
+                    NavigationLink("Sparrow", destination: "/")
+                        .font(.title3)
+                    Divider()
+                    SymbolListView(symbols: resolvedSymbols)
+                } main: {
+                    SymbolDetailView(symbol: sym)
+
+                    Spacer()
+                    Footer {
+                        Text("Built with Sparrow")
+                    }
+                }
             }
         }
 

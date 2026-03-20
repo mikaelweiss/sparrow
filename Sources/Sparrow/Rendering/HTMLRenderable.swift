@@ -543,6 +543,25 @@ extension SidebarLayout: HTMLRenderable {
     }
 }
 
+// MARK: - Footer
+
+extension Footer: HTMLRenderable {
+    func renderHTML(with renderer: HTMLRenderer, modifierContext: ModifierContext) -> String {
+        let id = renderer.renderState.allocateId()
+        let children = flattenChildren(content)
+        let childrenHTML = renderer.renderChildren(children)
+        let classes = ["footer"] + modifierContext.cssClasses
+        let classAttr = " class=\"\(classes.joined(separator: " "))\""
+        let styleAttr = modifierContext.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(modifierContext.inlineStyles))\""
+
+        return """
+                <footer id="\(id)"\(classAttr)\(styleAttr)>
+        \(childrenHTML)
+                </footer>
+        """
+    }
+}
+
 // MARK: - Child flattening
 
 /// Extract child views from a ViewBuilder result, handling TupleView nesting.

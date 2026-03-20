@@ -774,6 +774,15 @@ public enum CSSGenerator {
         min-height: 100vh; width: 260px;
     }
 
+    /* Footer */
+    .footer {
+        margin-top: auto;
+        padding: var(--spacing-4) var(--spacing-6);
+        border-top: 1px solid var(--color-surfaceSecondary);
+        color: var(--color-textSecondary);
+        font-size: var(--text-footnote);
+    }
+
     /* Sidebar Layout */
     .sidebar-layout { display: flex; width: 100%; min-height: 100vh; }
     .sidebar-layout-sidebar {
