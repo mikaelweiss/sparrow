@@ -38,3 +38,14 @@ public func Page<Content: View & Sendable>(
 ) -> Route {
     Route(path: path, title: title, view: content())
 }
+
+/// Convenience for declaring a plain text route. Content type is inferred from
+/// the path extension: `.md` → markdown, everything else → plain text.
+public func TextRoute(
+    _ path: String,
+    contentType: RouteContentType? = nil,
+    content: @Sendable @escaping () -> String
+) -> Route {
+    let resolved = contentType ?? (path.hasSuffix(".md") ? .markdown : .plain)
+    return Route(path: path, contentType: resolved, text: content)
+}

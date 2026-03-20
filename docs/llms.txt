@@ -1,0 +1,4527 @@
+# Sparrow
+
+> A batteries-included Swift web framework. SwiftUI-like code on the server → HTML/CSS in the browser.
+
+Sparrow uses a SwiftUI-like DSL to define views that render to semantic HTML and CSS. State lives on the server in Swift actors. A WebSocket connection pushes DOM patches to the browser. Developers write zero JavaScript and zero CSS.
+
+## Docs
+
+- Sparrow: Vision & Philosophy
+- Architecture
+- Component DSL
+- Design System
+- State Management
+- Routing
+- Data Layer
+- Authentication
+- CLI
+- Rendering Pipeline
+- Client Runtime
+- Hot Reload
+- Project Structure
+- Testing
+- Deployment
+- Accessibility
+- Animations & Transitions
+- Forms & Validation
+- Admin Dashboard
+- Plain Text Routes
+
+## Full Documentation
+
+---
+
+# Sparrow: Vision & Philosophy
+
+## What Sparrow Is
+
+Sparrow is a batteries-included Swift web framework. You write SwiftUI-like Swift code. It renders to server-side HTML/CSS and delivers it to the browser. The developer writes zero HTML, zero CSS, zero JavaScript.
+
+## Who It's For
+
+Developers building new web projects with AI assistance. People who want to ship a beautiful, functional web app without making 50 tooling decisions first.
+
+## Core Principles
+
+1. **Zero decision fatigue.** Everything is built in. You don't choose a router, a state manager, a CSS framework, an auth library, or a component library. Sparrow has one answer for each, and it works.
+
+2. **Beautiful by default.** The built-in design system produces professional UI out of the box. `Button("Submit", style: .primary)` looks good without design skills. No "AI slop" aesthetic.
+
+3. **LLM-friendly from day one.** The API surface is small and consistent. One way to do things. Strong types catch mistakes. Swift's massive training corpus means LLMs already understand the syntax patterns. Less code = less bugs.
+
+4. **One language.** Swift for everything. The UI, the logic, the data layer, the auth, the routing. No context-switching between languages.
+
+5. **Self-sufficient.** You can build and deploy a complete app with zero third-party services. Postgres is the default. Auth is built in. You own your stack.
+
+6. **The developer writes zero JavaScript.** Sparrow ships a small client-side JS runtime (~5-10KB) that handles WebSocket connections and DOM patching. The developer never sees or touches it.
+
+## What Sparrow Is Not
+
+- Not a new programming language. It's a Swift framework.
+- Not a static site generator. It's a server-rendered, interactive web framework.
+- Not a WASM project. Swift runs on the server, not in the browser.
+- Not a wrapper around React/Svelte/Vue. The rendering model is entirely its own.
+
+## The One-Liner
+
+**SwiftUI for the web. Everything included. Ship in minutes.**
+
+## Inspirations
+
+| Inspiration | What We Take From It |
+|---|---|
+| SwiftUI | Declarative component model, property wrappers, modifier chains |
+| Phoenix LiveView | Server-rendered interactivity over WebSocket, no client-side framework |
+| Apple HIG | Professional default design system that works for 90% of apps |
+
+---
+
+# Architecture
+
+## Overview
+
+Sparrow is a server-side Swift framework that renders HTML and manages UI state on the server. The browser receives standard HTML/CSS on initial page load (for SEO and fast first paint), then establishes a WebSocket connection for real-time interactivity.
+
+```
+┌─────────────────────────────────────────────┐
+│                   Browser                   │
+│                                             │
+│  ┌──────────┐  ┌──────────┐  ┌───────────┐  │
+│  │   DOM    │  │ Sparrow  │  │ Generated │  │
+│  │ (HTML)   │  │ Client   │  │    CSS    │  │
+│  │          │  │ Runtime  │  │           │  │
+│  │          │  │ (~5-10KB │  │           │  │
+│  │          │  │   JS)    │  │           │  │
+│  └──────────┘  └────┬─────┘  └───────────┘  │
+│                     │                       │
+└─────────────────────┼───────────────────────┘
+                      │ WebSocket
+┌─────────────────────┼────────────────────────┐
+│                     │       Server           │
+│               ┌─────┴──────┐                 │
+│               │ Hummingbird│                 │
+│               │  (HTTP +   │                 │
+│               │ WebSocket) │                 │
+│               └─────┬──────┘                 │
+│                     │                        │
+│  ┌──────────────────┴───────────────────┐    │
+│  │         Sparrow Runtime              │    │
+│  │                                      │    │
+│  │  ┌──────────┐  ┌──────────────────┐  │    │
+│  │  │  Router  │  │ Session Actors   │  │    │
+│  │  │          │  │                  │  │    │
+│  │  │ URL →    │  │ Actor per user:  │  │    │
+│  │  │ Page     │  │ - @State values  │  │    │
+│  │  │ mapping  │  │ - Current view   │  │    │
+│  │  │          │  │   tree           │  │    │
+│  │  │          │  │ - Last rendered  │  │    │
+│  │  │          │  │   HTML           │  │    │
+│  │  └──────────┘  └──────────────────┘  │    │
+│  │                                      │    │
+│  │  ┌──────────┐  ┌──────────────────┐  │    │
+│  │  │ Renderer │  │  Differ          │  │    │
+│  │  │          │  │                  │  │    │
+│  │  │ View →   │  │ Old HTML vs      │  │    │
+│  │  │ HTML     │  │ New HTML →       │  │    │
+│  │  │ string   │  │ Minimal patches  │  │    │
+│  │  └──────────┘  └──────────────────┘  │    │
+│  └──────────────────────────────────────┘    │
+│                                              │
+│  ┌──────────────────────────────────────┐    │
+│  │         Data Layer                   │    │
+│  │  ┌───────────┐  ┌────────────────┐   │    │
+│  │  │  Postgres │  │  Auth/Session  │   │    │
+│  │  │  Adapter  │  │  Store         │   │    │
+│  │  └───────────┘  └────────────────┘   │    │
+│  └──────────────────────────────────────┘    │
+└──────────────────────────────────────────────┘
+```
+
+## Request Lifecycle
+
+### First Page Load (HTTP GET)
+
+1. Browser requests `GET /profile/123`
+2. Hummingbird receives the request
+3. Sparrow router matches URL to `Page("/profile/:id")`
+4. Server renders the full component tree to an HTML string
+5. Server wraps it in an HTML document with:
+   - The generated CSS stylesheet (`<link>`)
+   - The Sparrow client JS runtime (`<script>`)
+   - A session token for the WebSocket connection
+6. Browser receives complete HTML — renders immediately (SEO-friendly, fast first paint)
+7. Client JS runtime boots, establishes WebSocket connection using the session token
+8. Server creates a Session Actor for this connection, holding the current view tree and state
+
+### Interaction (WebSocket)
+
+1. User clicks a button
+2. Client JS captures the event, sends `{ event: "click", target: "btn_abc123" }` over WebSocket
+3. Server Session Actor receives the event
+4. Actor calls the event handler (e.g., `count += 1` which mutates `@State`)
+5. Actor re-renders the affected component subtree
+6. Differ compares previous HTML output vs. new HTML output
+7. Server sends minimal DOM patches over WebSocket: `{ patches: [{ op: "replace", target: "#counter_text", html: "<p class='font-title'>Count: 2</p>" }] }`
+8. Client JS applies the patches to the DOM
+9. Focus, scroll position, and input values are preserved
+
+### Navigation (WebSocket)
+
+1. User clicks a `NavigationLink` to `/settings`
+2. Client JS sends navigation event over WebSocket (does NOT do a full page load)
+3. Server re-renders the new page's component tree
+4. Server sends the full page content as a patch (replace the main content area)
+5. Client JS patches the DOM and updates `window.history.pushState` for the URL
+6. Browser URL bar shows `/settings` without a full reload
+7. If the user refreshes, it's a fresh HTTP GET — SSR kicks in, same result
+
+### Reconnection
+
+1. WebSocket disconnects (network blip, server restart, etc.)
+2. Client JS detects disconnect, shows a subtle reconnecting indicator
+3. Client JS attempts reconnection with exponential backoff
+4. On reconnect, server creates a new Session Actor
+5. Server re-renders the current URL's page from scratch (ephemeral state is lost, database state is not)
+6. Server sends full page content, client JS replaces the DOM
+7. The user sees a brief flash at worst — all persistent data is intact from the database
+
+## Internal Dependencies (Hidden from Developer)
+
+| Dependency | Purpose | Why |
+|---|---|---|
+| Hummingbird | HTTP server, WebSocket, routing | Production-tested, async/await native, lightweight |
+| SwiftNIO | Underlying networking | Hummingbird depends on it |
+| swift-crypto | Password hashing, session tokens | Apple's official crypto library |
+
+The developer never imports or configures any of these. They import `Sparrow` and that's it.
+
+## Threading Model
+
+- Hummingbird handles HTTP/WebSocket connections on SwiftNIO's event loops
+- Each user session gets a dedicated Swift Actor (`SessionActor`)
+- All state mutations and re-renders for a session happen on that actor (no data races)
+- Database queries are async and don't block the actor
+- The renderer is a pure function: View tree in → HTML string out (no shared mutable state)
+
+---
+
+# Component DSL
+
+## Overview
+
+Sparrow's UI is built with a SwiftUI-like declarative DSL. Components are Swift structs conforming to the `View` protocol. They compose using result builders and modify with chainable modifiers.
+
+## The View Protocol
+
+```swift
+protocol View {
+    associatedtype Body: View
+    @ViewBuilder var body: Body { get }
+}
+```
+
+Every component implements `body` and returns other views. The framework provides primitive views (Text, Image, etc.) that render directly to HTML. User-defined views compose these primitives.
+
+## Basic Example
+
+```swift
+struct ProfileCard: View {
+    var user: User
+
+    var body: some View {
+        VStack(spacing: 12) {
+            Image(url: user.avatarURL)
+                .frame(width: 64, height: 64)
+                .cornerRadius(.full)
+            Text(user.name)
+                .font(.title)
+                .foreground(.primary)
+            if user.isVerified {
+                Badge("Verified", style: .success)
+            }
+        }
+        .padding(16)
+        .background(.surface)
+        .cornerRadius(.md)
+        .shadow(.sm)
+    }
+}
+```
+
+## Result Builders
+
+The `@ViewBuilder` result builder enables SwiftUI-like syntax:
+
+```swift
+// if/else
+if isLoggedIn {
+    DashboardView()
+} else {
+    LoginView()
+}
+
+// for loops
+ForEach(users) { user in
+    UserRow(user: user)
+}
+
+// optional views
+if let error = errorMessage {
+    ErrorBanner(message: error)
+}
+```
+
+## Primitive Views
+
+### Layout
+
+| View | HTML Output | Purpose |
+|---|---|---|
+| `VStack(alignment:spacing:)` | `<div>` with flex column | Vertical stack |
+| `HStack(alignment:spacing:)` | `<div>` with flex row | Horizontal stack |
+| `ZStack(alignment:)` | `<div>` with position relative/absolute | Overlapping layers |
+| `Spacer()` | `<div>` with flex-grow | Flexible space |
+| `Divider()` | `<hr>` | Visual separator |
+| `ScrollView(axis:)` | `<div>` with overflow scroll | Scrollable container |
+| `Grid(columns:spacing:)` | `<div>` with CSS grid | 2D grid layout |
+
+### Text & Labels
+
+| View | HTML Output | Purpose |
+|---|---|---|
+| `Text(_ string:)` | `<p>`, `<span>`, `<h1>`-`<h6>` depending on context | Display text |
+| `Label(_ title:icon:)` | `<span>` with icon + text | Icon-text pair |
+| `Markdown(_ string:)` | Rendered markdown → HTML | Markdown content |
+
+`Text` renders as `<h1>`-`<h6>` when a `.font(.title)` through `.font(.title3)` modifier is applied. Otherwise renders as `<p>` for block context or `<span>` for inline context.
+
+### Input
+
+| View | HTML Output | Purpose |
+|---|---|---|
+| `Button(_ title:action:)` | `<button>` | Clickable button |
+| `TextField(_ placeholder:text:)` | `<input type="text">` | Single-line text input |
+| `SecureField(_ placeholder:text:)` | `<input type="password">` | Password input |
+| `TextEditor(text:)` | `<textarea>` | Multi-line text input |
+| `Toggle(_ label:isOn:)` | `<input type="checkbox">` styled as toggle | Boolean toggle |
+| `Picker(_ label:selection:)` | `<select>` | Selection from options |
+| `Slider(value:in:step:)` | `<input type="range">` | Numeric slider |
+| `DatePicker(_ label:selection:)` | `<input type="date">` | Date selection |
+
+### Media
+
+| View | HTML Output | Purpose |
+|---|---|---|
+| `Image(_ name:)` | `<img>` | Display image from assets |
+| `Image(url:)` | `<img>` with src URL | Display remote image |
+| `Icon(_ systemName:)` | `<svg>` from built-in icon set | System icon |
+
+### Navigation
+
+| View | HTML Output | Purpose |
+|---|---|---|
+| `NavigationLink(_ title:destination:)` | `<a>` with WebSocket navigation | Internal navigation |
+| `Link(_ title:url:)` | `<a>` with href | External link |
+
+### Containers
+
+| View | HTML Output | Purpose |
+|---|---|---|
+| `List(items:)` | `<ul>` / `<ol>` | Styled list |
+| `Form(content:)` | `<form>` | Form container with built-in validation |
+| `Section(header:)` | `<section>` with header | Grouped content |
+| `Card(content:)` | `<div>` with surface styling | Card container |
+| `Modal(isPresented:)` | `<dialog>` | Modal overlay |
+| `Sheet(isPresented:)` | `<div>` with slide-in animation | Bottom/side sheet |
+| `Menu(_ label:)` | `<div>` with dropdown | Dropdown menu |
+
+### Feedback
+
+| View | HTML Output | Purpose |
+|---|---|---|
+| `Alert(title:message:actions:)` | `<div role="alert">` | Alert dialog |
+| `Toast(message:style:)` | `<div>` with position fixed | Temporary notification |
+| `Badge(_ text:style:)` | `<span>` | Status badge |
+| `ProgressView(value:total:)` | `<progress>` | Progress indicator |
+| `Spinner()` | `<div>` with CSS animation | Loading spinner |
+
+## Modifiers
+
+Modifiers are chainable methods that return a modified view. They map to CSS classes from the design system.
+
+### Spacing
+
+```swift
+.padding(16)                    // all sides
+.padding(.horizontal, 16)      // left + right
+.padding(.top, 8)              // single side
+.margin(16)                     // outer spacing
+```
+
+### Typography
+
+```swift
+.font(.largeTitle)              // preset font style
+.font(.system(size: 18, weight: .semibold))  // custom
+.foreground(.primary)           // text color (semantic)
+.foreground(.hex("#FF0000"))    // text color (explicit)
+.multilineTextAlignment(.center)
+.lineLimit(3)
+.truncationMode(.tail)
+```
+
+### Background & Borders
+
+```swift
+.background(.surface)           // semantic color
+.background(.hex("#F5F5F5"))    // explicit color
+.cornerRadius(.md)              // from design system scale
+.cornerRadius(12)               // explicit pixels
+.border(.secondary, width: 1)
+.shadow(.sm)                    // from design system scale
+```
+
+### Layout
+
+```swift
+.frame(width: 200, height: 100)
+.frame(maxWidth: .infinity)     // expand to fill
+.frame(minHeight: 44)           // minimum tap target
+.aspectRatio(16/9)
+.opacity(0.5)
+.hidden()                       // display: none
+.zIndex(10)
+```
+
+### Interaction
+
+```swift
+.onClick { /* handler */ }
+.onSubmit { /* handler */ }
+.onAppear { /* handler */ }
+.onDisappear { /* handler */ }
+.task { await loadData() }          // async work on appear
+.disabled(isLoading)
+.cursor(.pointer)
+```
+
+### Async Work
+
+The `.task` modifier launches async work when a view appears. It's the primary way to load data:
+
+```swift
+struct UserListView: View {
+    @State var users: [User] = []
+
+    var body: some View {
+        ForEach(users) { user in
+            Text(user.name)
+        }
+        .task {
+            users = try await User.query().all()
+        }
+    }
+}
+```
+
+The task is cancelled automatically when the view disappears (e.g., navigating away). If the closure throws an uncaught error, Sparrow shows an error toast automatically (see Error Handling below).
+
+### Error Handling
+
+When an event handler (`onClick`, `onSubmit`, `task`) throws an uncaught error, Sparrow catches it and displays an error toast with the error's localized description. The app does not crash.
+
+```swift
+// This is safe — if save() throws, user sees a toast with the error message
+Button("Save", style: .primary) {
+    try await save()
+}
+
+// For custom error handling, catch explicitly
+Button("Save", style: .primary) {
+    do {
+        try await save()
+    } catch {
+        customErrorMessage = "Could not save: \(error.localizedDescription)"
+    }
+}
+```
+
+This means LLMs can write `try await` in handlers without boilerplate error handling and the app still works. The developer catches explicitly only when they want custom behavior.
+
+### Accessibility
+
+```swift
+.accessibilityLabel("Close dialog")
+.accessibilityHint("Dismisses the current dialog")
+.accessibilityRole(.button)
+.accessibilityHidden(true)
+```
+
+The framework generates appropriate ARIA attributes. Interactive elements without an accessibility label produce a compiler warning.
+
+### Responsive
+
+```swift
+.frame(width: .responsive(phone: .infinity, tablet: 400, desktop: 600))
+.hidden(on: .phone)             // hide on small screens
+.font(.responsive(phone: .body, desktop: .title3))
+```
+
+### Animation
+
+```swift
+.transition(.opacity)                       // fade in/out
+.transition(.slide(.leading))               // slide from left
+.transition(.scale)                         // scale up from center
+.animation(.spring(damping: 0.7))           // spring physics
+.animation(.easeInOut(duration: 0.3))       // timing curve
+```
+
+Animations are CSS-based. The server sends the target state, and the client runtime applies CSS transitions/animations. No JS animation logic needed.
+
+## Children / Slots
+
+Primary content uses trailing closures (SwiftUI-style):
+
+```swift
+Card {
+    Text("Card content")
+}
+```
+
+Multiple slots use named parameters:
+
+```swift
+Card(
+    header: { Text("Title").font(.headline) },
+    footer: { Button("Save") { save() } }
+) {
+    Text("Body content")
+}
+```
+
+## Conditional Rendering
+
+```swift
+// if/else
+if user.isAdmin {
+    AdminPanel()
+}
+
+// switch
+switch loadState {
+case .loading:
+    Spinner()
+case .loaded(let data):
+    DataView(data: data)
+case .error(let message):
+    ErrorBanner(message: message)
+}
+
+// optional binding
+if let user = currentUser {
+    ProfileView(user: user)
+}
+```
+
+## ForEach
+
+```swift
+ForEach(users) { user in
+    UserRow(user: user)
+}
+
+// With index
+ForEach(users.enumerated()) { index, user in
+    UserRow(user: user, position: index)
+}
+```
+
+Items must conform to `Identifiable` or provide an explicit `id` key path for efficient diffing.
+
+## Component Parameters
+
+Named parameters with defaults (Swift-style):
+
+```swift
+struct UserRow: View {
+    var user: User
+    var showAvatar: Bool = true
+    var style: RowStyle = .default
+
+    var body: some View {
+        HStack(spacing: 12) {
+            if showAvatar {
+                Avatar(url: user.avatarURL, size: .small)
+            }
+            Text(user.name)
+        }
+    }
+}
+
+// Usage
+UserRow(user: user)
+UserRow(user: user, showAvatar: false, style: .compact)
+```
+
+---
+
+# Design System
+
+## Overview
+
+Sparrow ships a complete design system with professional defaults. Every component looks good out of the box. Theming is changing a few values in a config, not rebuilding components.
+
+The design system is inspired by Apple's Human Interface Guidelines adapted for web: clean, legible, spacious, with clear visual hierarchy.
+
+## How It Works Under the Hood
+
+1. At build time, Sparrow generates a CSS stylesheet from the design system tokens
+2. Tokens are CSS custom properties (`--color-primary`, `--spacing-4`, etc.)
+3. Component modifiers map to utility CSS classes that reference these tokens
+4. Theming swaps the custom property values — all components update automatically
+5. The developer never sees CSS
+
+## Color System
+
+### Semantic Colors
+
+Every color has a semantic name. Components use semantic colors, not hex values.
+
+| Token | Light Default | Dark Default | Usage |
+|---|---|---|---|
+| `primary` | `#007AFF` | `#0A84FF` | Primary actions, links, active states |
+| `secondary` | `#5856D6` | `#5E5CE6` | Secondary actions, accents |
+| `accent` | `#FF9500` | `#FF9F0A` | Highlights, badges, attention |
+| `background` | `#FFFFFF` | `#000000` | Page background |
+| `surface` | `#F2F2F7` | `#1C1C1E` | Card backgrounds, elevated surfaces |
+| `surfaceSecondary` | `#E5E5EA` | `#2C2C2E` | Secondary surfaces, borders |
+| `text` | `#000000` | `#FFFFFF` | Primary text |
+| `textSecondary` | `#3C3C43` (0.6 opacity) | `#EBEBF5` (0.6 opacity) | Secondary text, labels |
+| `textTertiary` | `#3C3C43` (0.3 opacity) | `#EBEBF5` (0.3 opacity) | Placeholder text, disabled |
+| `error` | `#FF3B30` | `#FF453A` | Error states, destructive actions |
+| `success` | `#34C759` | `#30D158` | Success states, confirmations |
+| `warning` | `#FF9500` | `#FF9F0A` | Warning states, caution |
+| `info` | `#5AC8FA` | `#64D2FF` | Informational states |
+
+### Using Colors
+
+```swift
+Text("Hello")
+    .foreground(.primary)         // semantic color
+    .background(.surface)         // semantic color
+
+Text("Custom")
+    .foreground(.hex("#FF0000"))  // escape hatch for explicit colors
+```
+
+### Color Opacity
+
+```swift
+.foreground(.primary.opacity(0.5))
+.background(.surface.opacity(0.8))
+```
+
+## Typography
+
+### Type Scale
+
+Based on Apple's Dynamic Type sizes, adapted for web.
+
+| Style | Size | Weight | Line Height | HTML Element |
+|---|---|---|---|---|
+| `.largeTitle` | 34px | Bold | 1.2 | `<h1>` |
+| `.title` | 28px | Bold | 1.2 | `<h2>` |
+| `.title2` | 22px | Bold | 1.3 | `<h3>` |
+| `.title3` | 20px | Semibold | 1.3 | `<h4>` |
+| `.headline` | 17px | Semibold | 1.4 | `<h5>` |
+| `.body` | 17px | Regular | 1.5 | `<p>` |
+| `.callout` | 16px | Regular | 1.5 | `<p>` |
+| `.subheadline` | 15px | Regular | 1.4 | `<p>` |
+| `.footnote` | 13px | Regular | 1.4 | `<small>` |
+| `.caption` | 12px | Regular | 1.3 | `<small>` |
+
+### Font Family
+
+Default: system font stack (`-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif`).
+
+Customizable per-theme:
+
+```swift
+// In Theme config
+fonts: FontConfig(
+    body: "Inter",
+    heading: "Inter",
+    mono: "JetBrains Mono"
+)
+```
+
+### Using Typography
+
+```swift
+Text("Title")
+    .font(.title)
+
+Text("Custom")
+    .font(.system(size: 18, weight: .medium))
+```
+
+## Spacing Scale
+
+A consistent spacing scale used by padding, margin, gaps, and layout spacing.
+
+| Token | Value |
+|---|---|
+| `0` | 0px |
+| `1` | 4px |
+| `2` | 8px |
+| `3` | 12px |
+| `4` | 16px |
+| `5` | 20px |
+| `6` | 24px |
+| `8` | 32px |
+| `10` | 40px |
+| `12` | 48px |
+| `16` | 64px |
+
+When you write `.padding(16)`, it maps to spacing token `4` (16px). The framework accepts both raw pixel values and token indices:
+
+```swift
+.padding(16)       // 16px
+.padding(.s4)      // also 16px, using the token directly
+```
+
+## Border Radius
+
+| Token | Value |
+|---|---|
+| `.none` | 0px |
+| `.sm` | 4px |
+| `.md` | 8px |
+| `.lg` | 12px |
+| `.xl` | 16px |
+| `.2xl` | 24px |
+| `.full` | 9999px (pill shape) |
+
+```swift
+.cornerRadius(.md)    // 8px
+.cornerRadius(12)     // explicit 12px
+```
+
+## Shadows
+
+| Token | Value |
+|---|---|
+| `.none` | none |
+| `.sm` | `0 1px 2px rgba(0,0,0,0.05)` |
+| `.md` | `0 4px 6px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.06)` |
+| `.lg` | `0 10px 15px rgba(0,0,0,0.1), 0 4px 6px rgba(0,0,0,0.05)` |
+| `.xl` | `0 20px 25px rgba(0,0,0,0.1), 0 8px 10px rgba(0,0,0,0.04)` |
+
+Dark mode shadows use lighter, more subtle values to avoid looking harsh on dark backgrounds.
+
+## Theming
+
+### Default Theme
+
+Sparrow ships with one default theme that looks professional and clean. It covers light and dark mode automatically.
+
+### Custom Themes
+
+Defined in `Sparrow.toml` or in a Swift `Theme` struct:
+
+```toml
+# Sparrow.toml
+[theme]
+primary = "#6366F1"
+secondary = "#8B5CF6"
+accent = "#F59E0B"
+background = "#FFFFFF"
+surface = "#F8FAFC"
+cornerRadius = "md"
+fontBody = "Inter"
+fontHeading = "Inter"
+
+[theme.dark]
+background = "#0F172A"
+surface = "#1E293B"
+```
+
+Or in Swift:
+
+```swift
+extension Theme {
+    static let custom = Theme(
+        primary: "#6366F1",
+        secondary: "#8B5CF6",
+        accent: "#F59E0B",
+        cornerRadius: .md,
+        fonts: FontConfig(body: "Inter", heading: "Inter")
+    )
+}
+```
+
+### Theme Propagation
+
+Like SwiftUI's environment, theme values propagate down the view tree. Any component can override the theme for its subtree:
+
+```swift
+VStack {
+    Text("Default theme")
+
+    VStack {
+        Text("This subtree uses a different primary color")
+    }
+    .environment(\.theme.primary, "#FF0000")
+}
+```
+
+### Dark Mode
+
+Dark mode works automatically. The CSS uses `@media (prefers-color-scheme: dark)` to swap custom properties. No developer action needed.
+
+To force a specific mode:
+
+```swift
+MyView()
+    .colorScheme(.dark)   // force dark
+    .colorScheme(.light)  // force light
+```
+
+## Component Styles
+
+Built-in components have style variants:
+
+```swift
+Button("Submit", style: .primary)      // filled, primary color
+Button("Cancel", style: .secondary)    // outlined, secondary color
+Button("Delete", style: .destructive)  // filled, error color
+Button("More", style: .ghost)          // text only, no background
+Button("Link", style: .link)           // underlined, like a link
+
+Badge("New", style: .info)
+Badge("Error", style: .error)
+Badge("Pro", style: .accent)
+
+TextField("Email", text: $email)
+    .textFieldStyle(.outlined)         // border
+    .textFieldStyle(.filled)           // background fill
+```
+
+## Icons
+
+Sparrow ships the [Lucide](https://lucide.dev) icon set (MIT-licensed, 1500+ icons). Icons are SVG, tree-shaken at build time so only used icons are included in the output.
+
+```swift
+Icon(.plus)
+Icon(.chevronRight)
+Icon(.user)
+Icon(.search)
+Icon(.bell)
+    .foreground(.secondary)
+    .font(.title3)   // controls icon size
+```
+
+## CSS Output
+
+The design system compiles to a single CSS file. Example of generated output:
+
+```css
+:root {
+    --color-primary: #007AFF;
+    --color-surface: #F2F2F7;
+    --color-text: #000000;
+    --spacing-4: 16px;
+    --radius-md: 8px;
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+    --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --color-primary: #0A84FF;
+        --color-surface: #1C1C1E;
+        --color-text: #FFFFFF;
+    }
+}
+
+.font-title { font: 700 28px/1.2 var(--font-body); }
+.font-body { font: 400 17px/1.5 var(--font-body); }
+.fg-primary { color: var(--color-primary); }
+.bg-surface { background: var(--color-surface); }
+.p-4 { padding: var(--spacing-4); }
+.rounded-md { border-radius: var(--radius-md); }
+.shadow-sm { box-shadow: var(--shadow-sm); }
+```
+
+This file is generated once at build time and cached aggressively by the browser. It's typically 10-30KB gzipped depending on how many design tokens and utility classes are generated.
+
+---
+
+# State Management
+
+## Overview
+
+State management in Sparrow follows the SwiftUI model: property wrappers declare how state is owned and shared. The framework handles reactivity automatically — change a value, the UI updates.
+
+All state lives on the server in a per-session Swift Actor. The developer never thinks about client/server synchronization, serialization, or WebSocket plumbing.
+
+## State Tiers
+
+### @State — Component-Local State
+
+Owned by a single component. Mutable. Triggers a re-render of the component when changed.
+
+```swift
+struct Counter: View {
+    @State var count = 0
+
+    var body: some View {
+        VStack {
+            Text("Count: \(count)")
+                .font(.title)
+            Button("Increment") {
+                count += 1
+            }
+        }
+    }
+}
+```
+
+When `count` changes:
+1. The Session Actor updates the value
+2. Re-renders `Counter`'s body
+3. Diffs the HTML output
+4. Sends the patch over WebSocket
+5. Browser DOM updates
+
+### @Binding — Two-Way Reference to Parent State
+
+A reference to state owned by a parent. The child can read and write it. Changes propagate back to the parent and trigger re-renders of both.
+
+```swift
+struct ToggleRow: View {
+    var label: String
+    @Binding var isOn: Bool
+
+    var body: some View {
+        HStack {
+            Text(label)
+            Toggle("", isOn: $isOn)
+        }
+    }
+}
+
+struct SettingsView: View {
+    @State var notificationsEnabled = true
+
+    var body: some View {
+        ToggleRow(label: "Notifications", isOn: $notificationsEnabled)
+    }
+}
+```
+
+The `$` prefix passes a binding rather than a copy.
+
+### @Environment — Injected Values from Ancestors
+
+Read-only values injected into the environment, accessible by any descendant. Used for theme, auth state, app-wide settings.
+
+```swift
+struct ProfileView: View {
+    @Environment(\.currentUser) var user
+    @Environment(\.theme) var theme
+    @Environment(\.colorScheme) var colorScheme
+
+    var body: some View {
+        Text(user.name)
+            .font(.title)
+    }
+}
+```
+
+Setting environment values:
+
+```swift
+MyView()
+    .environment(\.currentUser, user)
+```
+
+Environment values propagate down the tree. Any descendant can read them. Setting a value on a subtree overrides the ancestor's value for that subtree only (just like SwiftUI).
+
+### @Observable — Shared State
+
+For app-wide state that multiple components can read and react to. Uses Swift's Observation framework directly — no extra property wrapper needed.
+
+```swift
+@Observable
+class AppState {
+    var cartItems: [CartItem] = []
+    var isOnboarded: Bool = false
+
+    var cartTotal: Decimal {
+        cartItems.reduce(0) { $0 + $1.price }
+    }
+}
+
+// In the app root — just inject via @Environment
+@main
+struct MyApp: App {
+    var body: some Scene {
+        Routes {
+            Page("/") { HomeView() }
+            Page("/cart") { CartView() }
+        }
+        .environment(\.appState, AppState())
+    }
+}
+
+// Any component can read it
+struct CartBadge: View {
+    @Environment(\.appState) var appState
+
+    var body: some View {
+        Badge("\(appState.cartItems.count)")
+    }
+}
+```
+
+The framework tracks which properties each component reads and only re-renders components that depend on changed properties. If `CartBadge` only reads `cartItems.count`, it won't re-render when `isOnboarded` changes.
+
+There is no `@Store` wrapper. `@Observable` + `@Environment` covers this case. Fewer wrappers = less confusion. This is the lesson SwiftUI learned when it collapsed `@StateObject`/`@ObservedObject`/`@EnvironmentObject` into `@Observable`.
+
+**Guidelines for `@Observable` types:**
+- Keep them small and focused. One model per domain concern, not a god object.
+- Observation of items inside arrays has known sharp edges. If a view reads `items[i].name`, mutations to `items[i].name` must go through the `@Observable` tracking to trigger re-renders. Prefer flat data over deeply nested observable graphs.
+- `@Observable` requires `class`, not `struct`. This is intentional — shared mutable state needs reference semantics.
+
+## Derived State
+
+Computed properties on `@State` or `@Observable` types:
+
+```swift
+struct SearchView: View {
+    @State var searchText = ""
+    @State var allItems: [Item] = []
+
+    var filteredItems: [Item] {
+        if searchText.isEmpty { return allItems }
+        return allItems.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
+    }
+
+    var body: some View {
+        VStack {
+            TextField("Search", text: $searchText)
+            ForEach(filteredItems) { item in
+                ItemRow(item: item)
+            }
+        }
+    }
+}
+```
+
+No special annotation needed. `filteredItems` recomputes when `searchText` or `allItems` changes (because re-render recomputes the body).
+
+## Async State
+
+For data fetched from the database or external APIs.
+
+```swift
+struct UserListView: View {
+    @State var users: [User] = []
+    @State var loadState: LoadState = .idle
+
+    var body: some View {
+        switch loadState {
+        case .idle, .loading:
+            Spinner()
+        case .loaded:
+            ForEach(users) { user in
+                UserRow(user: user)
+            }
+        case .error(let message):
+            ErrorBanner(message: message)
+        }
+    }
+    .task {
+        loadState = .loading
+        do {
+            users = try await User.query().all()
+            loadState = .loaded
+        } catch {
+            loadState = .error(error.localizedDescription)
+        }
+    }
+}
+```
+
+The `.task` modifier launches async work when the view appears and cancels it when the view disappears.
+
+### AsyncView Shorthand
+
+For the common pattern of "load data, show spinner, show result":
+
+```swift
+struct UserListView: View {
+    var body: some View {
+        AsyncView(load: { try await User.query().all() }) { users in
+            ForEach(users) { user in
+                UserRow(user: user)
+            }
+        }
+    }
+}
+```
+
+`AsyncView` automatically shows a `Spinner` while loading, an `ErrorBanner` on failure, and the content on success. The loading/error views are customizable.
+
+## LoadState Enum
+
+A built-in algebraic type for async state:
+
+```swift
+enum LoadState {
+    case idle
+    case loading
+    case loaded
+    case error(String)
+}
+```
+
+The compiler enforces exhaustive handling in `switch` statements — you can't forget the error case.
+
+## Session Actor Internals
+
+Each WebSocket connection gets a `SessionActor`:
+
+```swift
+actor SessionActor {
+    let sessionId: String
+    var viewTree: any View          // current rendered view hierarchy
+    var stateStore: StateStore      // all @State values for this session
+    var lastRenderedHTML: String     // previous render output for diffing
+    var environment: EnvironmentValues  // environment chain
+
+    func handleEvent(_ event: ClientEvent) async {
+        // 1. Find the target component
+        // 2. Execute the event handler (which may mutate @State)
+        // 3. Re-render affected components
+        // 4. Diff against lastRenderedHTML
+        // 5. Send patches to client
+    }
+}
+```
+
+State is identified by component identity (position in the view tree + any explicit `id`). This matches SwiftUI's state identity model.
+
+### Session Memory Management
+
+Every concurrent WebSocket connection holds state in server memory. This is the fundamental scalability constraint of the LiveView model. A baseline connection is cheap (~40KB), but real applications store view trees, state values, and data in each session.
+
+**Rules:**
+- **Keep session assigns minimal.** The session actor should hold only what is needed to render the current view. Shared data (e.g., product catalog, user lists) should live in a shared cache or the database, not copied into every session.
+- **Large collections must use temporary assigns or streams.** If a view renders 10,000 rows, the session must not hold all 10,000 in memory after the render. Temporary assigns are freed after rendering — the HTML is already generated, the data is no longer needed. Streams handle append-only data (chat messages, logs) without growing memory.
+- **Throttle broadcasts.** When notifying sessions of database changes (see Cross-Tab Reactivity below), send small signals, not full payloads. Each session fetches what it needs.
+
+The framework should provide `temporaryAssign` and `stream` primitives so developers don't have to think about this — but the defaults must be safe. If a developer puts a large list in `@State`, the framework should warn or automatically treat it as temporary after render.
+
+## Multiple Tabs / Cross-Tab Reactivity
+
+Each browser tab is a separate WebSocket connection with its own session actor and its own `@State` tree.
+
+**UI state (`@State`) is per-tab.** Opening a modal in tab 1 does not open it in tab 2. Each tab has independent ephemeral state.
+
+**Database state syncs across tabs automatically.** When a database write happens (e.g., user adds an item to their cart), the server notifies all session actors for that user. Each actor re-renders its current view with the fresh data and pushes patches to its respective tab.
+
+This works because the server already holds all session actors in memory. On a database mutation:
+1. The session actor that triggered the write updates its view as normal
+2. The server broadcasts a lightweight signal (not the full data) to other active session actors for the same user
+3. Each notified actor fetches the changed data it needs and re-renders affected views
+4. Patches are sent to each tab's WebSocket connection
+
+The developer doesn't think about any of this. They write to the database, and every tab showing that data updates.
+
+**Important:** Never broadcast full data payloads to all sessions. A naive implementation that sends the entire updated dataset to N sessions multiplies memory by N. Send a signal ("cart changed"), let each session fetch what it needs.
+
+## State Lifecycle
+
+- `@State` is created when a component first appears in the view tree
+- `@State` is preserved as long as the component's identity stays the same
+- `@State` is destroyed when the component is removed from the view tree
+- On WebSocket disconnect, all session state is destroyed
+- On reconnect, the page re-renders from scratch using database state
+
+This means: UI preferences (modal open, tab selected, scroll position) reset on reconnect. User data (profile, cart, saved items) persists because it's in the database. This is the correct behavior — ephemeral state is ephemeral, persistent state is persistent.
+
+### Surviving Reconnects
+
+State loss on disconnect (crash, deploy, network blip) is inherent to the server-state model. To minimize user-visible disruption:
+
+- **Navigational state goes in the URL.** Active tab, pagination, filters, sort order — these must be URL parameters, not `@State`. This way they survive reconnects and support the back button.
+- **Form inputs auto-recover.** The client runtime should snapshot form field values and replay them on reconnect. Phoenix LiveView does this and it works well.
+- **Accept the reset for everything else.** A modal closing or an accordion collapsing on reconnect is fine. Do not try to persist all UI state — the complexity is not worth it.
+
+## Latency and Client-Side Escape Hatch
+
+Every user interaction round-trips to the server. At <50ms latency this is invisible. At 100ms+ it's noticeable. At 250ms+ it degrades the experience for fast interactions like toggles, dropdowns, and text formatting.
+
+The framework's position is "zero JS written by the developer," and that should remain the default path. But the spec must acknowledge reality: some interactions cannot tolerate a round-trip.
+
+**Approach:** Provide a `clientSide` modifier or JS hooks system for developers who need zero-latency interactions. The developer writes a small JS snippet that handles the immediate UI feedback, and the server still processes the authoritative state change.
+
+```swift
+Toggle("Dark mode", isOn: $darkMode)
+    .clientHint(.toggle)  // client toggles immediately, server confirms
+```
+
+This is not a contradiction of the framework's philosophy — it's the same pattern every successful LiveView framework converges on (Phoenix hooks, Livewire's `wire:model.live` vs `wire:model.blur`, Alpine.js integration). Ship the escape hatch from day one rather than bolting it on later.
+
+## Offline
+
+Sparrow apps do not work offline. This is inherent to the architecture and not a bug. If the WebSocket disconnects, the app shows a reconnecting state and resumes when the connection returns. Do not attempt to build offline support — it contradicts the server-state model. Be honest about this in documentation.
+
+---
+
+# Routing
+
+## Overview
+
+Routing in Sparrow is declarative. You define pages in your `App` struct. The router matches URLs to views. Every page is server-rendered on first load (SEO), then subsequent navigation happens over WebSocket without full page reloads.
+
+## Basic Routing
+
+```swift
+@main
+struct MyApp: App {
+    var body: some Scene {
+        Routes {
+            Page("/") { HomeView() }
+            Page("/about") { AboutView() }
+            Page("/pricing") { PricingView() }
+        }
+    }
+}
+```
+
+## Dynamic Segments
+
+```swift
+Routes {
+    Page("/users/:id") { params in
+        UserProfileView(userId: params.id)
+    }
+    Page("/posts/:slug") { params in
+        PostView(slug: params.slug)
+    }
+}
+```
+
+`params` is a type-safe struct. `:id` and `:slug` are `String` by default. Type conversion is explicit:
+
+```swift
+Page("/users/:id") { params in
+    let userId = UUID(params.id)
+    UserProfileView(userId: userId)
+}
+```
+
+## Route Groups & Layouts
+
+Group routes that share a layout:
+
+```swift
+Routes {
+    // Public pages — no auth, marketing layout
+    RouteGroup(layout: MarketingLayout.self) {
+        Page("/") { HomeView() }
+        Page("/about") { AboutView() }
+        Page("/pricing") { PricingView() }
+    }
+
+    // Dashboard pages — auth required, dashboard layout
+    RouteGroup(layout: DashboardLayout.self) {
+        Page("/dashboard") { DashboardView() }
+        Page("/settings") { SettingsView() }
+        Page("/profile") { ProfileView() }
+    }
+    .authenticated()  // all pages in this group require auth
+}
+```
+
+### Layouts
+
+A layout is a view that wraps page content:
+
+```swift
+struct DashboardLayout: Layout {
+    var body: some View {
+        VStack {
+            NavBar()
+            HStack {
+                Sidebar()
+                Content()    // <-- page content renders here
+            }
+        }
+    }
+}
+```
+
+`Content()` is a placeholder that Sparrow replaces with the matched page's content. When navigating between pages in the same layout group, only the `Content()` portion re-renders — the layout stays.
+
+## Navigation
+
+### NavigationLink
+
+Client-side navigation without full page reload:
+
+```swift
+NavigationLink("View Profile", destination: "/users/\(user.id)")
+```
+
+When clicked:
+1. Client JS sends navigation event over WebSocket
+2. Server renders the destination page
+3. Server sends HTML diff
+4. Client patches DOM and updates browser URL via `pushState`
+
+### Programmatic Navigation
+
+```swift
+struct CreatePostView: View {
+    @Environment(\.navigator) var navigator
+
+    var body: some View {
+        Form {
+            // ...
+            Button("Create") {
+                let post = try await createPost()
+                navigator.push("/posts/\(post.slug)")
+            }
+        }
+    }
+}
+```
+
+### External Links
+
+For links that leave your site:
+
+```swift
+Link("GitHub", url: "https://github.com")           // opens in same tab
+Link("Docs", url: "https://docs.example.com")
+    .opensInNewTab()                                  // target="_blank"
+```
+
+## Query Parameters
+
+```swift
+Page("/search") { params in
+    SearchView(query: params.query["q"], page: params.query["page"])
+}
+```
+
+`params.query` is a `[String: String?]` dictionary.
+
+## 404 / Not Found
+
+```swift
+Routes {
+    Page("/") { HomeView() }
+    // ... other routes
+
+    Page(.notFound) {
+        NotFoundView()
+    }
+}
+```
+
+If no route matches, the `notFound` page renders. If not defined, Sparrow shows a default 404 page.
+
+## Redirects
+
+```swift
+Routes {
+    Redirect("/old-path", to: "/new-path")
+    Redirect("/legacy/:id", to: "/modern/:id")   // preserves params
+}
+```
+
+## SEO
+
+Because every page is server-rendered on the initial HTTP request, search engines see complete HTML content. Each page can define metadata:
+
+```swift
+struct BlogPostView: View {
+    var post: Post
+
+    var body: some View {
+        VStack {
+            Text(post.title).font(.largeTitle)
+            Markdown(post.content)
+        }
+        .pageTitle(post.title)
+        .pageDescription(post.excerpt)
+        .pageImage(post.coverImageURL)     // Open Graph image
+        .canonicalURL("/posts/\(post.slug)")
+    }
+}
+```
+
+This generates appropriate `<title>`, `<meta>` description, Open Graph tags, and canonical URL in the `<head>`.
+
+## Middleware
+
+Route-level middleware for auth, logging, rate limiting, etc.:
+
+```swift
+RouteGroup {
+    Page("/admin") { AdminView() }
+}
+.authenticated()                    // built-in auth middleware
+.requireRole(.admin)                // built-in role check
+```
+
+Custom middleware:
+
+```swift
+struct LoggingMiddleware: Middleware {
+    func handle(request: Request, next: Next) async throws -> Response {
+        print("Request: \(request.url)")
+        return try await next.handle(request)
+    }
+}
+
+RouteGroup {
+    Page("/api-heavy") { HeavyView() }
+}
+.middleware(LoggingMiddleware())
+```
+
+---
+
+# Data Layer
+
+## Overview
+
+Sparrow's data layer is adapter-based. You define models as Swift structs, query with a type-safe DSL, and the adapter translates to the backend's native query language. Switch databases by changing one line of config. Your application code never changes.
+
+The frontend doesn't care about the database implementation. It either gets the data or gets an error.
+
+## Adapter Architecture
+
+The data layer has two parts:
+
+1. **The interface** — `@Model`, query DSL, `save()`, `delete()`, etc. This is what the developer writes against. It never changes regardless of backend.
+2. **The adapter** — Translates the interface to a specific backend (Postgres, Convex, Supabase). The developer picks one in their App config and never thinks about it again.
+
+```swift
+@main
+struct MyApp: App {
+    var config: some Config {
+        Database(.postgres("postgres://localhost:5432/myapp"))
+        // or
+        Database(.convex("$CONVEX_URL"))
+        // or
+        Database(.supabase("https://your-project.supabase.co", key: "$SUPABASE_KEY"))
+    }
+}
+```
+
+That's it. Everything downstream — models, queries, migrations — works the same.
+
+### Built-In Adapters
+
+| Adapter | Backend | Self-Hosted | Notes |
+|---|---|---|---|
+| `.postgres(url)` | PostgreSQL | Yes | Full SQL, migrations, raw query escape hatch |
+| `.convex(url)` | Convex | No (hosted) | Real-time sync, serverless, no migrations needed |
+| `.supabase(url, key:)` | Supabase | Optional | Postgres under the hood, adds real-time + auth |
+
+### Adapter Protocol
+
+Third-party adapters can be written by conforming to `DatabaseAdapter`:
+
+```swift
+protocol DatabaseAdapter {
+    func find<M: Model>(_ type: M.Type, id: UUID) async throws -> M?
+    func query<M: Model>(_ type: M.Type) -> QueryBuilder<M>
+    func save<M: Model>(_ model: inout M) async throws
+    func delete<M: Model>(_ model: M) async throws
+    func transaction(_ work: (any DatabaseAdapter) async throws -> Void) async throws
+}
+```
+
+## Models
+
+```swift
+@Model
+struct User {
+    var id: UUID = UUID()
+    var name: String
+    var email: String
+    var avatarURL: String?
+    var isActive: Bool = true
+    var createdAt: Date = Date()
+    var updatedAt: Date = Date()
+}
+```
+
+The `@Model` macro generates:
+- `Codable` conformance
+- `Identifiable` conformance (using `id`)
+- Backend mapping metadata (table name, column names for SQL adapters; collection name for document adapters)
+- Timestamps auto-update (`updatedAt` is set automatically on save)
+
+### Relationships
+
+```swift
+@Model
+struct Post {
+    var id: UUID = UUID()
+    var title: String
+    var body: String
+    var authorId: UUID         // foreign key to User
+    var createdAt: Date = Date()
+}
+
+// Querying with relationships
+let posts = try await Post.query()
+    .where(\.authorId == userId)
+    .sorted(by: \.createdAt, .descending)
+    .all()
+
+// Loading the related user
+let author = try await User.find(post.authorId)
+```
+
+Relationships start with explicit foreign keys and manual loading. A richer relationship API (`.belongsTo`, `.hasMany`, eager loading) builds on top of this.
+
+## Querying
+
+The query DSL is the same regardless of adapter. The adapter translates it.
+
+### Fetch All
+
+```swift
+let users = try await User.query().all()
+```
+
+### Filtering
+
+```swift
+let activeUsers = try await User.query()
+    .where(\.isActive == true)
+    .all()
+
+// Multiple conditions (AND)
+let results = try await User.query()
+    .where(\.isActive == true)
+    .where(\.name, .contains, "john")
+    .all()
+
+// OR conditions
+let results = try await User.query()
+    .where {
+        $0.isActive == true || $0.email.contains("@company.com")
+    }
+    .all()
+```
+
+### Sorting
+
+```swift
+let sorted = try await User.query()
+    .sorted(by: \.name)                          // ascending
+    .sorted(by: \.createdAt, .descending)        // descending
+    .all()
+```
+
+### Pagination
+
+```swift
+let page = try await User.query()
+    .sorted(by: \.createdAt, .descending)
+    .limit(20)
+    .offset(40)
+    .all()
+```
+
+### Count
+
+```swift
+let count = try await User.query()
+    .where(\.isActive == true)
+    .count()
+```
+
+### Find by ID
+
+```swift
+let user = try await User.find(userId)          // returns User?
+let user = try await User.require(userId)       // returns User or throws .notFound
+```
+
+## Creating
+
+```swift
+var user = User(name: "Mikael", email: "mikael@example.com")
+try await user.save()
+// user.id is now set
+```
+
+## Updating
+
+```swift
+var user = try await User.require(userId)
+user.name = "New Name"
+try await user.save()
+// user.updatedAt is automatically updated
+```
+
+## Deleting
+
+```swift
+let user = try await User.require(userId)
+try await user.delete()
+
+// Bulk delete
+try await User.query()
+    .where(\.isActive == false)
+    .delete()
+```
+
+## Transactions
+
+```swift
+try await Database.transaction { db in
+    var user = User(name: "Mikael", email: "mikael@example.com")
+    try await user.save(on: db)
+
+    var profile = Profile(userId: user.id, bio: "Hello!")
+    try await profile.save(on: db)
+}
+// If either save fails, both are rolled back
+```
+
+Note: Transactions are adapter-dependent. Postgres supports full ACID transactions. Convex uses optimistic concurrency. Supabase uses Postgres transactions. The API is the same — the guarantees vary by backend. This is documented per-adapter.
+
+## Migrations
+
+Migrations are adapter-specific. Not all backends need them.
+
+### Postgres Adapter
+
+Sparrow auto-generates migrations by comparing your current `@Model` definitions against the database schema.
+
+```
+$ sparrow migrate
+
+Detected changes:
+  + Create table 'users' (id, name, email, avatar_url, is_active, created_at, updated_at)
+  + Create table 'posts' (id, title, body, author_id, created_at)
+  + Add index on posts.author_id
+
+Apply these migrations? [y/n]
+```
+
+Migration files are generated and stored in `Migrations/` for version control:
+
+```swift
+// Migrations/001_create_users.swift (auto-generated)
+struct CreateUsers: Migration {
+    func up(schema: Schema) async throws {
+        try await schema.create("users") { table in
+            table.uuid("id").primaryKey()
+            table.string("name").notNull()
+            table.string("email").notNull().unique()
+            table.string("avatar_url").nullable()
+            table.bool("is_active").notNull().default(true)
+            table.timestamp("created_at").notNull()
+            table.timestamp("updated_at").notNull()
+        }
+    }
+
+    func down(schema: Schema) async throws {
+        try await schema.drop("users")
+    }
+}
+```
+
+You can edit auto-generated migrations before applying them if needed (data migrations, custom SQL, etc.).
+
+#### Migration Commands
+
+```
+sparrow migrate              # apply pending migrations (interactive)
+sparrow migrate --apply      # apply without confirmation (for CI)
+sparrow migrate --rollback   # undo last migration
+sparrow migrate --status     # show applied/pending migrations
+```
+
+### Convex Adapter
+
+No migrations. Convex is schemaless — `@Model` definitions are enforced at the application level. Sparrow validates data on read/write against your model definitions.
+
+### Supabase Adapter
+
+Uses Postgres migrations under the hood. Same migration commands as the Postgres adapter.
+
+## Database Configuration
+
+Configuration lives in your App struct:
+
+```swift
+@main
+struct MyApp: App {
+    var config: some Config {
+        // Postgres (self-hosted)
+        Database(.postgres("$DATABASE_URL"))
+
+        // Convex (hosted)
+        Database(.convex("$CONVEX_URL"))
+
+        // Supabase (hosted or self-hosted)
+        Database(.supabase("$SUPABASE_URL", key: "$SUPABASE_KEY"))
+    }
+}
+```
+
+Environment variables are referenced with `$` prefix and resolved at runtime.
+
+### Connection Pool (Postgres/Supabase)
+
+```swift
+Database(.postgres("$DATABASE_URL", pool: .init(maxConnections: 20)))
+```
+
+## Error Handling
+
+Database errors throw typed errors regardless of adapter:
+
+```swift
+do {
+    try await user.save()
+} catch DatabaseError.uniqueViolation(let field) {
+    // email already exists
+} catch DatabaseError.notFound {
+    // record not found
+} catch DatabaseError.connectionFailed {
+    // can't reach the database
+} catch {
+    // other database error
+}
+```
+
+Each adapter maps its native errors to these common types. If an adapter doesn't support a specific error type (e.g., Convex doesn't have unique constraints in the same way), it maps to the closest equivalent or a generic `DatabaseError.adapterError(String)`.
+
+---
+
+# Authentication
+
+## Overview
+
+Sparrow ships built-in authentication with an adapter pattern that matches the data layer. The view-level API is always the same — `auth.signIn()`, `@Environment(\.currentUser)`, `.authenticated()` — regardless of which auth backend is active.
+
+## Auth Adapters
+
+Pick your auth backend in the App config:
+
+```swift
+@main
+struct MyApp: App {
+    var config: some Config {
+        Auth(.builtin)
+        // or
+        Auth(.convex)
+        // or
+        Auth(.supabase("$SUPABASE_URL", key: "$SUPABASE_KEY"))
+    }
+}
+```
+
+### Built-In Adapter (`.builtin`)
+
+Session-based auth with your configured database as the session store. Email/password. No external auth provider required. This is the self-hosted, zero-dependency option.
+
+- Passwords hashed with bcrypt (cost factor 12)
+- Sessions stored in a `sparrow_sessions` table (auto-created)
+- Session ID in an HTTP-only, secure, SameSite cookie
+- CSRF tokens automatically embedded in forms
+
+### Convex Adapter (`.convex`)
+
+Uses Convex's built-in auth system. Supports email/password and OAuth providers through Convex's auth configuration.
+
+### Supabase Adapter (`.supabase`)
+
+Uses Supabase Auth. Supports email/password, magic links, OAuth providers, and phone auth through Supabase's auth configuration.
+
+### Adapter Protocol
+
+```swift
+protocol AuthAdapter {
+    func signIn(email: String, password: String) async throws -> AuthSession
+    func register(email: String, password: String, metadata: [String: Any]) async throws -> AuthSession
+    func signOut(session: AuthSession) async throws
+    func validateSession(_ token: String) async throws -> AuthUser?
+    func changePassword(session: AuthSession, current: String, new: String) async throws
+}
+```
+
+## User Model
+
+Sparrow provides a built-in `AuthUser` protocol. You extend it with your own fields:
+
+```swift
+@Model
+struct User: AuthUser {
+    var id: UUID = UUID()
+    var email: String
+    var passwordHash: String          // managed by Sparrow, never set directly
+    var name: String
+    var avatarURL: String?
+    var isActive: Bool = true
+    var createdAt: Date = Date()
+    var updatedAt: Date = Date()
+}
+```
+
+The `AuthUser` protocol requires `id`, `email`, and `passwordHash`. Sparrow handles password hashing, session management, and cookie handling.
+
+Note: When using Convex or Supabase adapters, `passwordHash` is managed by the external service. The field exists on the protocol for the built-in adapter but is ignored by external adapters.
+
+## Protecting Routes
+
+### Page-Level Auth
+
+```swift
+Routes {
+    // Public
+    Page("/") { HomeView() }
+    Page("/login") { LoginView() }
+    Page("/register") { RegisterView() }
+
+    // Authenticated — redirects to /login if not authenticated
+    RouteGroup {
+        Page("/dashboard") { DashboardView() }
+        Page("/settings") { SettingsView() }
+        Page("/profile") { ProfileView() }
+    }
+    .authenticated()
+    .unauthenticatedRedirect("/login")
+}
+```
+
+### Component-Level Auth Check
+
+```swift
+struct NavBar: View {
+    @Environment(\.currentUser) var currentUser   // User? — nil if not logged in
+
+    var body: some View {
+        HStack {
+            NavigationLink("Home", destination: "/")
+            Spacer()
+            if let user = currentUser {
+                Text(user.name)
+                Button("Logout") { logout() }
+            } else {
+                NavigationLink("Login", destination: "/login")
+            }
+        }
+    }
+}
+```
+
+`currentUser` is automatically injected into the environment by Sparrow. It's `nil` when not authenticated. This works the same regardless of auth adapter.
+
+## Built-In Auth Views
+
+Sparrow provides default login and registration views that use the design system. You can use them as-is or build your own.
+
+### Using Defaults
+
+```swift
+Routes {
+    Page("/login") { SparrowLoginView() }
+    Page("/register") { SparrowRegisterView() }
+}
+```
+
+These render a styled login/register form with email, password, validation, and error handling. They match the active theme.
+
+### Custom Auth Views
+
+```swift
+struct LoginView: View {
+    @State var email = ""
+    @State var password = ""
+    @State var error: String?
+    @Environment(\.auth) var auth
+
+    var body: some View {
+        Form {
+            if let error {
+                ErrorBanner(message: error)
+            }
+            TextField("Email", text: $email)
+                .textFieldStyle(.outlined)
+            SecureField("Password", text: $password)
+                .textFieldStyle(.outlined)
+            Button("Sign In", style: .primary) {
+                do {
+                    try await auth.signIn(email: email, password: password)
+                } catch AuthError.invalidCredentials {
+                    error = "Invalid email or password"
+                } catch {
+                    error = "Something went wrong"
+                }
+            }
+        }
+        .frame(maxWidth: 400)
+        .padding(24)
+    }
+}
+```
+
+## Auth API
+
+The `auth` environment object provides the same API regardless of adapter:
+
+```swift
+@Environment(\.auth) var auth
+
+// Sign in
+try await auth.signIn(email: email, password: password)
+
+// Register
+try await auth.register(email: email, password: password, name: name)
+
+// Sign out
+try await auth.signOut()
+
+// Current user (same as @Environment(\.currentUser))
+let user = auth.currentUser    // User?
+```
+
+## Sessions
+
+Session behavior varies by adapter but the developer-facing behavior is consistent:
+
+| Behavior | Built-In | Convex | Supabase |
+|---|---|---|---|
+| Storage | Database table | Convex-managed | Supabase-managed |
+| Token delivery | HTTP-only cookie | HTTP-only cookie | HTTP-only cookie |
+| Default duration | 30 days | Convex default | Supabase default |
+| Validation | Every request | Every request | Every request |
+
+### Session Configuration (Built-In Adapter)
+
+```swift
+Auth(.builtin, session: .init(
+    duration: .days(30),
+    secureCookies: true    // auto-enabled in production
+))
+```
+
+## Password Handling (Built-In Adapter)
+
+- Passwords are hashed with bcrypt (cost factor 12)
+- Sparrow provides `auth.register()` and `auth.signIn()` — the developer never hashes passwords manually
+- `passwordHash` on the User model is write-protected: it can't be set directly, only through `auth.register()` or `auth.changePassword()`
+- Password change:
+  ```swift
+  try await auth.changePassword(
+      currentPassword: oldPassword,
+      newPassword: newPassword
+  )
+  ```
+
+### Password Requirements (Built-In Adapter)
+
+```swift
+Auth(.builtin, password: .init(
+    minLength: 8,
+    requireUppercase: false,
+    requireNumber: false,
+    requireSpecial: false
+))
+```
+
+These are intentionally relaxed defaults. The developer can tighten them. Sparrow validates passwords at registration and password change time, returning `AuthError.weakPassword` with a human-readable message.
+
+## Auth Errors
+
+```swift
+enum AuthError: Error {
+    case invalidCredentials        // wrong email or password
+    case emailAlreadyExists        // registration with existing email
+    case unauthenticated           // no active session
+    case sessionExpired            // session timed out
+    case weakPassword(String)      // password doesn't meet requirements
+    case adapterError(String)      // adapter-specific error
+}
+```
+
+All adapters map their native errors to these common types.
+
+## CSRF Protection
+
+Sparrow automatically includes CSRF tokens in forms and validates them on submission. The developer doesn't need to think about this. The token is embedded in the HTML by the renderer and validated by the server on form submission events. This works with all auth adapters.
+
+## OAuth Providers
+
+OAuth support varies by adapter:
+
+### Built-In Adapter
+
+```swift
+Auth(.builtin, oauth: [
+    .google(clientId: "$GOOGLE_CLIENT_ID", clientSecret: "$GOOGLE_CLIENT_SECRET"),
+    .github(clientId: "$GITHUB_CLIENT_ID", clientSecret: "$GITHUB_CLIENT_SECRET"),
+    .apple(clientId: "$APPLE_CLIENT_ID", teamId: "$APPLE_TEAM_ID"),
+])
+```
+
+Sparrow handles the OAuth flow, callback routes, and user creation/linking.
+
+### Convex / Supabase Adapters
+
+OAuth is configured in the respective service's dashboard. Sparrow surfaces the sign-in buttons:
+
+```swift
+Button("Sign in with Google", style: .ghost) {
+    try await auth.signIn(provider: .google)
+}
+```
+
+## Role-Based Access Control
+
+```swift
+RouteGroup {
+    Page("/admin") { AdminView() }
+}
+.authenticated()
+.requireRole(.admin)
+```
+
+Roles are stored on the User model and checked by the router middleware. This works the same regardless of auth adapter.
+
+---
+
+# CLI
+
+## Overview
+
+The Sparrow CLI is the single entry point for creating, running, building, and managing Sparrow projects. It has two modes: human (interactive prompts) and LLM (JSON input/output).
+
+## Commands
+
+### sparrow new
+
+Creates a new Sparrow project.
+
+**Human mode (interactive):**
+```
+$ sparrow new MyApp
+
+  Creating new Sparrow project: MyApp
+
+  Theme: (default)
+  ○ Default (clean, professional)
+  ○ Minimal (stripped back, content-focused)
+
+  Database: (default)
+  ○ Postgres (local)
+  ○ None 
+  Auth: (default)
+  ○ Built-in (email/password)
+  ○ None 
+  ✓ Created MyApp/
+  ✓ Created MyApp/Sparrow.toml
+  ✓ Created MyApp/App.swift
+
+  Next steps:
+    cd MyApp
+    sparrow run
+```
+
+**LLM mode:**
+```
+$ sparrow new --json '{"name": "MyApp", "theme": "default", "database": "postgres", "auth": true}'
+
+{"status": "ok", "path": "MyApp/", "files": ["Sparrow.toml", "App.swift"]}
+```
+
+### Generated Files
+
+```
+MyApp/
+  Sparrow.toml        # project config
+  App.swift            # entry point, routes, first view
+```
+
+**Sparrow.toml:**
+```toml
+name = "MyApp"
+swift-tools-version = "6.2"
+
+[theme]
+preset = "default"
+
+[database]
+url = "postgres://localhost:5432/myapp"
+
+[auth]
+enabled = true
+```
+
+**App.swift:**
+```swift
+import Sparrow
+
+@main
+struct MyApp: App {
+    var body: some Scene {
+        Routes {
+            Page("/") {
+                VStack(spacing: 16) {
+                    Text("Welcome to MyApp")
+                        .font(.largeTitle)
+                    Text("Edit App.swift to get started.")
+                        .foreground(.textSecondary)
+                }
+                .padding(32)
+            }
+        }
+    }
+}
+```
+
+That's it. Two files. `sparrow run` starts the server.
+
+### sparrow run
+
+Starts the development server with hot reload.
+
+```
+$ sparrow run
+
+  ✓ Compiled MyApp (1.2s)
+  ✓ Connected to Postgres
+  ✓ Migrations up to date
+  ✓ Server running at http://localhost:5456
+
+  Watching for changes...
+```
+
+What `sparrow run` does:
+1. Generates `Package.swift` from `Sparrow.toml` (if needed)
+2. Runs `swift build` with incremental compilation
+3. Starts the Hummingbird server
+4. Connects to Postgres and runs pending migrations
+5. Starts file watcher (FSEvents on macOS)
+6. Opens the browser (configurable, default: yes)
+7. On file change: incremental rebuild → hot-swap → push refresh over WebSocket
+
+**Flags:**
+```
+sparrow run                    # default: localhost:5456
+sparrow run --port 8080        # custom port
+sparrow run --no-browser       # don't open browser
+sparrow run --verbose          # detailed build output
+```
+
+### sparrow build
+
+Compiles for production deployment.
+
+```
+$ sparrow build
+
+  ✓ Compiled MyApp (release mode, 4.8s)
+  ✓ Generated CSS (12KB gzipped)
+  ✓ Copied static assets
+  ✓ Build complete: .build/release/MyApp
+
+  Output:
+    .build/release/MyApp           # server binary
+    .build/release/public/         # CSS, JS runtime, static assets
+```
+
+The output is a single binary + a `public/` directory. Deploy anywhere you can run a binary.
+
+**Flags:**
+```
+sparrow build                     # release build
+sparrow build --docker            # generate Dockerfile
+sparrow build --docker --run      # build and run Docker container
+```
+
+### sparrow migrate
+
+Manages database migrations.
+
+```
+$ sparrow migrate
+
+  Detected changes:
+    + Create table 'users' (id, name, email, password_hash, ...)
+    + Create table 'posts' (id, title, body, author_id, ...)
+
+  Apply? [y/n] y
+
+  ✓ Applied 2 migrations
+```
+
+```
+sparrow migrate                 # interactive: detect and apply
+sparrow migrate --apply         # non-interactive: auto-apply (for CI/CD)
+sparrow migrate --rollback      # undo last migration
+sparrow migrate --status        # show migration status
+```
+
+### sparrow db
+
+Database utilities.
+
+```
+sparrow db reset                # drop and recreate (dev only)
+sparrow db console              # open psql connected to project database
+```
+
+## LLM Mode
+
+Every command accepts `--json` for structured input and returns JSON output.
+
+```
+$ sparrow new --json '{"name": "MyApp"}'
+{"status": "ok", "path": "MyApp/"}
+
+$ sparrow run --json
+{"status": "running", "url": "http://localhost:5456", "pid": 12345}
+
+$ sparrow build --json
+{"status": "ok", "binary": ".build/release/MyApp", "assets": ".build/release/public/"}
+
+$ sparrow migrate --json
+{"pending": [{"name": "001_create_users", "changes": ["create table users"]}]}
+
+$ sparrow migrate --apply --json
+{"status": "ok", "applied": ["001_create_users"]}
+```
+
+LLM mode:
+- Never prompts for input (uses defaults or errors if required params missing)
+- Always returns structured JSON
+- Includes error details in JSON on failure: `{"status": "error", "message": "...", "code": "..."}`
+- Progress events can be streamed as newline-delimited JSON if `--stream` is added
+
+## Project Discovery
+
+Sparrow finds the project root by looking for `Sparrow.toml` in the current directory or parent directories (like how `git` finds `.git/`). All commands work from any subdirectory of the project.
+
+## Package Management
+
+Sparrow uses Swift Package Manager under the hood but abstracts it away. The developer adds dependencies in `Sparrow.toml`:
+
+```toml
+[dependencies]
+sparrow-charts = { version = "1.0", source = "https://github.com/sparrow-packages/charts" }
+```
+
+Sparrow generates the `Package.swift` from `Sparrow.toml`. The developer never edits `Package.swift` directly.
+
+```
+sparrow add sparrow-charts      # add a dependency
+sparrow remove sparrow-charts   # remove a dependency
+sparrow update                  # update all dependencies
+```
+
+## Error Output
+
+Errors are designed to be helpful for both humans and LLMs:
+
+```
+$ sparrow run
+
+  ✗ Build failed
+
+  App.swift:15:9: error: type 'Users' has no member 'qury'
+    let users = try await User.qury().all()
+                                ~~~~
+  Did you mean 'query'?
+```
+
+In JSON mode:
+```json
+{
+    "status": "error",
+    "errors": [
+        {
+            "file": "App.swift",
+            "line": 15,
+            "column": 9,
+            "message": "type 'Users' has no member 'qury'",
+            "suggestion": "Did you mean 'query'?"
+        }
+    ]
+}
+```
+
+---
+
+# Rendering Pipeline
+
+## Overview
+
+The rendering pipeline transforms Swift View structs into HTML strings. It runs on the server for every page load and on every state change. The pipeline must be fast (sub-millisecond for small components), deterministic (same input → same output), and produce semantic, accessible HTML.
+
+## Pipeline Stages
+
+```
+Swift View Tree → HTML IR → HTML String → (Diff) → Patches
+```
+
+### Stage 1: View Resolution
+
+The framework walks the View tree, resolving `body` properties recursively until it reaches primitive views (Text, VStack, Button, etc.).
+
+```swift
+// Input
+ProfileCard(user: user)
+
+// Resolves to:
+VStack(spacing: 12) {
+    Avatar(url: user.avatarURL, size: .large)
+    Text(user.name)
+        .font(.title)
+        .foreground(.primary)
+}
+.padding(16)
+.background(.surface)
+.cornerRadius(.md)
+```
+
+Each resolved primitive is assigned a stable ID based on its position in the tree (and any explicit `id` modifiers). These IDs are used for diffing and event routing.
+
+### Stage 2: HTML IR Generation
+
+Each primitive view generates an HTML Intermediate Representation — a lightweight node tree that maps views to HTML elements and CSS classes.
+
+```
+HTMLNode(
+    tag: "div",
+    id: "v_0_0",
+    classes: ["flex", "flex-col", "gap-3", "p-4", "bg-surface", "rounded-md"],
+    children: [
+        HTMLNode(
+            tag: "img",
+            id: "v_0_0_0",
+            classes: ["avatar", "avatar-lg"],
+            attributes: ["src": user.avatarURL, "alt": user.name]
+        ),
+        HTMLNode(
+            tag: "h2",
+            id: "v_0_0_1",
+            classes: ["font-title", "fg-primary"],
+            text: user.name
+        )
+    ]
+)
+```
+
+### Stage 3: HTML String Serialization
+
+The IR is serialized to an HTML string. For the initial page load, this is wrapped in a full HTML document.
+
+### Stage 4: Diffing (WebSocket updates only)
+
+On state changes, the renderer produces new HTML for the affected subtree. The differ compares old vs. new HTML and produces minimal patches.
+
+## Initial Page Load (SSR)
+
+On `GET /profile/123`, the server produces a complete HTML document:
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Profile — MyApp</title>
+    <meta name="description" content="...">
+    <meta property="og:title" content="Profile">
+    <link rel="stylesheet" href="/sparrow.css">
+</head>
+<body>
+    <div id="sparrow-root">
+        <div id="v_0" class="flex flex-col gap-3 p-4 bg-surface rounded-md">
+            <img id="v_0_0" class="avatar avatar-lg" src="..." alt="Mikael">
+            <h2 id="v_0_1" class="font-title fg-primary">Mikael</h2>
+        </div>
+    </div>
+    <script src="/sparrow-runtime.js"></script>
+    <script>Sparrow.connect("ws://...", "session_token_here");</script>
+</body>
+</html>
+```
+
+The page is immediately renderable. No JavaScript needs to execute before the user sees content. The runtime JS boots after the page is visible and establishes the WebSocket for interactivity.
+
+## View-to-HTML Mapping
+
+### Layout Views
+
+| Swift | HTML | CSS Classes |
+|---|---|---|
+| `VStack(spacing: 12)` | `<div>` | `flex flex-col gap-3` |
+| `HStack(spacing: 8)` | `<div>` | `flex flex-row gap-2` |
+| `ZStack` | `<div>` | `relative` (children get `absolute`) |
+| `Spacer()` | `<div>` | `flex-grow` |
+| `Divider()` | `<hr>` | `divider` |
+| `ScrollView(.vertical)` | `<div>` | `overflow-y-auto` |
+| `Grid(columns: 3)` | `<div>` | `grid grid-cols-3` |
+
+### Semantic HTML
+
+The renderer produces semantic HTML elements, not just divs:
+
+| Swift | HTML |
+|---|---|
+| `Text("...").font(.title)` | `<h2>` |
+| `Text("...").font(.largeTitle)` | `<h1>` |
+| `Text("...")` (body context) | `<p>` |
+| `Button("...")` | `<button>` |
+| `NavigationLink("...")` | `<a href="...">` |
+| `TextField("...")` | `<input type="text">` |
+| `Form { ... }` | `<form>` |
+| `List { ... }` | `<ul>` |
+| `Section(header:)` | `<section>` with `<h3>` |
+| `Image(...)` | `<img>` |
+| `Modal(...)` | `<dialog>` |
+
+This is critical for SEO, accessibility, and browser features (password managers, form autofill, screen readers, keyboard navigation).
+
+## Modifier-to-CSS Mapping
+
+Modifiers accumulate CSS classes. Multiple modifiers on the same view combine their classes:
+
+```swift
+Text("Hello")
+    .font(.title)
+    .foreground(.primary)
+    .padding(16)
+    .background(.surface)
+    .cornerRadius(.md)
+
+// → <h2 class="font-title fg-primary p-4 bg-surface rounded-md">Hello</h2>
+```
+
+### Spacing Modifiers
+
+| Swift | CSS Class | CSS |
+|---|---|---|
+| `.padding(4)` | `p-1` | `padding: 4px` |
+| `.padding(8)` | `p-2` | `padding: 8px` |
+| `.padding(16)` | `p-4` | `padding: 16px` |
+| `.padding(.horizontal, 16)` | `px-4` | `padding-left: 16px; padding-right: 16px` |
+| `.padding(.top, 8)` | `pt-2` | `padding-top: 8px` |
+| `.margin(16)` | `m-4` | `margin: 16px` |
+
+### Frame Modifiers
+
+| Swift | CSS Class / Inline |
+|---|---|
+| `.frame(width: 200)` | `width: 200px` |
+| `.frame(maxWidth: .infinity)` | `width: 100%` |
+| `.frame(minHeight: 44)` | `min-height: 44px` |
+
+Frame modifiers use inline styles because they're typically unique per-component. Design-system values use classes.
+
+## Diffing Algorithm
+
+When state changes, the renderer:
+
+1. Re-renders only the affected component subtree (not the whole page)
+2. Produces new HTML for that subtree
+3. Compares old HTML vs. new HTML at the node level
+
+The diff produces a list of patches:
+
+```json
+[
+    {"op": "text", "target": "#v_0_1", "value": "Count: 2"},
+    {"op": "replace", "target": "#v_0_2", "html": "<div class='badge badge-success'>Active</div>"},
+    {"op": "remove", "target": "#v_0_3"},
+    {"op": "append", "target": "#v_0", "html": "<p class='font-body'>New item</p>"},
+    {"op": "attr", "target": "#v_0_4", "attr": "class", "value": "btn btn-primary disabled"}
+]
+```
+
+Patch types:
+- `text` — update text content of a node
+- `replace` — replace a node's entire HTML
+- `remove` — remove a node
+- `append` — add a new child node
+- `prepend` — add a new child at the beginning
+- `attr` — update an attribute (class, disabled, etc.)
+- `reorder` — reorder children (for list diffing with keys)
+
+## Event Handling
+
+Interactive elements get `data-sparrow-event` attributes:
+
+```html
+<button id="v_0_2" class="btn btn-primary" data-sparrow-event="click">
+    Increment
+</button>
+
+<input id="v_0_3" type="text" data-sparrow-event="input" data-sparrow-debounce="300">
+```
+
+The client runtime captures these events and sends them over WebSocket:
+
+```json
+{"event": "click", "target": "v_0_2"}
+{"event": "input", "target": "v_0_3", "value": "search text"}
+```
+
+### Input Debouncing
+
+Text inputs are debounced by default (300ms) to avoid sending every keystroke. This is configurable:
+
+```swift
+TextField("Search", text: $searchText)
+    .debounce(500)        // 500ms debounce
+    .debounce(0)          // no debounce (send every keystroke)
+```
+
+### Form Submission
+
+Forms collect all input values and send them in one event:
+
+```json
+{"event": "submit", "target": "v_form_0", "values": {"email": "...", "password": "..."}}
+```
+
+## CSS Generation
+
+At build time, Sparrow generates `sparrow.css`:
+
+1. **Reset/normalize** — consistent cross-browser baseline
+2. **Design tokens** — CSS custom properties from the theme
+3. **Utility classes** — all modifier-mapped classes (tree-shaken: only used classes are included)
+4. **Component styles** — styles for built-in components (Button variants, Card, Modal, etc.)
+5. **Animation keyframes** — for built-in transitions
+
+The CSS is generated once, not per-request. It's served as a static file and cached by the browser.
+
+## Performance Considerations
+
+- **Rendering is a pure function**: View tree + state → HTML string. No side effects, no shared mutable state. Safe to call from any context.
+- **Partial re-rendering**: Only the changed subtree re-renders, not the whole page.
+- **String building**: HTML is built using contiguous byte buffers, not string concatenation, for minimal allocations.
+- **Diffing scope**: The differ only compares the re-rendered subtree, not the whole document.
+- **Static subtrees**: Components with no `@State` or `@Binding` are detected at build time and cached — they render once and are reused.
+
+---
+
+# Client Runtime
+
+## Overview
+
+Sparrow ships a small JavaScript runtime (~5-10KB minified+gzipped) that runs in the browser. The developer never sees, writes, or configures it. It handles WebSocket connections, DOM patching, event forwarding, and navigation.
+
+## Responsibilities
+
+1. **WebSocket connection management** — connect, reconnect, heartbeat
+2. **DOM patching** — apply server-sent patches to the live DOM
+3. **Event capture** — detect user interactions and forward to server
+4. **Navigation** — handle client-side navigation without full page reloads
+5. **Focus management** — preserve focus state after DOM patches
+6. **Scroll preservation** — maintain scroll position during updates
+7. **Input state** — preserve in-progress input values during re-renders
+8. **Reconnection UI** — show/hide reconnecting indicator
+
+## WebSocket Protocol
+
+### Connection
+
+On page load, after the SSR HTML is rendered:
+
+```javascript
+Sparrow.connect("ws://localhost:5456/sparrow/ws", "session_token");
+```
+
+The session token is embedded in the SSR HTML by the server. It identifies the session actor on the server.
+
+### Message Format
+
+All messages are JSON over WebSocket.
+
+**Client → Server:**
+
+```json
+// User events
+{"type": "event", "id": "v_0_2", "event": "click"}
+{"type": "event", "id": "v_0_3", "event": "input", "value": "hello"}
+{"type": "event", "id": "v_form", "event": "submit", "values": {"email": "a@b.com"}}
+
+// Navigation
+{"type": "navigate", "url": "/settings"}
+
+// Heartbeat
+{"type": "ping"}
+```
+
+**Server → Client:**
+
+```json
+// DOM patches
+{"type": "patch", "patches": [
+    {"op": "text", "target": "#v_0_1", "value": "Count: 2"},
+    {"op": "replace", "target": "#v_0_2", "html": "<div>...</div>"}
+]}
+
+// Full page replacement (navigation)
+{"type": "page", "html": "<div id='sparrow-root'>...</div>", "url": "/settings", "title": "Settings"}
+
+// Heartbeat response
+{"type": "pong"}
+```
+
+### Reconnection
+
+1. WebSocket `onclose` fires
+2. Client shows a small, non-intrusive reconnecting indicator (bottom of screen)
+3. Reconnect attempts with exponential backoff: 100ms, 200ms, 400ms, 800ms, 1.6s, 3.2s, max 5s
+4. On successful reconnect, client sends `{"type": "reconnect", "url": window.location.pathname}`
+5. Server creates a new session actor, renders the current URL, sends full page content
+6. Client replaces the DOM and removes the reconnecting indicator
+
+If reconnection fails after 30 seconds, the client shows a "Connection lost. Click to retry." message.
+
+## DOM Patching
+
+The client applies patches sequentially. Each patch targets a DOM element by its `id` attribute.
+
+```javascript
+// Simplified patch application
+function applyPatch(patch) {
+    const el = document.getElementById(patch.target.replace('#', ''));
+    switch (patch.op) {
+        case 'text':
+            el.textContent = patch.value;
+            break;
+        case 'replace':
+            el.outerHTML = patch.html;
+            break;
+        case 'remove':
+            el.remove();
+            break;
+        case 'append':
+            el.insertAdjacentHTML('beforeend', patch.html);
+            break;
+        case 'prepend':
+            el.insertAdjacentHTML('afterbegin', patch.html);
+            break;
+        case 'attr':
+            el.setAttribute(patch.attr, patch.value);
+            break;
+        case 'reorder':
+            // Reorder children by id list
+            break;
+    }
+}
+```
+
+### Focus Preservation
+
+Before applying patches, the client records:
+- The currently focused element's ID
+- The cursor position within text inputs
+- Selection range
+
+After applying patches, if the focused element still exists, focus and cursor position are restored.
+
+### Scroll Preservation
+
+Scroll position of the page and any scrollable containers is recorded before patches and restored after, unless the patch is a full page navigation (in which case scroll resets to top).
+
+### Input Value Preservation
+
+If a text input is currently being edited and a patch arrives for its parent (but not the input itself), the input's value is preserved. This prevents the common problem where a server re-render wipes out a user's in-progress typing.
+
+## Event Capture
+
+The client uses event delegation on `#sparrow-root`:
+
+```javascript
+root.addEventListener('click', (e) => {
+    const target = e.target.closest('[data-sparrow-event*="click"]');
+    if (target) {
+        e.preventDefault();
+        send({ type: 'event', id: target.id, event: 'click' });
+    }
+});
+```
+
+### Captured Events
+
+| Event | Trigger | Data Sent |
+|---|---|---|
+| `click` | Button, link, any clickable | `{id, event: "click"}` |
+| `input` | Text field, text area | `{id, event: "input", value}` (debounced) |
+| `change` | Toggle, picker, checkbox | `{id, event: "change", value}` |
+| `submit` | Form submission | `{id, event: "submit", values: {field: value, ...}}` |
+| `focus` | Element receives focus | `{id, event: "focus"}` |
+| `blur` | Element loses focus | `{id, event: "blur"}` |
+
+### Debouncing
+
+Text inputs are debounced to avoid sending every keystroke:
+
+```html
+<input data-sparrow-event="input" data-sparrow-debounce="300">
+```
+
+The default debounce is 300ms. The developer controls this with `.debounce()` on the Swift side. The value is emitted as a `data-sparrow-debounce` attribute.
+
+## Navigation
+
+### Internal Links
+
+`<a>` tags with `data-sparrow-nav` are intercepted:
+
+```javascript
+root.addEventListener('click', (e) => {
+    const link = e.target.closest('a[data-sparrow-nav]');
+    if (link) {
+        e.preventDefault();
+        const url = link.getAttribute('href');
+        send({ type: 'navigate', url });
+        window.history.pushState({}, '', url);
+    }
+});
+```
+
+The server responds with a `page` message containing the new content. The client replaces the content area and updates the document title.
+
+### Browser Back/Forward
+
+```javascript
+window.addEventListener('popstate', () => {
+    send({ type: 'navigate', url: window.location.pathname });
+});
+```
+
+### External Links
+
+Regular `<a href="https://...">` links without `data-sparrow-nav` work normally — the browser handles them.
+
+## Loading States
+
+When an event is sent and the server hasn't responded yet, the client can show loading states:
+
+- Buttons that triggered the event get a `data-sparrow-loading` attribute (which the CSS uses to show a spinner or disable the button)
+- The loading state is automatically cleared when the server responds with patches
+
+```html
+<!-- Server sends this attribute in the HTML -->
+<button data-sparrow-loading-class="btn-loading">Submit</button>
+```
+
+When the button is clicked and waiting for a server response, the client adds the `btn-loading` class. When the response arrives, it's removed (or the button is replaced entirely by the patch).
+
+## Size Budget
+
+Target: **under 10KB minified + gzipped**.
+
+The runtime is intentionally minimal:
+- No virtual DOM
+- No client-side state management
+- No template engine
+- No routing logic (server handles it)
+- Just: WebSocket + DOM patching + event forwarding + navigation
+
+For comparison: HTMX is ~14KB, Alpine.js is ~7KB. Sparrow's runtime is in the same ballpark but more focused.
+
+---
+
+# Hot Reload
+
+## Overview
+
+`sparrow run` starts a development server with automatic rebuild and browser refresh on file changes. The target is 1-3 seconds from save to seeing the update in the browser.
+
+## How It Works
+
+```
+Developer saves file
+       ↓
+File watcher detects change (FSEvents on macOS)
+       ↓
+Incremental swift build (~1-3s for small changes)
+       ↓
+Server binary is restarted with new code
+       ↓
+Server sends "reload" signal over WebSocket to all connected browsers
+       ↓
+Browsers request fresh page, DOM updates
+```
+
+## File Watcher
+
+Uses macOS FSEvents (or inotify on Linux) to watch all `.swift` files in the project directory. Ignores:
+- `.build/` directory
+- `Migrations/` directory (migrations don't trigger rebuild)
+- Hidden files and directories
+
+Debounces rapid file saves (200ms) to avoid multiple rebuilds when a tool saves multiple files at once.
+
+## Incremental Compilation
+
+Swift's incremental compilation recompiles only changed files and their dependents. For a single-file change in a small project, this is typically 1-3 seconds.
+
+Strategies to keep it fast:
+- **Module structure**: Sparrow encourages small files (one view per file) which limits the blast radius of changes
+- **Separate compilation units**: The framework itself is pre-compiled; only the user's code rebuilds
+- **Debug mode only**: `sparrow run` builds in debug mode (faster compilation, no optimization)
+
+## Server Restart
+
+On successful build:
+1. The running server process receives a signal to shut down gracefully
+2. Active WebSocket connections are notified with `{"type": "reloading"}`
+3. The new binary starts
+4. The new server re-establishes its listener on the same port
+5. WebSocket clients reconnect automatically (the client runtime handles this)
+
+The brief disconnection (< 1 second) shows the reconnecting indicator, then the page refreshes with new content.
+
+## State During Reload
+
+All server-side session state (`@State` values) is lost during a hot reload. This is acceptable in development:
+- Database state (user data, app data) is preserved
+- The page re-renders from scratch with initial state values
+- For most development workflows, this is fine — you're looking at the component you just changed
+
+## Browser Behavior
+
+When the server sends a `{"type": "reloading"}` message:
+1. Client shows a subtle "Reloading..." indicator
+2. Client enters reconnection mode
+3. On reconnect, client requests the current URL
+4. Server renders the fresh page
+5. Client replaces the DOM
+6. Indicator disappears
+
+If the build fails:
+1. Server doesn't restart (old version keeps running)
+2. Build errors are displayed in the terminal
+3. Build errors are also sent to the browser via WebSocket: `{"type": "build_error", "errors": [...]}`
+4. The browser shows a dev-only error overlay with file, line, and error message
+5. When the developer fixes the error and saves, the cycle repeats
+
+## Build Error Overlay
+
+In development mode, build errors are shown directly in the browser:
+
+```
+┌─────────────────────────────────────────────┐
+│  ✗ Build Error                              │
+│                                             │
+│  App.swift:15:9                             │
+│  type 'User' has no member 'nme'            │
+│                                             │
+│  Did you mean 'name'?                       │
+│                                             │
+│  Waiting for changes...                     │
+└─────────────────────────────────────────────┘
+```
+
+This overlay disappears automatically when the next build succeeds.
+
+## Performance Targets
+
+| Metric | Target | Notes |
+|---|---|---|
+| File change detection | < 100ms | FSEvents is near-instant |
+| Incremental build (1 file changed) | 1-3s | Swift incremental compilation |
+| Server restart | < 500ms | Hummingbird boots fast |
+| Browser reconnect + re-render | < 500ms | WebSocket reconnection |
+| **Total: save to screen update** | **2-4s** | |
+
+## Optimization Ideas
+
+- **Partial module reloading**: Reload only the changed view without restarting the entire server (requires Swift runtime support for dynamic loading)
+- **View interpretation**: For view-only changes (no logic changes), interpret the view DSL without recompilation
+- **Incremental CSS**: Only regenerate CSS for changed components
+- **State preservation**: Serialize and restore `@State` across reloads in dev mode
+
+---
+
+# Project Structure
+
+## Overview
+
+Sparrow projects start with 2 files and grow organically. There are no mandatory directory conventions — organize your files however you want. Sparrow discovers components by type conformance, not file location.
+
+Everything is Swift. No TOML, no YAML, no JSON config files.
+
+## Minimal Project (sparrow new)
+
+```
+MyApp/
+  App.swift            # entry point: config, routes, views
+  Theme.swift          # theme customization (optional, generated with defaults)
+```
+
+This is a complete, runnable project. `sparrow run` works immediately.
+
+## App.swift — The Entry Point
+
+All configuration lives in Swift, in the App struct:
+
+```swift
+import Sparrow
+
+@main
+struct MyApp: App {
+    var config: some Config {
+        Server(port: 5456)
+        Database(.postgres("$DATABASE_URL"))
+        Auth(.builtin)
+    }
+
+    var body: some Scene {
+        Routes {
+            Page("/") {
+                VStack(spacing: 16) {
+                    Text("Welcome to MyApp")
+                        .font(.largeTitle)
+                    Text("Edit App.swift to get started.")
+                        .foreground(.textSecondary)
+                }
+                .padding(32)
+            }
+        }
+    }
+}
+```
+
+### Config Block
+
+The `config` property declares all infrastructure:
+
+```swift
+var config: some Config {
+    // Server
+    Server(port: 5456, host: "0.0.0.0")
+
+    // Database — pick one adapter
+    Database(.postgres("$DATABASE_URL"))
+    Database(.postgres("$DATABASE_URL", pool: .init(maxConnections: 20)))
+    Database(.convex("$CONVEX_URL"))
+    Database(.supabase("$SUPABASE_URL", key: "$SUPABASE_KEY"))
+
+    // Auth — pick one adapter
+    Auth(.builtin)
+    Auth(.builtin, oauth: [.google(clientId: "$GOOGLE_ID", clientSecret: "$GOOGLE_SECRET")])
+    Auth(.convex)
+    Auth(.supabase("$SUPABASE_URL", key: "$SUPABASE_KEY"))
+
+    // Email — pick one adapter
+    Email(.resend(apiKey: "$RESEND_KEY"))
+    Email(.ses(region: "us-east-1"))
+    Email(.smtp(host: "smtp.example.com", port: 587, username: "$SMTP_USER", password: "$SMTP_PASS"))
+
+    // Analytics
+    Analytics(.builtin)
+
+    // Admin dashboard
+    Admin(.enabled, path: "/_admin")
+}
+```
+
+Only one of each type is allowed. The compiler enforces this.
+
+### Environment Variables
+
+Environment variables are referenced with `$` prefix in string literals and resolved at runtime:
+
+```swift
+Database(.postgres("$DATABASE_URL"))
+```
+
+For local development, create a `.env` file in the project root:
+
+```
+DATABASE_URL=postgres://localhost:5432/myapp
+RESEND_KEY=re_abc123
+```
+
+`.env` is gitignored by default. Sparrow loads it automatically in development mode.
+
+### Conditional Config
+
+Because it's Swift, you can use `#if`:
+
+```swift
+var config: some Config {
+    #if DEBUG
+    Server(port: 5456)
+    Database(.postgres("postgres://localhost:5432/myapp_dev"))
+    #else
+    Server(port: 8080)
+    Database(.postgres("$DATABASE_URL"))
+    #endif
+
+    Auth(.builtin)
+}
+```
+
+## Theme.swift
+
+Theme customization lives in a dedicated file:
+
+```swift
+import Sparrow
+
+extension Theme {
+    static let app = Theme.default
+        .primary("#6366F1")
+        .secondary("#8B5CF6")
+        .accent("#F59E0B")
+        .cornerRadius(.md)
+        .fonts(body: "Inter", heading: "Inter", mono: "JetBrains Mono")
+        .dark { dark in
+            dark.background("#0F172A")
+                .surface("#1E293B")
+        }
+}
+```
+
+Used in App.swift:
+
+```swift
+@main
+struct MyApp: App {
+    var theme: some Theme { .app }
+    // ...
+}
+```
+
+Or inline if you prefer:
+
+```swift
+var theme: some Theme {
+    Theme.default
+        .primary("#007AFF")
+}
+```
+
+The developer has full control over every design token. If `theme` is omitted, Sparrow uses `Theme.default`.
+
+## Small Project (a few pages)
+
+```
+MyApp/
+  App.swift
+  Theme.swift
+  HomeView.swift
+  AboutView.swift
+  ProfileView.swift
+  User.swift
+```
+
+All `.swift` files in the project directory (and subdirectories) are automatically included in the build. No need to register them anywhere.
+
+## Medium Project (organized by feature)
+
+```
+MyApp/
+  App.swift
+  Theme.swift
+  Models/
+    User.swift
+    Post.swift
+    Comment.swift
+  Views/
+    Home/
+      HomeView.swift
+      FeaturedPostCard.swift
+    Blog/
+      PostListView.swift
+      PostDetailView.swift
+      CommentSection.swift
+    Auth/
+      LoginView.swift
+      RegisterView.swift
+    Settings/
+      SettingsView.swift
+      ProfileEditor.swift
+    Shared/
+      NavBar.swift
+      Footer.swift
+      ErrorBanner.swift
+  Migrations/                   # auto-generated by sparrow migrate (Postgres only)
+    001_create_users.swift
+    002_create_posts.swift
+  Assets/                       # static files (images, fonts)
+    logo.png
+    favicon.ico
+```
+
+## Large Project (monorepo-ready)
+
+```
+MyApp/
+  App.swift
+  Theme.swift
+  Packages/                     # shared code as local Swift packages
+    SharedModels/
+      Package.swift
+      Sources/
+        User.swift
+        Post.swift
+    DesignTokens/
+      Package.swift
+      Sources/
+        AppTheme.swift
+  Features/
+    Dashboard/
+      DashboardView.swift
+      DashboardWidgets.swift
+    Admin/
+      AdminView.swift
+      UserManagement.swift
+  Components/
+    DataTable.swift
+    Charts.swift
+    RichTextEditor.swift
+  Migrations/
+  Assets/
+```
+
+## File Discovery Rules
+
+1. All `.swift` files in the project root and subdirectories are included in compilation
+2. Exception: `.build/`, `Migrations/`, and hidden directories (`.git/`, etc.) are excluded from auto-discovery
+3. `Migrations/` files are compiled separately and only run via `sparrow migrate`
+4. `Assets/` contents are copied to the build output's `public/` directory as-is
+5. The `@main` struct (conforming to `App`) is the entry point — there must be exactly one
+
+## Package.swift Generation
+
+Sparrow uses Swift Package Manager under the hood but abstracts it away. The developer never writes `Package.swift`.
+
+`sparrow run` and `sparrow build`:
+1. Read your Swift files and App config
+2. Generate `Package.swift` with the Sparrow framework dependency + any extras
+3. Run `swift build`
+4. Start the server (for `sparrow run`)
+
+Package.swift is a build artifact:
+- Regenerated on every `sparrow run` / `sparrow build`
+- Gitignored by default
+- The developer never edits it
+
+### Adding Dependencies
+
+```swift
+// In App.swift or any file
+import SparrowCharts  // Sparrow resolves this from the package registry
+```
+
+Or explicitly in the config:
+
+```swift
+var config: some Config {
+    Dependencies {
+        .package(url: "https://github.com/sparrow-packages/charts", from: "1.0.0")
+    }
+}
+```
+
+CLI shortcuts:
+
+```
+sparrow add sparrow-charts      # add a dependency
+sparrow remove sparrow-charts   # remove a dependency
+sparrow update                  # update all dependencies
+```
+
+## .gitignore (auto-generated)
+
+```
+.build/
+Package.swift
+Package.resolved
+.env
+```
+
+## Assets
+
+Static files in `Assets/` are served at `/assets/`:
+
+```swift
+Image("logo.png")    // serves from /assets/logo.png
+```
+
+Supported asset types: images (png, jpg, gif, svg, webp), fonts (woff, woff2, ttf, otf), favicon.ico.
+
+Assets are copied to `.build/release/public/assets/` during `sparrow build`.
+
+---
+
+# Testing
+
+## Overview
+
+Sparrow ships a built-in test runner focused on business logic. The UI is its own test — you look at it. Automated tests cover the things you can't see: data operations, auth flows, business rules, and route behavior. Tests use Swift's built-in testing framework (`swift-testing`).
+
+## Philosophy
+
+**Don't test the UI.** If a button is the wrong color, you'll see it. If a layout is broken, you'll see it. Writing assertions about HTML structure and CSS classes creates brittle tests that break when you change a font size. The `#Preview` system (see below) is the right tool for visual verification.
+
+**Test what matters:**
+- Data layer: queries return correct results, mutations persist correctly, constraints work
+- Auth: sign-in succeeds with valid credentials, fails with invalid ones, guards block unauthorized access
+- Business logic: computed values are correct, state transitions are valid, edge cases are handled
+- Routes: the right page renders for the right URL, auth redirects work, 404s fire
+
+## Running Tests
+
+```
+sparrow test                    # run all tests
+sparrow test Models/            # run tests in a directory
+sparrow test --filter "Login"   # run tests matching a name
+```
+
+## Data Layer Testing
+
+Test database operations against a real test database:
+
+```swift
+import SparrowTesting
+
+@Test
+func createUserSavesToDatabase() async throws {
+    try await withTestDatabase { db in
+        var user = User(name: "Test", email: "test@example.com")
+        try await user.save(on: db)
+
+        let fetched = try await User.find(user.id, on: db)
+        #expect(fetched?.name == "Test")
+    }
+}
+
+@Test
+func queryFiltersCorrectly() async throws {
+    try await withTestDatabase { db in
+        try await User(name: "Active", email: "a@test.com", isActive: true).save(on: db)
+        try await User(name: "Inactive", email: "b@test.com", isActive: false).save(on: db)
+
+        let active = try await User.query(on: db)
+            .where(\.isActive == true)
+            .all()
+
+        #expect(active.count == 1)
+        #expect(active[0].name == "Active")
+    }
+}
+
+@Test
+func uniqueEmailConstraint() async throws {
+    try await withTestDatabase { db in
+        var user1 = User(name: "First", email: "same@test.com")
+        try await user1.save(on: db)
+
+        var user2 = User(name: "Second", email: "same@test.com")
+        #expect(throws: DatabaseError.uniqueViolation("email")) {
+            try await user2.save(on: db)
+        }
+    }
+}
+```
+
+### Test Database
+
+`withTestDatabase` creates an isolated test database:
+- Creates a temporary database (or schema) for each test
+- Runs all pending migrations
+- Executes the test
+- Drops the database after the test completes
+- Tests run in parallel with isolated databases
+
+Configuration:
+
+```swift
+// In App config or test setup
+TestDatabase(.postgres("postgres://localhost:5432/myapp_test"))
+```
+
+## Auth Testing
+
+```swift
+@Test
+func signInWithValidCredentials() async throws {
+    try await withTestAuth { auth in
+        try await auth.register(email: "test@example.com", password: "password123", name: "Test")
+        try await auth.signOut()
+
+        let session = try await auth.signIn(email: "test@example.com", password: "password123")
+        #expect(session.user.email == "test@example.com")
+    }
+}
+
+@Test
+func signInWithWrongPasswordFails() async throws {
+    try await withTestAuth { auth in
+        try await auth.register(email: "test@example.com", password: "password123", name: "Test")
+        try await auth.signOut()
+
+        #expect(throws: AuthError.invalidCredentials) {
+            try await auth.signIn(email: "test@example.com", password: "wrong")
+        }
+    }
+}
+
+@Test
+func dashboardRequiresAuth() async throws {
+    let session = try TestSession(MyApp())
+
+    try await session.navigate("/dashboard")
+    #expect(session.currentURL == "/login")
+}
+
+@Test
+func dashboardShowsUserName() async throws {
+    let session = try TestSession(MyApp())
+
+    try await session.signIn(email: "mikael@test.com", password: "password123")
+    try await session.navigate("/dashboard")
+    #expect(session.currentHTML.contains(text: "Welcome, Mikael"))
+}
+```
+
+## Business Logic Testing
+
+Test your domain logic directly — computed properties, validation rules, state machines:
+
+```swift
+@Test
+func cartTotalCalculation() async throws {
+    var state = AppState()
+    state.cartItems = [
+        CartItem(name: "Widget", price: 9.99, quantity: 2),
+        CartItem(name: "Gadget", price: 24.99, quantity: 1),
+    ]
+
+    #expect(state.cartTotal == 44.97)
+}
+
+@Test
+func discountCodeApplied() async throws {
+    var state = AppState()
+    state.cartItems = [CartItem(name: "Widget", price: 100, quantity: 1)]
+    state.discountCode = "SAVE20"
+
+    #expect(state.discountedTotal == 80)
+}
+
+@Test
+func emptyCartHasZeroTotal() async throws {
+    let state = AppState()
+    #expect(state.cartTotal == 0)
+}
+```
+
+## Route Testing
+
+```swift
+@Test
+func homePageReturns200() async throws {
+    let response = try await testRequest(.GET, "/")
+    #expect(response.status == .ok)
+}
+
+@Test
+func notFoundPageReturns404() async throws {
+    let response = try await testRequest(.GET, "/nonexistent")
+    #expect(response.status == .notFound)
+}
+
+@Test
+func redirectWorks() async throws {
+    let response = try await testRequest(.GET, "/old-path")
+    #expect(response.status == .redirect)
+    #expect(response.headers["Location"] == "/new-path")
+}
+```
+
+## State Testing
+
+Test that state changes produce the expected behavior:
+
+```swift
+@Test
+func counterIncrements() async throws {
+    let session = try TestSession(Counter())
+
+    #expect(session.currentHTML.contains(text: "Count: 0"))
+
+    try await session.click("#increment_button")
+    #expect(session.currentHTML.contains(text: "Count: 1"))
+}
+```
+
+### TestSession
+
+`TestSession` simulates a full server-side session:
+
+```swift
+let session = try TestSession(MyView())
+
+// Simulate interactions
+try await session.click("#element_id")
+try await session.input("#text_field_id", value: "hello")
+try await session.submit("#form_id", values: ["email": "a@b.com"])
+try await session.navigate("/other-page")
+
+// Inspect
+let html = session.currentHTML
+let patches = session.lastPatches
+```
+
+Use `TestSession` when you need to test interaction flows — not to assert on HTML structure.
+
+## Component Preview (#Preview)
+
+`#Preview` is the right tool for visual verification. It replaces UI tests.
+
+```swift
+struct ProfileCard: View {
+    var user: User
+    var body: some View { /* ... */ }
+}
+
+#Preview("Default") {
+    ProfileCard(user: .sample)
+}
+
+#Preview("Verified User") {
+    ProfileCard(user: .sampleVerified)
+}
+
+#Preview("Long Name") {
+    ProfileCard(user: User(name: "A Very Long Username That Might Break Layout", email: "test@test.com"))
+}
+```
+
+### Preview Server
+
+```
+sparrow preview                 # start preview server
+```
+
+Opens a browser page showing all `#Preview` blocks, organized by component. Each preview renders in isolation with controls to:
+- Switch between light/dark mode
+- Resize the viewport (phone/tablet/desktop)
+- View the generated HTML
+
+## Test File Organization
+
+Test files can live anywhere in the project with a `Tests` suffix or in a `Tests/` directory:
+
+```
+MyApp/
+  Models/
+    User.swift
+    UserTests.swift            # co-located with the model
+  Tests/
+    AuthTests.swift            # or in a dedicated directory
+    CartLogicTests.swift
+```
+
+Sparrow discovers test files by the `@Test` macro usage.
+
+---
+
+# Deployment
+
+## Overview
+
+`sparrow build` produces a self-contained server binary and static assets. Deploy anywhere you can run a Linux binary. No Node.js, no npm, no runtime dependencies.
+
+## Build Output
+
+```
+$ sparrow build
+
+Output:
+  .build/release/MyApp              # compiled server binary (Linux x86_64)
+  .build/release/public/
+    sparrow.css                      # generated stylesheet
+    sparrow-runtime.js               # client JS runtime
+    assets/                          # copied from Assets/
+      logo.png
+      favicon.ico
+```
+
+The binary is statically linked. It includes the Hummingbird server, all your views, the renderer, and the data layer. No external Swift runtime needed.
+
+## Running in Production
+
+```
+DATABASE_URL=postgres://... ./MyApp
+```
+
+The binary starts the HTTP server, connects to Postgres, and serves your app. That's it.
+
+### Environment Variables
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `DATABASE_URL` | Yes | — | Postgres connection string |
+| `PORT` | No | `5456` | HTTP server port |
+| `HOST` | No | `0.0.0.0` | Bind address |
+| `SPARROW_ENV` | No | `production` | Environment (`development` or `production`) |
+| `SPARROW_SECRET` | Yes (prod) | auto-generated (dev) | Secret key for session signing |
+
+In production mode (`SPARROW_ENV=production`):
+- Secure cookies are enforced (HTTPS required)
+- Debug error overlays are disabled
+- Build error WebSocket messages are disabled
+- Detailed error messages are hidden from users
+
+## Docker
+
+```
+$ sparrow build --docker
+```
+
+Generates a `Dockerfile`:
+
+```dockerfile
+# Build stage
+FROM swift:6.2 AS builder
+WORKDIR /app
+COPY . .
+RUN sparrow build
+
+# Runtime stage
+FROM swift:6.2-slim
+WORKDIR /app
+COPY --from=builder /app/.build/release/MyApp .
+COPY --from=builder /app/.build/release/public ./public
+EXPOSE 5456
+CMD ["./MyApp"]
+```
+
+Build and run:
+
+```
+$ sparrow build --docker --run
+
+  ✓ Built Docker image: myapp:latest
+  ✓ Running on http://localhost:5456
+```
+
+## Platform Deployment
+
+### Fly.io
+
+```
+$ sparrow deploy --fly
+
+  Generating fly.toml...
+  ✓ Created Postgres database
+  ✓ Deployed to https://myapp.fly.dev
+```
+
+### Railway
+
+```
+$ sparrow deploy --railway
+```
+
+### Render
+
+```
+$ sparrow deploy --render
+```
+
+### Manual / VPS
+
+1. Build the binary locally (or in CI) for Linux:
+   ```
+   sparrow build --platform linux
+   ```
+2. Copy the binary and `public/` directory to your server
+3. Set environment variables
+4. Run the binary behind a reverse proxy (nginx, Caddy)
+
+### Caddy Example
+
+```
+myapp.com {
+    reverse_proxy localhost:5456
+}
+```
+
+Caddy auto-provisions HTTPS via Let's Encrypt.
+
+## Health Check
+
+Sparrow exposes a health check endpoint at `GET /health`:
+
+```json
+{"status": "ok", "uptime": 3600, "database": "connected"}
+```
+
+Use this for load balancer health checks, Docker health checks, and monitoring.
+
+## Static Assets & CDN
+
+The `public/` directory contains all static assets. In production, you can serve these from a CDN:
+
+```toml
+# Sparrow.toml
+[production]
+assetHost = "https://cdn.myapp.com"
+```
+
+When set, all asset URLs in the generated HTML point to the CDN instead of the server.
+
+## Database Migrations in Production
+
+Migrations run automatically on server start in development mode. In production, run them explicitly before deploying:
+
+```
+sparrow migrate --apply
+```
+
+Or in your deployment script:
+
+```
+./MyApp --migrate    # run migrations and exit
+./MyApp              # start the server
+```
+
+## Logging
+
+Sparrow uses Swift's `swift-log` for structured logging:
+
+```
+[2026-03-19 14:30:00] INFO  Server started on :5456
+[2026-03-19 14:30:01] INFO  Database connected (pool: 20)
+[2026-03-19 14:30:05] INFO  GET /  200 12ms
+[2026-03-19 14:30:06] INFO  WS connected session=abc123
+[2026-03-19 14:30:10] INFO  WS event session=abc123 type=click target=v_0_2
+```
+
+Log level is configurable:
+
+```toml
+[production]
+logLevel = "info"    # trace, debug, info, warning, error
+```
+
+---
+
+# Accessibility
+
+## Overview
+
+Sparrow produces accessible HTML by default. Semantic elements, ARIA attributes, keyboard navigation, focus management, and screen reader support are built into every component. The developer gets accessibility for free.
+
+## Semantic HTML
+
+The rendering pipeline outputs semantic HTML elements (see 10-rendering-pipeline.md). This means:
+- Screen readers announce elements correctly (buttons as buttons, links as links, headings as headings)
+- Keyboard navigation works natively (Tab moves between focusable elements, Enter activates buttons/links)
+- Browser features work (password managers detect login forms, autofill works, find-on-page finds text)
+
+## Built-In Component Accessibility
+
+Every built-in component includes appropriate ARIA attributes:
+
+| Component | HTML | ARIA |
+|---|---|---|
+| `Button("Save")` | `<button>Save</button>` | — (native semantics) |
+| `Button(action:) { Icon(.plus) }` | `<button aria-label="Add">...</button>` | Label from context |
+| `Toggle("Notifications", isOn: $on)` | `<input type="checkbox" role="switch">` | `aria-checked` |
+| `Modal(isPresented: $show)` | `<dialog>` | `aria-modal="true"`, focus trap |
+| `Alert(title: "Error")` | `<div role="alert">` | `aria-live="assertive"` |
+| `Toast(message: "Saved")` | `<div role="status">` | `aria-live="polite"` |
+| `Spinner()` | `<div role="status">` | `aria-label="Loading"` |
+| `ProgressView(value:)` | `<progress>` | `aria-valuenow`, `aria-valuemin`, `aria-valuemax` |
+| `NavigationLink` | `<a href="...">` | — (native semantics) |
+| `TextField("Email", text:)` | `<input aria-label="Email">` | Label from placeholder |
+| `Picker("Color", selection:)` | `<select aria-label="Color">` | — |
+
+## Compiler Warnings
+
+Sparrow produces compile-time warnings for common accessibility mistakes:
+
+```swift
+// ⚠️ Warning: Button with only an icon has no accessibility label.
+//    Add .accessibilityLabel("description") to provide a label for screen readers.
+Button(action: { delete() }) {
+    Icon(.trash)
+}
+
+// ✓ No warning
+Button(action: { delete() }) {
+    Icon(.trash)
+}
+.accessibilityLabel("Delete item")
+```
+
+Warnings are produced for:
+- Buttons/links with only icon children and no accessibility label
+- Images without alt text (`.accessibilityLabel()` or `accessibilityHidden(true)`)
+- Form inputs without labels
+- Heading levels that skip (h1 → h3 without h2)
+
+These are warnings, not errors — they don't block compilation.
+
+## Focus Management
+
+### After DOM Patches
+
+The client runtime preserves focus after DOM patches (see 11-client-runtime.md). If the focused element is replaced, focus moves to the replacement element. If the focused element is removed, focus moves to the nearest focusable ancestor.
+
+### Modal Focus Trap
+
+When a `Modal` or `Sheet` is presented:
+1. Focus moves to the first focusable element inside the modal
+2. Tab cycling is trapped within the modal (Tab from last element goes to first)
+3. Escape key dismisses the modal
+4. On dismiss, focus returns to the element that triggered the modal
+
+### Skip Navigation
+
+Sparrow automatically includes a "Skip to content" link as the first focusable element on every page. It's visually hidden but appears on focus (for keyboard users). It jumps to the main content area, skipping the navigation.
+
+## Keyboard Navigation
+
+All interactive components support keyboard interaction:
+
+| Component | Keyboard |
+|---|---|
+| Button | Enter/Space to activate |
+| NavigationLink | Enter to navigate |
+| Toggle | Space to toggle |
+| Modal | Escape to dismiss |
+| Menu | Arrow keys to navigate, Enter to select, Escape to close |
+| Picker | Arrow keys to navigate options |
+| TextField | Standard text input |
+| Tabs | Arrow keys to switch tabs |
+
+## Color Contrast
+
+The default design system colors meet WCAG AA contrast ratios:
+- Text on background: minimum 4.5:1
+- Large text on background: minimum 3:1
+- Interactive elements: minimum 3:1
+
+When the developer overrides theme colors, Sparrow does not check contrast ratios (this would require runtime checks that add complexity). Documentation encourages maintaining AA contrast.
+
+## Reduced Motion
+
+The design system respects `prefers-reduced-motion`:
+
+```css
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+```
+
+Animations are automatically disabled for users who have enabled reduced motion in their OS settings. No developer action needed.
+
+## Accessibility Modifiers
+
+```swift
+// Custom label for screen readers
+.accessibilityLabel("Close dialog")
+
+// Additional hint
+.accessibilityHint("Double-tap to dismiss")
+
+// Override the role
+.accessibilityRole(.button)
+
+// Hide decorative elements from screen readers
+.accessibilityHidden(true)
+
+// Mark as a heading (for custom heading-like components)
+.accessibilityHeading(.h2)
+
+// Live region for dynamic content
+.accessibilityLive(.polite)      // announced when convenient
+.accessibilityLive(.assertive)   // announced immediately
+```
+
+## Form Accessibility
+
+Forms automatically associate labels with inputs:
+
+```swift
+Form {
+    TextField("Email", text: $email)
+    // → <label for="email_input">Email</label><input id="email_input" ...>
+
+    SecureField("Password", text: $password)
+    // → <label for="password_input">Password</label><input id="password_input" type="password" ...>
+}
+```
+
+Validation errors are associated with their inputs via `aria-describedby`:
+
+```swift
+TextField("Email", text: $email)
+    .validation(error: emailError)
+// → <input aria-invalid="true" aria-describedby="email_error">
+//   <p id="email_error" role="alert">Invalid email address</p>
+```
+
+---
+
+# Animations & Transitions
+
+## Overview
+
+Animations in Sparrow are declarative and CSS-based. The server sends the target state, and the browser handles the animation. No JavaScript animation logic. Respects `prefers-reduced-motion` automatically.
+
+## Transitions
+
+Transitions animate views entering or leaving the view tree.
+
+```swift
+if showCard {
+    ProfileCard(user: user)
+        .transition(.opacity)           // fade in/out
+}
+```
+
+When `showCard` changes from `false` to `true`, the card fades in. When it changes to `false`, it fades out.
+
+### Built-In Transitions
+
+| Transition | Effect |
+|---|---|
+| `.opacity` | Fade in/out |
+| `.scale` | Scale from 0 to 1 / 1 to 0 |
+| `.slide(.leading)` | Slide in from left / out to left |
+| `.slide(.trailing)` | Slide in from right / out to right |
+| `.slide(.top)` | Slide in from top / out to top |
+| `.slide(.bottom)` | Slide in from bottom / out to bottom |
+| `.move(.leading)` | Move in from left (no clip) |
+| `.push(.leading)` | Push existing content to the right |
+
+### Combining Transitions
+
+```swift
+.transition(.opacity.combined(with: .scale))
+.transition(.opacity.combined(with: .slide(.bottom)))
+```
+
+### Asymmetric Transitions
+
+Different animation for entering vs. leaving:
+
+```swift
+.transition(.asymmetric(
+    insertion: .slide(.trailing).combined(with: .opacity),
+    removal: .slide(.leading).combined(with: .opacity)
+))
+```
+
+## Animation Curves
+
+```swift
+.animation(.easeInOut)                          // default
+.animation(.easeIn)
+.animation(.easeOut)
+.animation(.linear)
+.animation(.spring)                              // spring with default parameters
+.animation(.spring(damping: 0.7, stiffness: 300))
+.animation(.easeInOut(duration: 0.5))           // custom duration
+```
+
+Default duration is 0.3 seconds. Spring animations use CSS `spring()` if supported, falling back to a cubic-bezier approximation.
+
+## Implicit Animations
+
+Animate any modifier change:
+
+```swift
+Text("Count: \(count)")
+    .font(count > 10 ? .title : .body)
+    .animation(.spring)         // font change animates smoothly
+
+VStack {
+    content
+}
+.background(isError ? .error : .surface)
+.animation(.easeInOut)          // background color change animates
+```
+
+When the modifier value changes due to a state update, the CSS transition handles the animation. The server sends the new class/style, and the browser transitions between old and new values.
+
+## How It Works Under the Hood
+
+### For transitions (enter/exit):
+
+1. When a view enters the tree, the server sends it with both a "from" class and a "to" class
+2. The client runtime adds the element to the DOM with the "from" state
+3. On the next animation frame, the client swaps to the "to" class
+4. CSS transition handles the animation
+
+```html
+<!-- Server sends: -->
+<div id="v_0" class="card transition-opacity opacity-0" data-sparrow-enter="opacity-100">
+
+<!-- Client immediately applies: -->
+<div id="v_0" class="card transition-opacity opacity-100">
+```
+
+For removal, the process reverses — the client applies exit classes, waits for the CSS transition to complete, then removes the element.
+
+### For implicit animations:
+
+1. The server sends new CSS classes
+2. The element already has `transition` properties from the `.animation()` modifier
+3. The browser handles the transition automatically
+
+```html
+<!-- Before: -->
+<div class="bg-surface transition-all duration-300">
+
+<!-- After state change, server patches the class: -->
+<div class="bg-error transition-all duration-300">
+
+<!-- Browser animates between surface and error colors -->
+```
+
+## Page Transitions
+
+Navigation between pages can be animated:
+
+```swift
+@main
+struct MyApp: App {
+    var body: some Scene {
+        Routes {
+            Page("/") { HomeView() }
+            Page("/about") { AboutView() }
+        }
+        .pageTransition(.slide(.leading))
+    }
+}
+```
+
+Page transitions work by:
+1. Server sends the new page content
+2. Client holds both old and new content briefly
+3. Old content animates out, new content animates in
+4. Old content is removed from DOM
+
+## Gesture-Driven Animations
+
+```swift
+Card()
+    .gesture(
+        Drag { offset in
+            position += offset
+        }
+    )
+    .gesture(
+        Pinch { scale in
+            zoom *= scale
+        }
+    )
+```
+
+Gesture-driven animations require client-side JavaScript for touch/mouse event tracking, which extends the client runtime.
+
+## Reduced Motion
+
+All animations respect `prefers-reduced-motion` automatically (see 16-accessibility.md). When reduced motion is enabled:
+- Transitions complete instantly (duration set to ~0)
+- Content still appears/disappears, but without motion
+- No developer action needed
+
+---
+
+# Forms & Validation
+
+## Overview
+
+Forms in Sparrow handle user input, validation, and submission. Validation is declarative, runs on the server, and produces accessible error messages automatically.
+
+## Basic Form
+
+```swift
+struct ContactForm: View {
+    @State var name = ""
+    @State var email = ""
+    @State var message = ""
+    @State var submitted = false
+
+    var body: some View {
+        if submitted {
+            Text("Thanks for your message!")
+                .foreground(.success)
+        } else {
+            Form {
+                TextField("Name", text: $name)
+                TextField("Email", text: $email)
+                TextEditor(text: $message)
+                    .frame(minHeight: 100)
+                Button("Send", style: .primary) {
+                    try await sendMessage(name: name, email: email, message: message)
+                    submitted = true
+                }
+            }
+        }
+    }
+}
+```
+
+## Validation
+
+### Declarative Validators
+
+```swift
+TextField("Email", text: $email)
+    .validate(.required, message: "Email is required")
+    .validate(.email, message: "Enter a valid email")
+
+TextField("Username", text: $username)
+    .validate(.required)
+    .validate(.minLength(3), message: "At least 3 characters")
+    .validate(.maxLength(20))
+    .validate(.pattern(/^[a-zA-Z0-9_]+$/), message: "Letters, numbers, and underscores only")
+
+SecureField("Password", text: $password)
+    .validate(.required)
+    .validate(.minLength(8))
+```
+
+### Built-In Validators
+
+| Validator | Description |
+|---|---|
+| `.required` | Field must not be empty |
+| `.email` | Valid email format |
+| `.url` | Valid URL format |
+| `.minLength(n)` | Minimum character count |
+| `.maxLength(n)` | Maximum character count |
+| `.pattern(regex)` | Matches a regex pattern |
+| `.numeric` | Contains only numbers |
+| `.range(min...max)` | Numeric value within range |
+| `.custom((String) -> Bool)` | Custom validation function |
+
+### Validation Timing
+
+Validation runs on the server when:
+1. The user submits the form (always)
+2. The user blurs a field (optional, enabled by default)
+3. The user types (optional, debounced)
+
+```swift
+TextField("Email", text: $email)
+    .validate(.email)
+    .validateOn(.submit)          // only on form submit
+    .validateOn(.blur)            // on blur (default)
+    .validateOn(.input)           // on every input (debounced)
+```
+
+### Validation Display
+
+Validation errors appear below the input automatically:
+
+```html
+<div class="form-field">
+    <label for="email">Email</label>
+    <input id="email" type="text" aria-invalid="true" aria-describedby="email_error" class="input-error">
+    <p id="email_error" role="alert" class="form-error">Enter a valid email</p>
+</div>
+```
+
+The error text is styled with the `.error` color from the design system. The input gets an error border. Screen readers announce the error.
+
+### Form-Level Validation
+
+```swift
+Form {
+    TextField("Password", text: $password)
+    TextField("Confirm", text: $confirm)
+}
+.validate {
+    if password != confirm {
+        FormError("Passwords don't match")
+    }
+}
+```
+
+### Preventing Submission
+
+The form's submit button is automatically disabled when validation fails:
+
+```swift
+Form {
+    TextField("Email", text: $email)
+        .validate(.required)
+        .validate(.email)
+
+    Button("Submit", style: .primary) {
+        // This only runs if all validations pass
+        try await createAccount(email: email)
+    }
+}
+```
+
+The `Button` inside a `Form` automatically knows it's a submit button. It checks all validations before executing the action. If validation fails, errors are shown and the action doesn't run.
+
+## Form State
+
+Access the form's validation state:
+
+```swift
+struct SignupForm: View {
+    @State var email = ""
+    @State var password = ""
+
+    var body: some View {
+        Form { form in
+            TextField("Email", text: $email)
+                .validate(.required)
+                .validate(.email)
+
+            SecureField("Password", text: $password)
+                .validate(.required)
+                .validate(.minLength(8))
+
+            HStack {
+                Button("Cancel", style: .ghost) { /* ... */ }
+                Button("Sign Up", style: .primary) {
+                    try await signUp(email: email, password: password)
+                }
+                .disabled(!form.isValid)
+            }
+        }
+    }
+}
+```
+
+## Multi-Step Forms
+
+```swift
+struct OnboardingForm: View {
+    @State var step = 1
+    @State var name = ""
+    @State var email = ""
+    @State var plan: Plan = .free
+
+    var body: some View {
+        VStack {
+            ProgressView(value: Double(step), total: 3)
+
+            switch step {
+            case 1:
+                Form {
+                    TextField("Name", text: $name)
+                        .validate(.required)
+                    Button("Next") { step = 2 }
+                }
+                .transition(.slide(.trailing))
+            case 2:
+                Form {
+                    TextField("Email", text: $email)
+                        .validate(.required)
+                        .validate(.email)
+                    Button("Next") { step = 3 }
+                }
+                .transition(.slide(.trailing))
+            case 3:
+                Form {
+                    Picker("Plan", selection: $plan) {
+                        Text("Free").tag(Plan.free)
+                        Text("Pro").tag(Plan.pro)
+                    }
+                    Button("Complete", style: .primary) {
+                        try await createAccount(name: name, email: email, plan: plan)
+                    }
+                }
+                .transition(.slide(.trailing))
+            default:
+                EmptyView()
+            }
+        }
+    }
+}
+```
+
+## File Uploads
+
+```swift
+struct AvatarUpload: View {
+    @State var selectedFile: FileUpload?
+
+    var body: some View {
+        Form {
+            FilePicker("Choose avatar", selection: $selectedFile)
+                .accept(.images)
+                .maxSize(.megabytes(5))
+
+            if let file = selectedFile {
+                Text("Selected: \(file.name)")
+                Button("Upload", style: .primary) {
+                    try await uploadAvatar(file: file)
+                }
+            }
+        }
+    }
+}
+```
+
+File uploads work by:
+1. The `FilePicker` renders an `<input type="file">`
+2. When a file is selected, the client runtime uploads it to a server endpoint via HTTP (not WebSocket — binary data over WebSocket is inefficient)
+3. The server receives the file and makes it available to the event handler
+4. File metadata (name, size, type) is sent over WebSocket for immediate UI feedback
+
+---
+
+# Admin Dashboard
+
+## Overview
+
+Sparrow ships a built-in admin dashboard accessible at `/_admin`. It gives the developer full visibility into their running application — request metrics, active sessions, database performance, logs — without setting up Grafana, Datadog, or any external monitoring. Open a URL on your local network and see everything.
+
+## Enabling
+
+```swift
+var config: some Config {
+    Admin(.enabled)
+    // or with custom path
+    Admin(.enabled, path: "/_admin")
+}
+```
+
+The admin dashboard is enabled by default in development mode and disabled by default in production. To enable in production:
+
+```swift
+Admin(.enabled, access: .authenticated(.admin))
+```
+
+## Access Control
+
+The admin dashboard is **never** publicly accessible. Access modes:
+
+| Mode | When to Use |
+|---|---|
+| `.localOnly` | Only accessible from localhost / 127.0.0.1 (default in dev) |
+| `.network(allowlist:)` | Accessible from specific IPs or CIDR ranges (e.g., your Tailscale network) |
+| `.authenticated(.admin)` | Accessible to authenticated users with the admin role |
+
+```swift
+// Local development — just open it on your Mac
+Admin(.enabled, access: .localOnly)
+
+// Accessible from your Tailscale network
+Admin(.enabled, access: .network(allowlist: ["100.64.0.0/10"]))
+
+// Production — admin users only
+Admin(.enabled, access: .authenticated(.admin))
+```
+
+## Dashboard Sections
+
+### Overview
+
+The landing page shows at-a-glance health:
+
+- **Server uptime** — how long since last restart
+- **Active WebSocket sessions** — current connected users
+- **Requests per minute** — HTTP + WebSocket events
+- **Error rate** — percentage of 5xx responses in the last hour
+- **Database status** — connected, pool utilization, average query time
+- **Memory usage** — current RSS of the server process
+
+### Requests
+
+Live and historical request data:
+
+- **Request log** — recent requests with method, path, status, latency, timestamp
+- **Latency percentiles** — p50, p95, p99 over the last hour/day
+- **Status code breakdown** — 2xx, 3xx, 4xx, 5xx distribution
+- **Slowest endpoints** — top 10 endpoints by average latency
+- **Error log** — recent 4xx and 5xx responses with details
+
+Filterable by time range, path, status code.
+
+### WebSocket Sessions
+
+- **Active sessions** — list of current WebSocket connections with session ID, user (if authenticated), connected duration, current page
+- **Session count over time** — graph of concurrent connections
+- **Events per session** — average and outlier event rates
+- **Reconnection rate** — how often clients are reconnecting (indicator of stability)
+
+### Database
+
+- **Query log** — recent queries with duration, table, operation type
+- **Slow queries** — queries exceeding a configurable threshold (default: 100ms)
+- **Connection pool** — active/idle/waiting connections
+- **Table sizes** — row counts and storage size per table
+- **Migration status** — applied and pending migrations
+
+### Analytics
+
+If analytics are enabled (see spec 20), the admin dashboard includes:
+
+- **Page views** — total and per-page, with time range filtering
+- **Unique visitors** — based on session/cookie, not IP
+- **Top pages** — most visited pages
+- **Referrers** — where traffic is coming from
+- **Devices** — browser, OS, screen size breakdown
+- **Geography** — country/region from IP (no external service, uses a bundled GeoIP database)
+
+### Logs
+
+Live log viewer with filtering:
+
+- Stream server logs in real-time
+- Filter by level (trace, debug, info, warning, error)
+- Filter by source (http, websocket, database, auth, app)
+- Search log messages
+
+### System
+
+- **Environment** — current environment (development/production), Swift version, Sparrow version
+- **Configuration** — active database adapter, auth adapter, email adapter (values redacted)
+- **Dependencies** — installed packages and versions
+
+## Data Storage
+
+The admin dashboard stores metrics in-memory with a configurable retention window. No additional database tables or external services required.
+
+```swift
+Admin(.enabled, retention: .hours(24))    // keep 24 hours of metrics (default)
+Admin(.enabled, retention: .days(7))      // keep 7 days
+```
+
+Metrics are lost on server restart. For persistent monitoring in production, use the analytics system (spec 20) which writes to the database, or export to an external service.
+
+### Export
+
+The admin dashboard exposes a JSON API for metrics export:
+
+```
+GET /_admin/api/metrics          # current metrics snapshot
+GET /_admin/api/requests         # request log
+GET /_admin/api/sessions         # active sessions
+GET /_admin/api/queries          # query log
+```
+
+These endpoints respect the same access control as the dashboard UI.
+
+## UI
+
+The admin dashboard is a Sparrow app itself — built with the same component system, design system, and rendering pipeline. It uses a dark theme variant and is completely self-contained (no external CSS or JS dependencies beyond the standard Sparrow runtime).
+
+The dashboard auto-refreshes via the same WebSocket mechanism as any Sparrow page. Metrics update in real-time without polling.
+
+## Alerts
+
+Configurable alerts for common issues:
+
+```swift
+Admin(.enabled, alerts: [
+    .errorRateAbove(5, percent: true, window: .minutes(5)),
+    .slowQueries(threshold: .milliseconds(500)),
+    .highMemory(threshold: .gigabytes(1)),
+    .databasePoolExhausted,
+])
+```
+
+Alerts appear as banners in the dashboard UI. Optionally, they can trigger email notifications (if an email adapter is configured):
+
+```swift
+Admin(.enabled, alertEmail: "ops@myapp.com")
+```
+
+---
+
+# Plain Text Routes
+
+## Overview
+
+Sparrow can serve plain text (`.txt`) and Markdown (`.md`) files alongside HTML pages. This is useful for LLM-consumable content (`llms.txt`), machine-readable metadata (`robots.txt`, `humans.txt`, `security.txt`), and providing text-only representations of pages for AI agents and crawlers.
+
+## TextRoute
+
+`TextRoute` defines a route that serves text content instead of rendered HTML. It lives alongside `Page` and `Redirect` inside `Routes`.
+
+```swift
+Routes {
+    Page("/") { HomeView() }
+
+    TextRoute("/llms.txt") {
+        """
+        # My App
+        > A short description of what this app does.
+
+        ## Pages
+        - [Home](/): Landing page
+        - [About](/about): Company info
+        - [Docs](/docs): API documentation
+        """
+    }
+
+    TextRoute("/robots.txt") {
+        """
+        User-agent: *
+        Allow: /
+        Sitemap: https://example.com/sitemap.xml
+        """
+    }
+}
+```
+
+### Content-Type Inference
+
+The content type is inferred from the path extension:
+
+| Extension | Content-Type |
+|---|---|
+| `.txt` | `text/plain; charset=utf-8` |
+| `.md` | `text/markdown; charset=utf-8` |
+| no extension | `text/plain; charset=utf-8` |
+
+Override explicitly when the extension doesn't match intent:
+
+```swift
+TextRoute("/special-path", contentType: .markdown) {
+    "# This is markdown served at a path with no .md extension"
+}
+```
+
+### Dynamic Content
+
+The closure is `async throws`, so you can query the database or do any server-side work:
+
+```swift
+TextRoute("/llms.txt") {
+    let pages = try await SitePage.query().all()
+
+    return """
+    # My App
+    > A tool for managing widgets.
+
+    ## Pages
+    \(pages.map { "- [\($0.title)](\($0.path)): \($0.description)" }.joined(separator: "\n"))
+    """
+}
+```
+
+### Route Parameters
+
+Dynamic segments work the same as `Page`:
+
+```swift
+TextRoute("/posts/:slug.md") { params in
+    let post = try await Post.query().where(\.slug, params.slug).first()
+    return """
+    # \(post.title)
+
+    \(post.markdownContent)
+    """
+}
+```
+
+## Content-Type Enum
+
+```swift
+enum TextContentType {
+    case plain      // text/plain; charset=utf-8
+    case markdown   // text/markdown; charset=utf-8
+}
+```
+
+## Middleware & Groups
+
+`TextRoute` works with route groups and middleware, same as `Page`:
+
+```swift
+RouteGroup {
+    TextRoute("/internal/docs.md") {
+        "# Internal Documentation\n..."
+    }
+}
+.authenticated()
+```
+
+## No WebSocket, No JS Runtime
+
+Text routes are HTTP-only. They return the text body with the appropriate `Content-Type` header. No `<html>` wrapper, no Sparrow client runtime, no WebSocket connection. Just the raw text content in the response body.
+
+## SEO & Caching
+
+Text routes support caching headers:
+
+```swift
+TextRoute("/llms.txt") {
+    "..."
+}
+.cacheControl(.public, maxAge: 3600)  // Cache for 1 hour
+```
+
+No `<meta>` tags or Open Graph — those are HTML concepts. Search engines that understand `llms.txt` and `robots.txt` already know how to find them.
+
+## Page Text Representation
+
+A `Page` can optionally expose a text or markdown version of itself at a separate path. This auto-extracts the text content from the View tree — stripping HTML tags, flattening layout containers, and preserving the text hierarchy.
+
+```swift
+Page("/about") { AboutView() }
+    .textRepresentation(at: "/about.txt")
+    .markdownRepresentation(at: "/about.md")
+```
+
+### Extraction Rules
+
+The renderer walks the resolved View tree and extracts text:
+
+| View | Text Output |
+|---|---|
+| `Text("Hello")` with `.font(.largeTitle)` | `# Hello` |
+| `Text("Hello")` with `.font(.title)` | `## Hello` |
+| `Text("Hello")` with `.font(.title2)` | `### Hello` |
+| `Text("Hello")` (body) | `Hello` (paragraph) |
+| `Markdown("...")` | Pass through as-is |
+| `Image(url:)` | `![alt](url)` |
+| `NavigationLink("X", destination: "/y")` | `[X](/y)` |
+| `Link("X", url: "...")` | `[X](url)` |
+| `List { ... }` | `- item` per child |
+| `Divider()` | `---` |
+| `Button(...)` | *(omitted)* |
+| `TextField(...)` | *(omitted)* |
+| Layout views (`VStack`, `HStack`, etc.) | Recurse into children, separate with newlines |
+
+Interactive elements (buttons, inputs, toggles) are omitted since they have no meaning in a text context. Layout containers are transparent — the extractor recurses through them.
+
+### When to Use What
+
+- **`TextRoute`** — you write the text content yourself. Full control. Use for `llms.txt`, `robots.txt`, hand-crafted docs, API descriptions.
+- **`.textRepresentation()` / `.markdownRepresentation()`** — auto-derived from an existing page's View tree. Use when you want a text mirror of an HTML page without maintaining two copies of the content.
+

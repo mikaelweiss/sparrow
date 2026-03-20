@@ -11,6 +11,19 @@ let symbolGraphDir: String = {
     return "../.build/arm64-apple-macosx/symbolgraph"
 }()
 
+/// Load llms.txt content at startup.
+let llmsTxtContent: String = {
+    let scriptDir = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+    let llmsPath = scriptDir.appendingPathComponent("llms.txt").path
+    if let content = try? String(contentsOfFile: llmsPath, encoding: .utf8) {
+        print("  Loaded llms.txt (\(content.count) bytes)")
+        return content
+    }
+    print("  Warning: llms.txt not found at \(llmsPath)")
+    print("  Run `./generate-llms-txt.sh` first.")
+    return "# Sparrow\n\nDocs not yet generated. Run ./generate-llms-txt.sh"
+}()
+
 /// Load and resolve all symbols at startup.
 let resolvedSymbols: [DocSymbol] = {
     do {
@@ -90,6 +103,11 @@ struct SparrowDocs: App {
             Page("/api/\(sym.slug)", title: "\(sym.name) — Sparrow") {
                 SymbolDetailView(symbol: sym)
             }
+        }
+
+        // LLM-readable docs
+        TextRoute("/llms.txt") {
+            llmsTxtContent
         }
     }
 }

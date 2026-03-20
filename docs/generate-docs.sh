@@ -24,6 +24,9 @@ extract() {
     swift package dump-symbol-graph 2>&1 | grep -E "Emitting|Files written"
 
     echo "  Symbol graphs written to: $SYMBOLGRAPH_DIR"
+
+    step "Generating llms.txt from specs..."
+    "$SCRIPT_DIR/generate-llms-txt.sh"
 }
 
 serve() {

@@ -17,13 +17,23 @@ public struct SparrowServer: Sendable {
         for route in routes {
             let route = route
             httpRouter.get(RouterPath(route.path)) { _, _ -> Response in
-                let renderer = HTMLRenderer()
-                let html = route.renderDocument(with: renderer)
-                return Response(
-                    status: .ok,
-                    headers: [.contentType: "text/html; charset=utf-8"],
-                    body: .init(byteBuffer: .init(string: html))
-                )
+                switch route.contentType {
+                case .plain, .markdown:
+                    let text = route.renderBody(with: HTMLRenderer())
+                    return Response(
+                        status: .ok,
+                        headers: [.contentType: route.contentType.header],
+                        body: .init(byteBuffer: .init(string: text))
+                    )
+                case .html:
+                    let renderer = HTMLRenderer()
+                    let html = route.renderDocument(with: renderer)
+                    return Response(
+                        status: .ok,
+                        headers: [.contentType: route.contentType.header],
+                        body: .init(byteBuffer: .init(string: html))
+                    )
+                }
             }
         }
 
