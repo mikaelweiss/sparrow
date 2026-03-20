@@ -43,7 +43,12 @@ private struct HTMLConverter: MarkupVisitor {
     mutating func visitCodeBlock(_ codeBlock: CodeBlock) -> String {
         let lang = codeBlock.language ?? ""
         let langAttr = lang.isEmpty ? "" : " class=\"language-\(escapeAttr(lang))\""
-        let code = escapeHTML(codeBlock.code)
+        let code: String
+        if lang == "swift" {
+            code = SyntaxHighlighter.highlight(codeBlock.code)
+        } else {
+            code = escapeHTML(codeBlock.code)
+        }
         return "<pre><code\(langAttr)>\(code)</code></pre>"
     }
 

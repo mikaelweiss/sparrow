@@ -503,6 +503,22 @@ public enum CSSGenerator {
         padding: 0.8571429em 1.1428571em;
     }
     .markdown pre code { background: none; padding: 0; font-weight: inherit; font-size: inherit; color: inherit; border-radius: 0; }
+
+    /* Syntax highlighting — GitHub theme (light / dark) */
+    .hl-keyword { color: hsl(341 75% 48%); }
+    .hl-string { color: hsl(220 62% 24%); }
+    .hl-comment { color: hsl(212 12% 48%); font-style: italic; }
+    .hl-number { color: hsl(216 85% 34%); }
+    .hl-type { color: hsl(27 85% 30%); }
+    .hl-attr { color: hsl(264 60% 50%); }
+    @media (prefers-color-scheme: dark) {
+        .hl-keyword { color: hsl(2 74% 72%); }
+        .hl-string { color: hsl(210 100% 82%); }
+        .hl-comment { color: hsl(212 10% 58%); }
+        .hl-number { color: hsl(212 100% 75%); }
+        .hl-type { color: hsl(28 100% 67%); }
+        .hl-attr { color: hsl(264 100% 82%); }
+    }
     .markdown hr { border: none; border-top: 1px solid var(--border); margin-top: 3em; margin-bottom: 3em; }
     .markdown img { max-width: 100%; height: auto; border-radius: var(--radius); margin-top: 2em; margin-bottom: 2em; }
     .markdown table {
