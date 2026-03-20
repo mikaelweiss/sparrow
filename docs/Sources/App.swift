@@ -51,8 +51,10 @@ struct SparrowDocs: App {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Sparrow")
                             .font(.largeTitle)
-                        Text("A batteries-included Swift web framework. SwiftUI-like code on the server, HTML/CSS in the browser.")
-                            .foreground(.textSecondary)
+                        Text(
+                            "A batteries-included Swift web framework. SwiftUI-like code on the server, HTML/CSS in the browser."
+                        )
+                        .foreground(.textSecondary)
                     }
 
                     HStack(spacing: 16) {
@@ -61,27 +63,28 @@ struct SparrowDocs: App {
 
                     Divider()
 
-                    Markdown("""
-                    ## Getting Started
+                    Markdown(
+                        """
+                        ## Getting Started
 
-                    ```swift
-                    import Sparrow
+                        ```swift
+                        import Sparrow
 
-                    @main
-                    struct MyApp: App {
-                        init() {}
+                        @main
+                        struct MyApp: App {
+                            init() {}
 
-                        var routes: [Route] {
-                            Page("/") {
-                                Text("Hello, world!")
-                                    .font(.largeTitle)
+                            var routes: [Route] {
+                                Page("/") {
+                                    Text("Hello, world!")
+                                        .font(.largeTitle)
+                                }
                             }
                         }
-                    }
-                    ```
+                        ```
 
-                    Run with `sparrow serve` and open your browser.
-                    """)
+                        Run with `sparrow serve` and open your browser.
+                        """)
                 }
                 .padding(32)
 
