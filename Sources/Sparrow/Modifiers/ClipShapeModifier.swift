@@ -6,6 +6,7 @@ public enum ClipShape: Sendable {
 
 public struct ClipShapeModifier: ViewModifier, Sendable {
     public let shape: ClipShape
+    public var createsLayer: Bool { true }
 
     public var cssClasses: [String] {
         switch shape {

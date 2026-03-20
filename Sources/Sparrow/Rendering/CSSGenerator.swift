@@ -139,12 +139,81 @@ public enum CSSGenerator {
     .p-10 { padding: var(--spacing-10); }
     .p-12 { padding: var(--spacing-12); }
     .p-16 { padding: var(--spacing-16); }
+    .px-0 { padding-left: var(--spacing-0); padding-right: var(--spacing-0); }
+    .px-1 { padding-left: var(--spacing-1); padding-right: var(--spacing-1); }
+    .px-2 { padding-left: var(--spacing-2); padding-right: var(--spacing-2); }
+    .px-3 { padding-left: var(--spacing-3); padding-right: var(--spacing-3); }
     .px-4 { padding-left: var(--spacing-4); padding-right: var(--spacing-4); }
+    .px-5 { padding-left: var(--spacing-5); padding-right: var(--spacing-5); }
+    .px-6 { padding-left: var(--spacing-6); padding-right: var(--spacing-6); }
+    .px-8 { padding-left: var(--spacing-8); padding-right: var(--spacing-8); }
+    .px-10 { padding-left: var(--spacing-10); padding-right: var(--spacing-10); }
+    .px-12 { padding-left: var(--spacing-12); padding-right: var(--spacing-12); }
+    .px-16 { padding-left: var(--spacing-16); padding-right: var(--spacing-16); }
+    .py-0 { padding-top: var(--spacing-0); padding-bottom: var(--spacing-0); }
+    .py-1 { padding-top: var(--spacing-1); padding-bottom: var(--spacing-1); }
+    .py-2 { padding-top: var(--spacing-2); padding-bottom: var(--spacing-2); }
+    .py-3 { padding-top: var(--spacing-3); padding-bottom: var(--spacing-3); }
     .py-4 { padding-top: var(--spacing-4); padding-bottom: var(--spacing-4); }
+    .py-5 { padding-top: var(--spacing-5); padding-bottom: var(--spacing-5); }
+    .py-6 { padding-top: var(--spacing-6); padding-bottom: var(--spacing-6); }
+    .py-8 { padding-top: var(--spacing-8); padding-bottom: var(--spacing-8); }
+    .py-10 { padding-top: var(--spacing-10); padding-bottom: var(--spacing-10); }
+    .py-12 { padding-top: var(--spacing-12); padding-bottom: var(--spacing-12); }
+    .py-16 { padding-top: var(--spacing-16); padding-bottom: var(--spacing-16); }
+    .pt-0 { padding-top: var(--spacing-0); }
+    .pt-1 { padding-top: var(--spacing-1); }
     .pt-2 { padding-top: var(--spacing-2); }
+    .pt-3 { padding-top: var(--spacing-3); }
+    .pt-4 { padding-top: var(--spacing-4); }
+    .pt-5 { padding-top: var(--spacing-5); }
+    .pt-6 { padding-top: var(--spacing-6); }
+    .pt-8 { padding-top: var(--spacing-8); }
+    .pt-10 { padding-top: var(--spacing-10); }
+    .pt-12 { padding-top: var(--spacing-12); }
+    .pt-16 { padding-top: var(--spacing-16); }
+    .pb-0 { padding-bottom: var(--spacing-0); }
+    .pb-1 { padding-bottom: var(--spacing-1); }
     .pb-2 { padding-bottom: var(--spacing-2); }
+    .pb-3 { padding-bottom: var(--spacing-3); }
+    .pb-4 { padding-bottom: var(--spacing-4); }
+    .pb-5 { padding-bottom: var(--spacing-5); }
+    .pb-6 { padding-bottom: var(--spacing-6); }
+    .pb-8 { padding-bottom: var(--spacing-8); }
+    .pb-10 { padding-bottom: var(--spacing-10); }
+    .pb-12 { padding-bottom: var(--spacing-12); }
+    .pb-16 { padding-bottom: var(--spacing-16); }
+    .pl-0 { padding-left: var(--spacing-0); }
+    .pl-1 { padding-left: var(--spacing-1); }
+    .pl-2 { padding-left: var(--spacing-2); }
+    .pl-3 { padding-left: var(--spacing-3); }
     .pl-4 { padding-left: var(--spacing-4); }
+    .pl-5 { padding-left: var(--spacing-5); }
+    .pl-6 { padding-left: var(--spacing-6); }
+    .pl-8 { padding-left: var(--spacing-8); }
+    .pl-10 { padding-left: var(--spacing-10); }
+    .pl-12 { padding-left: var(--spacing-12); }
+    .pl-16 { padding-left: var(--spacing-16); }
+    .pr-0 { padding-right: var(--spacing-0); }
+    .pr-1 { padding-right: var(--spacing-1); }
+    .pr-2 { padding-right: var(--spacing-2); }
+    .pr-3 { padding-right: var(--spacing-3); }
     .pr-4 { padding-right: var(--spacing-4); }
+    .pr-5 { padding-right: var(--spacing-5); }
+    .pr-6 { padding-right: var(--spacing-6); }
+    .pr-8 { padding-right: var(--spacing-8); }
+    .pr-10 { padding-right: var(--spacing-10); }
+    .pr-12 { padding-right: var(--spacing-12); }
+    .pr-16 { padding-right: var(--spacing-16); }
+
+    /* Margin auto (for .infinity padding) */
+    .m-auto { margin: auto; }
+    .mx-auto { margin-left: auto; margin-right: auto; }
+    .my-auto { margin-top: auto; margin-bottom: auto; }
+    .mt-auto { margin-top: auto; }
+    .mb-auto { margin-bottom: auto; }
+    .ml-auto { margin-left: auto; }
+    .mr-auto { margin-right: auto; }
 
     /* Typography */
     .font-largeTitle { font: 700 34px/1.2 var(--font-body); }

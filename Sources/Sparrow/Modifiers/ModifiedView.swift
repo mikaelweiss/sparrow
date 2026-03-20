@@ -20,11 +20,15 @@ public protocol ViewModifier: Sendable {
     var cssClasses: [String] { get }
     /// Inline styles this modifier adds (for values not in the design system).
     var inlineStyles: [String: String] { get }
+    /// Layer modifiers create a wrapper `<div>` so that ordering is respected.
+    /// Flat modifiers (font, foreground color) accumulate onto the leaf element.
+    var createsLayer: Bool { get }
 }
 
 extension ViewModifier {
     public var cssClasses: [String] { [] }
     public var inlineStyles: [String: String] { [:] }
+    public var createsLayer: Bool { false }
 }
 
 extension View {

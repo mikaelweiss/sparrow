@@ -80,6 +80,7 @@ public struct ForegroundModifier: ViewModifier, Sendable {
 
 public struct BackgroundModifier: ViewModifier, Sendable {
     public let color: SemanticColor
+    public var createsLayer: Bool { true }
     public var cssClasses: [String] { ["bg-\(color.cssValue)"] }
     public var inlineStyles: [String: String] { [:] }
 }

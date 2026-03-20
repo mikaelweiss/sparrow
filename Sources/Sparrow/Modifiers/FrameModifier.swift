@@ -16,6 +16,7 @@ public struct FrameModifier: ViewModifier, Sendable {
     public let height: Dimension?
     public let maxWidth: Dimension?
     public let minHeight: Dimension?
+    public var createsLayer: Bool { true }
 
     public var cssClasses: [String] { [] }
 

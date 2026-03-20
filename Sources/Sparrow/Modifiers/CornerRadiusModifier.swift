@@ -23,6 +23,7 @@ public enum CornerRadius: Sendable {
 
 public struct CornerRadiusModifier: ViewModifier, Sendable {
     public let radius: CornerRadius
+    public var createsLayer: Bool { true }
     public var cssClasses: [String] { [radius.cssClass] }
     public var inlineStyles: [String: String] { [:] }
 }
