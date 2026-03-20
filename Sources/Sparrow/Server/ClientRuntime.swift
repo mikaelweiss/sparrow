@@ -213,6 +213,39 @@ enum ClientRuntime {
             });
         }
 
+        // --- Sidebar collapse toggle (client-side) ---
+
+        document.addEventListener("click", function(e) {
+            var btn = e.target.closest(".sidebar-collapse-btn");
+            if (btn) {
+                var sidebar = btn.closest(".sidebar-layout-sidebar");
+                if (sidebar) {
+                    sidebar.classList.toggle("sidebar-collapsed");
+                }
+                return;
+            }
+        });
+
+        // --- Mobile sidebar toggle ---
+
+        document.addEventListener("click", function(e) {
+            // Open via hamburger button
+            var hamburger = e.target.closest(".sidebar-mobile-toggle");
+            if (hamburger) {
+                var layout = hamburger.closest(".sidebar-layout");
+                if (layout) {
+                    var sidebar = layout.querySelector(".sidebar-layout-sidebar");
+                    if (sidebar) sidebar.classList.add("sidebar-open");
+                }
+                return;
+            }
+            // Close when clicking outside the sidebar on mobile
+            var sidebarOpen = document.querySelector(".sidebar-layout-sidebar.sidebar-open");
+            if (sidebarOpen && !e.target.closest(".sidebar-layout-sidebar")) {
+                sidebarOpen.classList.remove("sidebar-open");
+            }
+        });
+
         // --- Menu toggle (client-side, no server round-trip) ---
 
         document.addEventListener("click", function(e) {

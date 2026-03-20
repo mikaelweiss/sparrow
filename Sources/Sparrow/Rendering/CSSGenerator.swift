@@ -774,25 +774,100 @@ public enum CSSGenerator {
         min-height: 100vh; width: 260px;
     }
 
+    /* Sidebar Header / Footer */
+    .sidebar-header {
+        flex-shrink: 0;
+        padding: var(--spacing-3) var(--spacing-2);
+        border-bottom: 1px solid var(--color-surfaceSecondary);
+    }
+    .sidebar-footer {
+        flex-shrink: 0;
+        padding: var(--spacing-3) var(--spacing-2);
+        border-top: 1px solid var(--color-surfaceSecondary);
+    }
+
+    /* NavigationLink active state */
+    .nav-link-current {
+        background: var(--color-surfaceSecondary);
+        border-radius: var(--radius-md);
+        padding: var(--spacing-1) var(--spacing-2);
+        font-weight: 600;
+    }
+
     /* Footer */
     .footer {
         margin-top: auto;
-        padding: var(--spacing-4) var(--spacing-6);
+        padding: var(--spacing-6) var(--spacing-6) var(--spacing-4);
         border-top: 1px solid var(--color-surfaceSecondary);
         color: var(--color-textSecondary);
         font-size: var(--text-footnote);
     }
+    .footer-column {
+        display: flex; flex-direction: column; gap: var(--spacing-2);
+    }
+    .footer-column-heading {
+        font-weight: 600; font-size: var(--text-footnote);
+        color: var(--color-text); margin: 0 0 var(--spacing-1) 0;
+    }
+    .footer-bottom {
+        margin-top: var(--spacing-4);
+        padding-top: var(--spacing-4);
+        border-top: 1px solid var(--color-surfaceSecondary);
+        font-size: var(--text-footnote);
+        color: var(--color-textSecondary);
+    }
 
     /* Sidebar Layout */
-    .sidebar-layout { display: flex; width: 100%; min-height: 100vh; }
+    .sidebar-layout { display: flex; width: 100%; height: 100vh; }
     .sidebar-layout-sidebar {
+        position: relative;
         width: 260px; flex-shrink: 0;
-        background: var(--color-surface); padding: var(--spacing-4);
+        display: flex; flex-direction: column;
+        background: var(--color-surface);
         border-right: 1px solid var(--color-surfaceSecondary);
         overflow-y: auto;
+        padding: var(--spacing-4);
+        transition: width 0.2s ease, padding 0.2s ease;
     }
-    .sidebar-layout-main { flex: 1; overflow-y: auto; }
-    .sidebar-toggle { display: none; padding: var(--spacing-2); background: none; border: none; font-size: 24px; cursor: pointer; }
+    .sidebar-layout-sidebar.sidebar-collapsed {
+        width: 0; padding: 0; overflow: hidden;
+        border-right: none;
+    }
+    .sidebar-layout-main {
+        flex: 1; overflow-y: auto;
+        display: flex; flex-direction: column;
+    }
+
+    /* Sidebar collapse button */
+    .sidebar-collapse-btn {
+        position: absolute; top: var(--spacing-3); right: calc(-1 * var(--spacing-3));
+        z-index: 10;
+        width: 24px; height: 24px;
+        display: flex; align-items: center; justify-content: center;
+        background: var(--color-surface);
+        border: 1px solid var(--color-surfaceSecondary);
+        border-radius: 50%;
+        cursor: pointer;
+        color: var(--color-textSecondary);
+        box-shadow: var(--shadow-sm);
+        transition: transform 0.2s ease, color 0.15s ease;
+    }
+    .sidebar-collapse-btn:hover { color: var(--color-text); }
+    .sidebar-collapsed .sidebar-collapse-btn {
+        position: fixed; left: 0; top: var(--spacing-3);
+        right: auto;
+        border-radius: 0 50% 50% 0;
+        border-left: none;
+        transform: rotate(180deg);
+    }
+
+    /* Mobile hamburger toggle — hidden on desktop */
+    .sidebar-mobile-toggle {
+        display: none;
+        padding: var(--spacing-2) var(--spacing-3);
+        background: none; border: none;
+        cursor: pointer; color: var(--color-text);
+    }
 
     /* ============================================
        RESPONSIVE — mobile (<768px)
@@ -845,11 +920,14 @@ public enum CSSGenerator {
         /* Sidebar collapses to overlay */
         .sidebar-layout-sidebar {
             position: fixed; left: 0; top: 0; bottom: 0; z-index: 250;
+            width: 280px;
             transform: translateX(-100%); transition: transform 0.3s ease;
             box-shadow: var(--shadow-xl);
         }
         .sidebar-layout-sidebar.sidebar-open { transform: translateX(0); }
-        .sidebar-toggle { display: block; }
+        .sidebar-layout-sidebar.sidebar-collapsed { transform: translateX(-100%); }
+        .sidebar-collapse-btn { display: none; }
+        .sidebar-mobile-toggle { display: block; }
 
         /* Pagination: hide page numbers, show only prev/next */
         .pagination-page { display: none; }

@@ -14,6 +14,34 @@ public struct Sidebar<Content: View>: View {
 
 extension Sidebar: Sendable where Content: Sendable {}
 
+/// Sticky header zone at the top of a sidebar. Stays visible while the body scrolls.
+public struct SidebarHeader<Content: View>: View {
+    public typealias Body = Never
+    public let content: Content
+
+    public init(@ViewBuilder content: () -> Content) {
+        self.content = content()
+    }
+
+    public var body: Never { fatalError("SidebarHeader should not have body called") }
+}
+
+extension SidebarHeader: Sendable where Content: Sendable {}
+
+/// Sticky footer zone at the bottom of a sidebar. Stays visible while the body scrolls.
+public struct SidebarFooter<Content: View>: View {
+    public typealias Body = Never
+    public let content: Content
+
+    public init(@ViewBuilder content: () -> Content) {
+        self.content = content()
+    }
+
+    public var body: Never { fatalError("SidebarFooter should not have body called") }
+}
+
+extension SidebarFooter: Sendable where Content: Sendable {}
+
 /// A two-pane layout with sidebar and main content.
 /// On mobile: sidebar collapses to hamburger overlay.
 /// On desktop: sidebar is persistent alongside content.

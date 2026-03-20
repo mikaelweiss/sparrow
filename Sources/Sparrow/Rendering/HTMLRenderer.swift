@@ -388,12 +388,16 @@ public struct HTMLRenderer: Sendable {
 
     private func renderNavigationLink(_ navLink: NavigationLink, context: ModifierContext) -> String {
         let id = renderState.allocateId()
-        let classes = ["nav-link"] + context.cssClasses
+        var classes = ["nav-link"] + context.cssClasses
+        if navLink.current {
+            classes.append("nav-link-current")
+        }
         let classAttr = " class=\"\(classes.joined(separator: " "))\""
         let styleAttr = context.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(context.inlineStyles))\""
+        let ariaAttr = navLink.current ? " aria-current=\"page\"" : ""
         let escaped = escapeHTML(navLink.label)
         let dest = escapeHTML(navLink.destination)
-        return "        <a id=\"\(id)\" href=\"\(dest)\" data-sparrow-nav\(classAttr)\(styleAttr)>\(escaped)</a>"
+        return "        <a id=\"\(id)\" href=\"\(dest)\" data-sparrow-nav\(classAttr)\(styleAttr)\(ariaAttr)>\(escaped)</a>"
     }
 
     private func renderAlert(_ alert: Alert, context: ModifierContext) -> String {

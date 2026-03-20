@@ -514,6 +514,42 @@ extension Sidebar: HTMLRenderable {
     }
 }
 
+// MARK: - SidebarHeader
+
+extension SidebarHeader: HTMLRenderable {
+    func renderHTML(with renderer: HTMLRenderer, modifierContext: ModifierContext) -> String {
+        let id = renderer.renderState.allocateId()
+        let children = flattenChildren(content)
+        let childrenHTML = renderer.renderChildren(children)
+        let classes = ["sidebar-header"] + modifierContext.cssClasses
+        let classAttr = " class=\"\(classes.joined(separator: " "))\""
+        let styleAttr = modifierContext.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(modifierContext.inlineStyles))\""
+        return """
+                <div id="\(id)"\(classAttr)\(styleAttr)>
+        \(childrenHTML)
+                </div>
+        """
+    }
+}
+
+// MARK: - SidebarFooter
+
+extension SidebarFooter: HTMLRenderable {
+    func renderHTML(with renderer: HTMLRenderer, modifierContext: ModifierContext) -> String {
+        let id = renderer.renderState.allocateId()
+        let children = flattenChildren(content)
+        let childrenHTML = renderer.renderChildren(children)
+        let classes = ["sidebar-footer"] + modifierContext.cssClasses
+        let classAttr = " class=\"\(classes.joined(separator: " "))\""
+        let styleAttr = modifierContext.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(modifierContext.inlineStyles))\""
+        return """
+                <div id="\(id)"\(classAttr)\(styleAttr)>
+        \(childrenHTML)
+                </div>
+        """
+    }
+}
+
 // MARK: - SidebarLayout
 
 extension SidebarLayout: HTMLRenderable {
@@ -527,15 +563,18 @@ extension SidebarLayout: HTMLRenderable {
         let classAttr = " class=\"\(classes.joined(separator: " "))\""
         let styleAttr = modifierContext.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(modifierContext.inlineStyles))\""
 
-        let toggleId = renderer.renderState.allocateId()
-
         return """
                 <div id="\(id)"\(classAttr)\(styleAttr)>
-                    <button id="\(toggleId)" class="sidebar-toggle mobile-only" data-sparrow-event="click" aria-label="Toggle menu">☰</button>
                     <div class="sidebar-layout-sidebar">
+                        <button class="sidebar-collapse-btn" aria-label="Collapse sidebar">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 12L6 8l4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </button>
         \(sidebarHTML)
                     </div>
                     <div class="sidebar-layout-main">
+                        <button class="sidebar-mobile-toggle" aria-label="Open menu">
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                        </button>
         \(mainHTML)
                     </div>
                 </div>
@@ -558,6 +597,46 @@ extension Footer: HTMLRenderable {
                 <footer id="\(id)"\(classAttr)\(styleAttr)>
         \(childrenHTML)
                 </footer>
+        """
+    }
+}
+
+// MARK: - FooterColumn
+
+extension FooterColumn: HTMLRenderable {
+    func renderHTML(with renderer: HTMLRenderer, modifierContext: ModifierContext) -> String {
+        let id = renderer.renderState.allocateId()
+        let children = flattenChildren(content)
+        let childrenHTML = renderer.renderChildren(children)
+        let classes = ["footer-column"] + modifierContext.cssClasses
+        let classAttr = " class=\"\(classes.joined(separator: " "))\""
+        let styleAttr = modifierContext.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(modifierContext.inlineStyles))\""
+        let escaped = escapeHTML(heading)
+
+        return """
+                <nav id="\(id)"\(classAttr)\(styleAttr) aria-label="\(escaped)">
+                    <h3 class="footer-column-heading">\(escaped)</h3>
+        \(childrenHTML)
+                </nav>
+        """
+    }
+}
+
+// MARK: - FooterBottom
+
+extension FooterBottom: HTMLRenderable {
+    func renderHTML(with renderer: HTMLRenderer, modifierContext: ModifierContext) -> String {
+        let id = renderer.renderState.allocateId()
+        let children = flattenChildren(content)
+        let childrenHTML = renderer.renderChildren(children)
+        let classes = ["footer-bottom"] + modifierContext.cssClasses
+        let classAttr = " class=\"\(classes.joined(separator: " "))\""
+        let styleAttr = modifierContext.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(modifierContext.inlineStyles))\""
+
+        return """
+                <div id="\(id)"\(classAttr)\(styleAttr)>
+        \(childrenHTML)
+                </div>
         """
     }
 }
