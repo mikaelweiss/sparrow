@@ -61,8 +61,18 @@ extension TupleView: HTMLRenderable {
 
 extension ModifiedView: HTMLRenderable {
     func renderHTML(with renderer: HTMLRenderer, modifierContext: ModifierContext) -> String {
-        let newContext = modifierContext.applying(modifier)
-        return renderer.renderAnyErased(content, modifierContext: newContext)
+        if modifier.createsLayer {
+            let innerHTML = renderer.renderAnyErased(content, modifierContext: modifierContext)
+            let id = renderer.renderState.allocateId()
+            let classes = modifier.cssClasses
+            let styles = modifier.inlineStyles
+            let classAttr = classes.isEmpty ? "" : " class=\"\(classes.joined(separator: " "))\""
+            let styleAttr = styles.isEmpty ? "" : " style=\"\(formatStyles(styles))\""
+            return "        <div id=\"\(id)\"\(classAttr)\(styleAttr)>\n\(innerHTML)\n        </div>"
+        } else {
+            let newContext = modifierContext.applying(modifier)
+            return renderer.renderAnyErased(content, modifierContext: newContext)
+        }
     }
 }
 

@@ -5,20 +5,44 @@ public enum Edge: Sendable {
     case all
 }
 
+/// A padding amount — either a fixed pixel value or `.infinity` to fill available space.
+public enum PaddingValue: Sendable, ExpressibleByIntegerLiteral {
+    case fixed(Int)
+    case infinity
+
+    public init(integerLiteral value: Int) {
+        self = .fixed(value)
+    }
+}
+
 public struct PaddingModifier: ViewModifier, Sendable {
     public let edge: Edge
-    public let value: Int
+    public let value: PaddingValue
+    public var createsLayer: Bool { true }
 
     public var cssClasses: [String] {
-        let token = spacingToken(value)
-        switch edge {
-        case .all: return ["p-\(token)"]
-        case .horizontal: return ["px-\(token)"]
-        case .vertical: return ["py-\(token)"]
-        case .top: return ["pt-\(token)"]
-        case .bottom: return ["pb-\(token)"]
-        case .leading: return ["pl-\(token)"]
-        case .trailing: return ["pr-\(token)"]
+        switch value {
+        case .fixed(let px):
+            let token = spacingToken(px)
+            switch edge {
+            case .all: return ["p-\(token)"]
+            case .horizontal: return ["px-\(token)"]
+            case .vertical: return ["py-\(token)"]
+            case .top: return ["pt-\(token)"]
+            case .bottom: return ["pb-\(token)"]
+            case .leading: return ["pl-\(token)"]
+            case .trailing: return ["pr-\(token)"]
+            }
+        case .infinity:
+            switch edge {
+            case .all: return ["m-auto"]
+            case .horizontal: return ["mx-auto"]
+            case .vertical: return ["my-auto"]
+            case .top: return ["mt-auto"]
+            case .bottom: return ["mb-auto"]
+            case .leading: return ["ml-auto"]
+            case .trailing: return ["mr-auto"]
+            }
         }
     }
 
@@ -45,10 +69,10 @@ func spacingToken(_ px: Int) -> String {
 
 extension View {
     public func padding(_ value: Int) -> ModifiedView<Self, PaddingModifier> {
-        modifier(PaddingModifier(edge: .all, value: value))
+        modifier(PaddingModifier(edge: .all, value: .fixed(value)))
     }
 
-    public func padding(_ edge: Edge, _ value: Int) -> ModifiedView<Self, PaddingModifier> {
+    public func padding(_ edge: Edge, _ value: PaddingValue) -> ModifiedView<Self, PaddingModifier> {
         modifier(PaddingModifier(edge: edge, value: value))
     }
 }

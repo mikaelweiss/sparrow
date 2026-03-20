@@ -19,6 +19,7 @@ public enum Shadow: Sendable {
 
 public struct ShadowModifier: ViewModifier, Sendable {
     public let shadow: Shadow
+    public var createsLayer: Bool { true }
     public var cssClasses: [String] { [shadow.cssClass] }
     public var inlineStyles: [String: String] { [:] }
 }
