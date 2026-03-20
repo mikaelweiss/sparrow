@@ -15,9 +15,7 @@ struct SymbolDetailView: View {
                         .font(.largeTitle)
                 }
                 // Declaration
-                Text(symbol.declaration)
-                    .font(.callout)
-                    .foreground(.textSecondary)
+                Markdown("```swift\n\(symbol.declaration)\n```")
             }
 
             Divider()
@@ -106,8 +104,7 @@ struct MemberSection: View {
 
             ForEach(members) { member in
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(member.declaration)
-                        .font(.callout)
+                    Markdown("```swift\n\(member.declaration)\n```")
                     if !member.docComment.isEmpty {
                         Markdown(member.docComment)
                     }
