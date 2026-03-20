@@ -4,39 +4,24 @@
 
 Sparrow can serve plain text (`.txt`) and Markdown (`.md`) files alongside HTML pages. This is useful for LLM-consumable content (`llms.txt`), machine-readable metadata (`robots.txt`, `humans.txt`, `security.txt`), and providing text-only representations of pages for AI agents and crawlers.
 
-## TextRoute
+## FileRoute
 
-`TextRoute` defines a route that serves text content instead of rendered HTML. It lives alongside `Page` and `Redirect` inside `Routes`.
+`FileRoute` serves a file from disk at a given URL path. It lives alongside `Page` and `Redirect` inside `Routes`. The file content is read from disk — no string literals, no closures. Generate files at build time if they need dynamic data.
 
 ```swift
 Routes {
     Page("/") { HomeView() }
 
-    TextRoute("/llms.txt") {
-        """
-        # My App
-        > A short description of what this app does.
-
-        ## Pages
-        - [Home](/): Landing page
-        - [About](/about): Company info
-        - [Docs](/docs): API documentation
-        """
-    }
-
-    TextRoute("/robots.txt") {
-        """
-        User-agent: *
-        Allow: /
-        Sitemap: https://example.com/sitemap.xml
-        """
-    }
+    FileRoute("/llms.txt", file: "llms.txt")
+    FileRoute("/robots.txt", file: "robots.txt")
 }
 ```
 
+The `file` parameter is a path relative to the project root (where `Sparrow.toml` lives).
+
 ### Content-Type Inference
 
-The content type is inferred from the path extension:
+The content type is inferred from the URL path extension:
 
 | Extension | Content-Type |
 |---|---|
@@ -47,42 +32,7 @@ The content type is inferred from the path extension:
 Override explicitly when the extension doesn't match intent:
 
 ```swift
-TextRoute("/special-path", contentType: .markdown) {
-    "# This is markdown served at a path with no .md extension"
-}
-```
-
-### Dynamic Content
-
-The closure is `async throws`, so you can query the database or do any server-side work:
-
-```swift
-TextRoute("/llms.txt") {
-    let pages = try await SitePage.query().all()
-
-    return """
-    # My App
-    > A tool for managing widgets.
-
-    ## Pages
-    \(pages.map { "- [\($0.title)](\($0.path)): \($0.description)" }.joined(separator: "\n"))
-    """
-}
-```
-
-### Route Parameters
-
-Dynamic segments work the same as `Page`:
-
-```swift
-TextRoute("/posts/:slug.md") { params in
-    let post = try await Post.query().where(\.slug, params.slug).first()
-    return """
-    # \(post.title)
-
-    \(post.markdownContent)
-    """
-}
+FileRoute("/special-path", file: "docs.md", contentType: .markdown)
 ```
 
 ## Content-Type Enum
@@ -96,30 +46,26 @@ enum TextContentType {
 
 ## Middleware & Groups
 
-`TextRoute` works with route groups and middleware, same as `Page`:
+`FileRoute` works with route groups and middleware, same as `Page`:
 
 ```swift
 RouteGroup {
-    TextRoute("/internal/docs.md") {
-        "# Internal Documentation\n..."
-    }
+    FileRoute("/internal/docs.md", file: "internal-docs.md")
 }
 .authenticated()
 ```
 
 ## No WebSocket, No JS Runtime
 
-Text routes are HTTP-only. They return the text body with the appropriate `Content-Type` header. No `<html>` wrapper, no Sparrow client runtime, no WebSocket connection. Just the raw text content in the response body.
+File routes are HTTP-only. They return the file contents with the appropriate `Content-Type` header. No `<html>` wrapper, no Sparrow client runtime, no WebSocket connection. Just the raw file content in the response body.
 
-## SEO & Caching
+## Caching
 
-Text routes support caching headers:
+File routes support caching headers:
 
 ```swift
-TextRoute("/llms.txt") {
-    "..."
-}
-.cacheControl(.public, maxAge: 3600)  // Cache for 1 hour
+FileRoute("/llms.txt", file: "llms.txt")
+    .cacheControl(.public, maxAge: 3600)  // Cache for 1 hour
 ```
 
 No `<meta>` tags or Open Graph — those are HTML concepts. Search engines that understand `llms.txt` and `robots.txt` already know how to find them.
@@ -158,5 +104,5 @@ Interactive elements (buttons, inputs, toggles) are omitted since they have no m
 
 ### When to Use What
 
-- **`TextRoute`** — you write the text content yourself. Full control. Use for `llms.txt`, `robots.txt`, hand-crafted docs, API descriptions.
+- **`FileRoute`** — serves a file from disk. Use for `llms.txt`, `robots.txt`, pre-generated docs. Generate the file at build time if it needs dynamic data.
 - **`.textRepresentation()` / `.markdownRepresentation()`** — auto-derived from an existing page's View tree. Use when you want a text mirror of an HTML page without maintaining two copies of the content.
