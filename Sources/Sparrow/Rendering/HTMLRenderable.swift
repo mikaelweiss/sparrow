@@ -46,7 +46,7 @@ extension VStack: VNodeRenderable {
         let childNodes = renderer.renderChildrenVNodes(children)
         var classes = ["flex", "flex-col", alignment.cssClass] + modifierContext.cssClasses
         if spacing > 0 { classes.append("gap-\(spacingToken(spacing))") }
-        let el = ElementNode.build(tag: "div", id: id, classes: classes, styles: modifierContext.inlineStyles, children: childNodes)
+        let el = ElementNode.build(tag: "div", id: id, classes: classes, styles: modifierContext.inlineStyles, extraAttrs: modifierContext.htmlAttributePairs, children: childNodes)
         return .element(el)
     }
 }
@@ -58,7 +58,7 @@ extension HStack: VNodeRenderable {
         let childNodes = renderer.renderChildrenVNodes(children)
         var classes = ["flex", "flex-row", alignment.cssClass] + modifierContext.cssClasses
         if spacing > 0 { classes.append("gap-\(spacingToken(spacing))") }
-        let el = ElementNode.build(tag: "div", id: id, classes: classes, styles: modifierContext.inlineStyles, children: childNodes)
+        let el = ElementNode.build(tag: "div", id: id, classes: classes, styles: modifierContext.inlineStyles, extraAttrs: modifierContext.htmlAttributePairs, children: childNodes)
         return .element(el)
     }
 }
@@ -76,15 +76,29 @@ extension ModifiedView: VNodeRenderable {
         if modifier.createsLayer {
             let innerNode = renderer.renderAnyErasedVNode(content, modifierContext: modifierContext)
             let id = renderer.resolveId(context: modifierContext)
+            var extraAttrs = modifier.htmlAttributes.sorted(by: { $0.key < $1.key }).map { (key: $0.key, value: $0.value) }
+            // Register event handlers for event modifiers
+            if let eventMod = modifier as? any EventModifying {
+                eventMod.registerEvents(id: id, with: renderer.renderState)
+                for (key, value) in eventMod.eventAttributes {
+                    extraAttrs.append((key: key, value: value))
+                }
+            }
             let el = ElementNode.build(
                 tag: "div", id: id,
                 classes: modifier.cssClasses,
                 styles: modifier.inlineStyles,
+                extraAttrs: extraAttrs,
                 children: [innerNode]
             )
             return .element(el)
         } else {
             let newContext = modifierContext.applying(modifier)
+            // Register event handlers for flat event modifiers
+            if let eventMod = modifier as? any EventModifying {
+                let id = renderer.resolveId(context: modifierContext)
+                eventMod.registerEvents(id: id, with: renderer.renderState)
+            }
             return renderer.renderAnyErasedVNode(content, modifierContext: newContext)
         }
     }
@@ -105,7 +119,7 @@ extension ZStack: VNodeRenderable {
         let children = flattenChildren(content)
         let childNodes = renderer.renderChildrenVNodes(children)
         let classes = ["zstack", alignment.justifyCss, alignment.alignCss] + modifierContext.cssClasses
-        let el = ElementNode.build(tag: "div", id: id, classes: classes, styles: modifierContext.inlineStyles, children: childNodes)
+        let el = ElementNode.build(tag: "div", id: id, classes: classes, styles: modifierContext.inlineStyles, extraAttrs: modifierContext.htmlAttributePairs, children: childNodes)
         return .element(el)
     }
 }
@@ -121,7 +135,7 @@ extension ScrollView: VNodeRenderable {
         case .horizontal: classes.append("scroll-x")
         case .both: classes.append("scroll-both")
         }
-        let el = ElementNode.build(tag: "div", id: id, classes: classes, styles: modifierContext.inlineStyles, children: childNodes)
+        let el = ElementNode.build(tag: "div", id: id, classes: classes, styles: modifierContext.inlineStyles, extraAttrs: modifierContext.htmlAttributePairs, children: childNodes)
         return .element(el)
     }
 }
@@ -134,7 +148,7 @@ extension Grid: VNodeRenderable {
         var classes = ["grid"] + modifierContext.cssClasses
         classes.append("grid-cols-\(columns)")
         if spacing > 0 { classes.append("gap-\(spacingToken(spacing))") }
-        let el = ElementNode.build(tag: "div", id: id, classes: classes, styles: modifierContext.inlineStyles, children: childNodes)
+        let el = ElementNode.build(tag: "div", id: id, classes: classes, styles: modifierContext.inlineStyles, extraAttrs: modifierContext.htmlAttributePairs, children: childNodes)
         return .element(el)
     }
 }
@@ -150,7 +164,7 @@ extension List: VNodeRenderable {
         }
         let tag = ordered ? "ol" : "ul"
         let classes = ["list"] + modifierContext.cssClasses
-        let el = ElementNode.build(tag: tag, id: id, classes: classes, styles: modifierContext.inlineStyles, children: liNodes)
+        let el = ElementNode.build(tag: tag, id: id, classes: classes, styles: modifierContext.inlineStyles, extraAttrs: modifierContext.htmlAttributePairs, children: liNodes)
         return .element(el)
     }
 }
@@ -161,7 +175,7 @@ extension Form: VNodeRenderable {
         let children = flattenChildren(content)
         let childNodes = renderer.renderChildrenVNodes(children)
         let classes = ["form"] + modifierContext.cssClasses
-        let el = ElementNode.build(tag: "form", id: id, classes: classes, styles: modifierContext.inlineStyles, children: childNodes)
+        let el = ElementNode.build(tag: "form", id: id, classes: classes, styles: modifierContext.inlineStyles, extraAttrs: modifierContext.htmlAttributePairs, children: childNodes)
         return .element(el)
     }
 }
@@ -183,7 +197,7 @@ extension Section: VNodeRenderable {
             allChildren.append(.element(headerEl))
         }
         allChildren.append(contentsOf: childNodes)
-        let el = ElementNode.build(tag: "section", id: id, classes: classes, styles: modifierContext.inlineStyles, children: allChildren)
+        let el = ElementNode.build(tag: "section", id: id, classes: classes, styles: modifierContext.inlineStyles, extraAttrs: modifierContext.htmlAttributePairs, children: allChildren)
         return .element(el)
     }
 }

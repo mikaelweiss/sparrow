@@ -86,6 +86,7 @@ public struct HTMLRenderer: Sendable {
             tag: tag, id: id,
             classes: context.cssClasses,
             styles: context.inlineStyles,
+            extraAttrs: context.htmlAttributePairs,
             children: textSpanVNodes(text.spans)
         )
         return .element(el)
@@ -131,11 +132,13 @@ public struct HTMLRenderer: Sendable {
         let id = resolveId(context: context)
         renderState.registerHandler(id: id, handler: button.action)
         let classes = ["btn", button.variant.cssClass, button.size.cssClass] + context.cssClasses
+        var extraAttrs: [(key: String, value: String)] = [("data-sparrow-event", "click")]
+        extraAttrs.append(contentsOf: context.htmlAttributePairs)
         let el = ElementNode.build(
             tag: "button", id: id,
             classes: classes,
             styles: context.inlineStyles,
-            extraAttrs: [("data-sparrow-event", "click")],
+            extraAttrs: extraAttrs,
             children: [.text(escapeHTML(button.label))]
         )
         return .element(el)
@@ -144,15 +147,17 @@ public struct HTMLRenderer: Sendable {
     private func renderLinkVNode(_ link: Link, context: ModifierContext) -> VNode {
         let id = resolveId(context: context)
         let classes = ["link"] + context.cssClasses
+        var extraAttrs: [(key: String, value: String)] = [
+            ("href", escapeHTML(link.url)),
+            ("target", "_blank"),
+            ("rel", "noopener noreferrer"),
+        ]
+        extraAttrs.append(contentsOf: context.htmlAttributePairs)
         let el = ElementNode.build(
             tag: "a", id: id,
             classes: classes,
             styles: context.inlineStyles,
-            extraAttrs: [
-                ("href", escapeHTML(link.url)),
-                ("target", "_blank"),
-                ("rel", "noopener noreferrer"),
-            ],
+            extraAttrs: extraAttrs,
             children: [.text(escapeHTML(link.label))]
         )
         return .element(el)
@@ -179,6 +184,7 @@ public struct HTMLRenderer: Sendable {
             tag: "div", id: id,
             classes: classes,
             styles: context.inlineStyles,
+            extraAttrs: context.htmlAttributePairs,
             children: [.text(html)]
         )
         return .element(el)
@@ -189,17 +195,19 @@ public struct HTMLRenderer: Sendable {
         let binding = field.text
         renderState.registerValueHandler(id: id) { newValue in binding.wrappedValue = newValue }
         let classes = ["input"] + context.cssClasses
+        var extraAttrs: [(key: String, value: String)] = [
+            ("type", "text"),
+            ("placeholder", escapeHTML(field.placeholder)),
+            ("value", escapeHTML(binding.wrappedValue)),
+            ("data-sparrow-event", "input"),
+            ("data-sparrow-debounce", "300"),
+        ]
+        extraAttrs.append(contentsOf: context.htmlAttributePairs)
         let el = ElementNode.build(
             tag: "input", id: id,
             classes: classes,
             styles: context.inlineStyles,
-            extraAttrs: [
-                ("type", "text"),
-                ("placeholder", escapeHTML(field.placeholder)),
-                ("value", escapeHTML(binding.wrappedValue)),
-                ("data-sparrow-event", "input"),
-                ("data-sparrow-debounce", "300"),
-            ]
+            extraAttrs: extraAttrs
         )
         return .element(el)
     }
@@ -209,17 +217,19 @@ public struct HTMLRenderer: Sendable {
         let binding = field.text
         renderState.registerValueHandler(id: id) { newValue in binding.wrappedValue = newValue }
         let classes = ["input"] + context.cssClasses
+        var extraAttrs: [(key: String, value: String)] = [
+            ("type", "password"),
+            ("placeholder", escapeHTML(field.placeholder)),
+            ("value", escapeHTML(binding.wrappedValue)),
+            ("data-sparrow-event", "input"),
+            ("data-sparrow-debounce", "300"),
+        ]
+        extraAttrs.append(contentsOf: context.htmlAttributePairs)
         let el = ElementNode.build(
             tag: "input", id: id,
             classes: classes,
             styles: context.inlineStyles,
-            extraAttrs: [
-                ("type", "password"),
-                ("placeholder", escapeHTML(field.placeholder)),
-                ("value", escapeHTML(binding.wrappedValue)),
-                ("data-sparrow-event", "input"),
-                ("data-sparrow-debounce", "300"),
-            ]
+            extraAttrs: extraAttrs
         )
         return .element(el)
     }
@@ -229,14 +239,16 @@ public struct HTMLRenderer: Sendable {
         let binding = editor.text
         renderState.registerValueHandler(id: id) { newValue in binding.wrappedValue = newValue }
         let classes = ["textarea"] + context.cssClasses
+        var extraAttrs: [(key: String, value: String)] = [
+            ("data-sparrow-event", "input"),
+            ("data-sparrow-debounce", "300"),
+        ]
+        extraAttrs.append(contentsOf: context.htmlAttributePairs)
         let el = ElementNode.build(
             tag: "textarea", id: id,
             classes: classes,
             styles: context.inlineStyles,
-            extraAttrs: [
-                ("data-sparrow-event", "input"),
-                ("data-sparrow-debounce", "300"),
-            ],
+            extraAttrs: extraAttrs,
             children: [.text(escapeHTML(binding.wrappedValue))]
         )
         return .element(el)
@@ -258,6 +270,7 @@ public struct HTMLRenderer: Sendable {
         var labelAttrs = OrderedAttributes()
         if !classes.isEmpty { labelAttrs["class"] = classes.joined(separator: " ") }
         if !context.inlineStyles.isEmpty { labelAttrs["style"] = formatStyles(context.inlineStyles) }
+        for (key, value) in context.htmlAttributePairs { labelAttrs[key] = value }
         let labelId = renderState.allocateId()
         labelAttrs["id"] = labelId
         let labelNode = ElementNode(tag: "label", id: labelId, attributes: labelAttrs, children: [
@@ -278,14 +291,16 @@ public struct HTMLRenderer: Sendable {
             if opt.value == selected { attrs["selected"] = "" }
             return .element(ElementNode(tag: "option", id: optId, attributes: attrs, children: [.text(escapeHTML(opt.label))]))
         }
+        var extraAttrs: [(key: String, value: String)] = [
+            ("aria-label", escapeHTML(picker.label)),
+            ("data-sparrow-event", "change"),
+        ]
+        extraAttrs.append(contentsOf: context.htmlAttributePairs)
         let el = ElementNode.build(
             tag: "select", id: id,
             classes: classes,
             styles: context.inlineStyles,
-            extraAttrs: [
-                ("aria-label", escapeHTML(picker.label)),
-                ("data-sparrow-event", "change"),
-            ],
+            extraAttrs: extraAttrs,
             children: optionNodes
         )
         return .element(el)
@@ -298,18 +313,20 @@ public struct HTMLRenderer: Sendable {
             if let d = Double(newValue) { binding.wrappedValue = d }
         }
         let classes = ["slider"] + context.cssClasses
+        var extraAttrs: [(key: String, value: String)] = [
+            ("type", "range"),
+            ("min", "\(slider.range.lowerBound)"),
+            ("max", "\(slider.range.upperBound)"),
+            ("step", "\(slider.step)"),
+            ("value", "\(binding.wrappedValue)"),
+            ("data-sparrow-event", "input"),
+        ]
+        extraAttrs.append(contentsOf: context.htmlAttributePairs)
         let el = ElementNode.build(
             tag: "input", id: id,
             classes: classes,
             styles: context.inlineStyles,
-            extraAttrs: [
-                ("type", "range"),
-                ("min", "\(slider.range.lowerBound)"),
-                ("max", "\(slider.range.upperBound)"),
-                ("step", "\(slider.step)"),
-                ("value", "\(binding.wrappedValue)"),
-                ("data-sparrow-event", "input"),
-            ]
+            extraAttrs: extraAttrs
         )
         return .element(el)
     }
@@ -319,16 +336,18 @@ public struct HTMLRenderer: Sendable {
         let binding = dp.selection
         renderState.registerValueHandler(id: id) { newValue in binding.wrappedValue = newValue }
         let classes = ["input"] + context.cssClasses
+        var extraAttrs: [(key: String, value: String)] = [
+            ("type", "date"),
+            ("aria-label", escapeHTML(dp.label)),
+            ("value", escapeHTML(binding.wrappedValue)),
+            ("data-sparrow-event", "change"),
+        ]
+        extraAttrs.append(contentsOf: context.htmlAttributePairs)
         let el = ElementNode.build(
             tag: "input", id: id,
             classes: classes,
             styles: context.inlineStyles,
-            extraAttrs: [
-                ("type", "date"),
-                ("aria-label", escapeHTML(dp.label)),
-                ("value", escapeHTML(binding.wrappedValue)),
-                ("data-sparrow-event", "change"),
-            ]
+            extraAttrs: extraAttrs
         )
         return .element(el)
     }
@@ -341,14 +360,16 @@ public struct HTMLRenderer: Sendable {
         case .asset(let name): src = "/assets/\(escapeHTML(name))"
         case .url(let url): src = escapeHTML(url)
         }
+        var extraAttrs: [(key: String, value: String)] = [
+            ("src", src),
+            ("alt", escapeHTML(img.alt)),
+        ]
+        extraAttrs.append(contentsOf: context.htmlAttributePairs)
         let el = ElementNode.build(
             tag: "img", id: id,
             classes: classes,
             styles: context.inlineStyles,
-            extraAttrs: [
-                ("src", src),
-                ("alt", escapeHTML(img.alt)),
-            ]
+            extraAttrs: extraAttrs
         )
         return .element(el)
     }
@@ -356,11 +377,13 @@ public struct HTMLRenderer: Sendable {
     private func renderIconVNode(_ icon: Icon, context: ModifierContext) -> VNode {
         let id = resolveId(context: context)
         let classes = ["icon"] + context.cssClasses
+        var extraAttrs: [(key: String, value: String)] = [("data-icon", escapeHTML(icon.systemName))]
+        extraAttrs.append(contentsOf: context.htmlAttributePairs)
         let el = ElementNode.build(
             tag: "span", id: id,
             classes: classes,
             styles: context.inlineStyles,
-            extraAttrs: [("data-icon", escapeHTML(icon.systemName))]
+            extraAttrs: extraAttrs
         )
         return .element(el)
     }
@@ -375,6 +398,7 @@ public struct HTMLRenderer: Sendable {
             ("data-sparrow-nav", ""),
         ]
         if isCurrent { extraAttrs.append(("aria-current", "page")) }
+        extraAttrs.append(contentsOf: context.htmlAttributePairs)
         let el = ElementNode.build(
             tag: "a", id: id,
             classes: classes,
@@ -393,6 +417,7 @@ public struct HTMLRenderer: Sendable {
             extraAttrs.append(("value", "\(value)"))
             extraAttrs.append(("max", "\(pv.total)"))
         }
+        extraAttrs.append(contentsOf: context.htmlAttributePairs)
         let el = ElementNode.build(
             tag: "progress", id: id,
             classes: classes,
@@ -426,4 +451,11 @@ func escapeHTML(_ string: String) -> String {
 
 func formatStyles(_ styles: [String: String]) -> String {
     styles.map { "\($0.key): \($0.value)" }.joined(separator: "; ")
+}
+
+func formatHTMLAttributes(_ attrs: [String: String]) -> String {
+    guard !attrs.isEmpty else { return "" }
+    return attrs.sorted(by: { $0.key < $1.key })
+        .map { " \($0.key)=\"\(escapeHTML($0.value))\"" }
+        .joined()
 }
