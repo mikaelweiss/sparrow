@@ -151,6 +151,7 @@ public struct Route: Sendable {
         <head>
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width, initial-scale=1">
+            <script>(function(){var d=document.documentElement;if(localStorage.theme==='dark'||(localStorage.theme!=='light'&&window.matchMedia('(prefers-color-scheme:dark)').matches)){d.classList.add('dark');d.style.colorScheme='dark'}else{d.style.colorScheme='light'}})()</script>
             <title>\(escapeHTML(title ?? "Sparrow App"))</title>
             <style>\(CSSGenerator.defaultStylesheet)\(themeCSS)</style>
         </head>

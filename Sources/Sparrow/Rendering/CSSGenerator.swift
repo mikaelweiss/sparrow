@@ -89,41 +89,39 @@ public enum CSSGenerator {
     /* ============================================
        THEME VARIABLES — Dark
        ============================================ */
-    @media (prefers-color-scheme: dark) {
-        :root {
-            --background: hsl(240 10% 3.9%);
-            --foreground: hsl(0 0% 98%);
-            --card: hsl(240 10% 3.9%);
-            --card-foreground: hsl(0 0% 98%);
-            --popover: hsl(240 10% 3.9%);
-            --popover-foreground: hsl(0 0% 98%);
-            --primary: hsl(0 0% 98%);
-            --primary-foreground: hsl(240 5.9% 10%);
-            --secondary: hsl(240 3.7% 15.9%);
-            --secondary-foreground: hsl(0 0% 98%);
-            --muted: hsl(240 3.7% 15.9%);
-            --muted-foreground: hsl(240 5% 64.9%);
-            --accent: hsl(240 3.7% 15.9%);
-            --accent-foreground: hsl(0 0% 98%);
-            --destructive: hsl(0 62.8% 30.6%);
-            --destructive-foreground: hsl(0 0% 98%);
-            --border: hsl(240 3.7% 15.9%);
-            --input: hsl(240 3.7% 15.9%);
-            --ring: hsl(240 4.9% 83.9%);
+    .dark {
+        --background: hsl(240 10% 3.9%);
+        --foreground: hsl(0 0% 98%);
+        --card: hsl(240 10% 3.9%);
+        --card-foreground: hsl(0 0% 98%);
+        --popover: hsl(240 10% 3.9%);
+        --popover-foreground: hsl(0 0% 98%);
+        --primary: hsl(0 0% 98%);
+        --primary-foreground: hsl(240 5.9% 10%);
+        --secondary: hsl(240 3.7% 15.9%);
+        --secondary-foreground: hsl(0 0% 98%);
+        --muted: hsl(240 3.7% 15.9%);
+        --muted-foreground: hsl(240 5% 64.9%);
+        --accent: hsl(240 3.7% 15.9%);
+        --accent-foreground: hsl(0 0% 98%);
+        --destructive: hsl(0 62.8% 30.6%);
+        --destructive-foreground: hsl(0 0% 98%);
+        --border: hsl(240 3.7% 15.9%);
+        --input: hsl(240 3.7% 15.9%);
+        --ring: hsl(240 4.9% 83.9%);
 
-            --success: hsl(142 71% 45%);
-            --warning: hsl(48 96% 53%);
-            --info: hsl(199 89% 48%);
+        --success: hsl(142 71% 45%);
+        --warning: hsl(48 96% 53%);
+        --info: hsl(199 89% 48%);
 
-            --sidebar-background: hsl(240 5.9% 10%);
-            --sidebar-foreground: hsl(240 4.8% 95.9%);
-            --sidebar-primary: hsl(224.3 76.3% 48%);
-            --sidebar-primary-foreground: hsl(0 0% 100%);
-            --sidebar-accent: hsl(240 3.7% 15.9%);
-            --sidebar-accent-foreground: hsl(240 4.8% 95.9%);
-            --sidebar-border: hsl(240 3.7% 15.9%);
-            --sidebar-ring: hsl(240 4.9% 83.9%);
-        }
+        --sidebar-background: hsl(240 5.9% 10%);
+        --sidebar-foreground: hsl(240 4.8% 95.9%);
+        --sidebar-primary: hsl(224.3 76.3% 48%);
+        --sidebar-primary-foreground: hsl(0 0% 100%);
+        --sidebar-accent: hsl(240 3.7% 15.9%);
+        --sidebar-accent-foreground: hsl(240 4.8% 95.9%);
+        --sidebar-border: hsl(240 3.7% 15.9%);
+        --sidebar-ring: hsl(240 4.9% 83.9%);
     }
 
     /* ============================================
@@ -562,14 +560,12 @@ public enum CSSGenerator {
     .hl-number { color: hsl(216 85% 34%); }
     .hl-type { color: hsl(27 85% 30%); }
     .hl-attr { color: hsl(264 60% 50%); }
-    @media (prefers-color-scheme: dark) {
-        .hl-keyword { color: hsl(2 74% 72%); }
-        .hl-string { color: hsl(210 100% 82%); }
-        .hl-comment { color: hsl(212 10% 58%); }
-        .hl-number { color: hsl(212 100% 75%); }
-        .hl-type { color: hsl(28 100% 67%); }
-        .hl-attr { color: hsl(264 100% 82%); }
-    }
+    .dark .hl-keyword { color: hsl(2 74% 72%); }
+    .dark .hl-string { color: hsl(210 100% 82%); }
+    .dark .hl-comment { color: hsl(212 10% 58%); }
+    .dark .hl-number { color: hsl(212 100% 75%); }
+    .dark .hl-type { color: hsl(28 100% 67%); }
+    .dark .hl-attr { color: hsl(264 100% 82%); }
     .markdown hr { border: none; border-top: 1px solid var(--border); margin-top: 3em; margin-bottom: 3em; }
     .markdown img { max-width: 100%; height: auto; border-radius: var(--radius); margin-top: 2em; margin-bottom: 2em; }
     .markdown table {
@@ -988,11 +984,11 @@ public enum CSSGenerator {
 
         // Dark mode overrides
         if !theme.darkCSSOverrides.isEmpty {
-            css += "\n@media (prefers-color-scheme: dark) {\n    :root {\n"
+            css += "\n.dark {\n"
             for (key, value) in theme.darkCSSOverrides.sorted(by: { $0.key < $1.key }) {
-                css += "        \(key): \(value);\n"
+                css += "    \(key): \(value);\n"
             }
-            css += "    }\n}\n"
+            css += "}\n"
         }
 
         return css
