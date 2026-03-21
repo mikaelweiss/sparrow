@@ -14,6 +14,10 @@ final class RenderState: @unchecked Sendable {
     var idPrefix: String = "v"
     /// Pre-rendered page HTML injected at `Content()` inside a Layout.
     var contentSlot: String? = nil
+    /// Pre-rendered page VNode injected at `Content()` inside a Layout (for diffing path).
+    var contentSlotVNode: VNode? = nil
+    /// The root VNode tree produced by the most recent render pass.
+    var rootVNode: VNode? = nil
     /// The path being rendered, used to auto-detect active NavigationLinks.
     var currentPath: String? = nil
 

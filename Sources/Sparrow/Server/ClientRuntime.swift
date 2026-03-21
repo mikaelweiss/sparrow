@@ -159,6 +159,26 @@ enum ClientRuntime {
                 case "attr":
                     el.setAttribute(patch.attr, patch.value);
                     break;
+                case "removeAttr":
+                    el.removeAttribute(patch.attr);
+                    break;
+                case "replaceInner":
+                    el.innerHTML = patch.html;
+                    break;
+                case "insertBefore":
+                    if (patch.beforeId) {
+                        var before = document.getElementById(patch.beforeId);
+                        if (before && before.parentNode === el) {
+                            var tpl = document.createElement("template");
+                            tpl.innerHTML = patch.html;
+                            el.insertBefore(tpl.content.firstChild, before);
+                        } else {
+                            el.insertAdjacentHTML("beforeend", patch.html);
+                        }
+                    } else {
+                        el.insertAdjacentHTML("beforeend", patch.html);
+                    }
+                    break;
             }
         }
 

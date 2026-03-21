@@ -11,109 +11,12 @@ public struct HTMLRenderer: Sendable {
     }
 
     /// Render a view to an HTML fragment.
+    /// Internally builds a VNode tree (stored on renderState.rootVNode for diffing)
+    /// and serializes it to HTML.
     public func render(_ view: some View) -> String {
-        renderAny(view, modifierContext: ModifierContext())
-    }
-
-    // MARK: - Internal rendering
-
-    /// Main dispatch: tries known primitives/structurals first. If unrecognized,
-    /// assumes it's a user-defined view and recurses into its `body`.
-    /// Modifier context resets on body resolution — modifiers only apply to the
-    /// view they're attached to, not to its children.
-    private func renderAny(_ view: some View, modifierContext: ModifierContext) -> String {
-        if let result = renderKnown(view, modifierContext: modifierContext) {
-            return result
-        }
-        return renderAny(view.body, modifierContext: ModifierContext())
-    }
-
-    /// Try to render known types. Returns nil if the type isn't recognized,
-    /// which causes `renderAny` to fall through to resolving the view's `body`.
-    /// Primitive views are matched here by type; structural containers (VStack, etc.)
-    /// fall through to the `HTMLRenderable` protocol check at the bottom.
-    private func renderKnown(_ view: some View, modifierContext: ModifierContext) -> String? {
-        // Text
-        if let text = view as? Text {
-            return renderText(text, context: modifierContext)
-        }
-        // Button
-        if let button = view as? Button {
-            return renderButton(button, context: modifierContext)
-        }
-        // Link
-        if let link = view as? Link {
-            return renderLink(link, context: modifierContext)
-        }
-        // Spacer
-        if view is Spacer {
-            return renderSpacer(context: modifierContext)
-        }
-        // Divider
-        if view is Divider {
-            return renderDivider(context: modifierContext)
-        }
-        // Markdown
-        if let md = view as? Markdown {
-            return renderMarkdown(md, context: modifierContext)
-        }
-        // TextField
-        if let field = view as? TextField {
-            return renderTextField(field, context: modifierContext)
-        }
-        // SecureField
-        if let field = view as? SecureField {
-            return renderSecureField(field, context: modifierContext)
-        }
-        // TextEditor
-        if let editor = view as? TextEditor {
-            return renderTextEditor(editor, context: modifierContext)
-        }
-        // Toggle
-        if let toggle = view as? Toggle {
-            return renderToggle(toggle, context: modifierContext)
-        }
-        // Picker
-        if let picker = view as? Picker {
-            return renderPicker(picker, context: modifierContext)
-        }
-        // Slider
-        if let slider = view as? Slider {
-            return renderSlider(slider, context: modifierContext)
-        }
-        // DatePicker
-        if let dp = view as? DatePicker {
-            return renderDatePicker(dp, context: modifierContext)
-        }
-        // Image
-        if let img = view as? Image {
-            return renderImage(img, context: modifierContext)
-        }
-        // Icon
-        if let icon = view as? Icon {
-            return renderIcon(icon, context: modifierContext)
-        }
-        // NavigationLink
-        if let navLink = view as? NavigationLink {
-            return renderNavigationLink(navLink, context: modifierContext)
-        }
-        // ProgressView
-        if let pv = view as? ProgressView {
-            return renderProgressView(pv, context: modifierContext)
-        }
-        // Content (Layout placeholder)
-        if view is Content {
-            return renderContent(context: modifierContext)
-        }
-        // EmptyView
-        if view is EmptyView {
-            return ""
-        }
-        // Try structural types via protocol
-        if let renderable = view as? any HTMLRenderable {
-            return renderable.renderHTML(with: self, modifierContext: modifierContext)
-        }
-        return nil
+        let vnode = renderVNode(view)
+        renderState.rootVNode = vnode
+        return vnode.toHTML()
     }
 
     /// Allocate an element ID, using a custom ID from `.id()` modifier if set.
@@ -123,278 +26,391 @@ public struct HTMLRenderer: Sendable {
         return context.customId ?? autoId
     }
 
-    // MARK: - Primitive renderers
+    // MARK: - VNode rendering
 
-    /// Text renders as the semantic HTML tag from its font modifier (h1 for .largeTitle,
-    /// h2 for .title, etc.) or falls back to `<p>` if no font modifier is applied.
-    /// Supports inline styling via TextSpans for concatenated text.
-    private func renderText(_ text: Text, context: ModifierContext) -> String {
-        let id = resolveId(context: context)
-        let classes = context.cssClasses
-        let styles = context.inlineStyles
-        let idAttr = " id=\"\(id)\""
-        let classAttr = classes.isEmpty ? "" : " class=\"\(classes.joined(separator: " "))\""
-        let styleAttr = styles.isEmpty ? "" : " style=\"\(formatStyles(styles))\""
-
-        let tag = context.htmlTag ?? "p"
-        let inner = renderTextSpans(text.spans)
-        return "        <\(tag)\(idAttr)\(classAttr)\(styleAttr)>\(inner)</\(tag)>"
+    /// Render a view to a virtual DOM tree. Used by SessionActor for diffing.
+    public func renderVNode(_ view: some View) -> VNode {
+        renderAnyVNode(view, modifierContext: ModifierContext())
     }
 
-    private func renderTextSpans(_ spans: [TextSpan]) -> String {
-        if spans.count == 1 && !spans[0].hasInlineStyles {
-            return escapeHTML(spans[0].content)
+    func renderAnyVNode(_ view: some View, modifierContext: ModifierContext) -> VNode {
+        if let result = renderKnownVNode(view, modifierContext: modifierContext) {
+            return result
         }
-        return spans.map { renderSingleSpan($0) }.joined()
+        return renderAnyVNode(view.body, modifierContext: ModifierContext())
     }
 
-    private func renderSingleSpan(_ span: TextSpan) -> String {
-        var html = escapeHTML(span.content)
-        if !span.hasInlineStyles { return html }
+    private func renderKnownVNode(_ view: some View, modifierContext: ModifierContext) -> VNode? {
+        if let text = view as? Text { return renderTextVNode(text, context: modifierContext) }
+        if let button = view as? Button { return renderButtonVNode(button, context: modifierContext) }
+        if let link = view as? Link { return renderLinkVNode(link, context: modifierContext) }
+        if view is Spacer { return renderSpacerVNode(context: modifierContext) }
+        if view is Divider { return renderDividerVNode(context: modifierContext) }
+        if let md = view as? Markdown { return renderMarkdownVNode(md, context: modifierContext) }
+        if let field = view as? TextField { return renderTextFieldVNode(field, context: modifierContext) }
+        if let field = view as? SecureField { return renderSecureFieldVNode(field, context: modifierContext) }
+        if let editor = view as? TextEditor { return renderTextEditorVNode(editor, context: modifierContext) }
+        if let toggle = view as? Toggle { return renderToggleVNode(toggle, context: modifierContext) }
+        if let picker = view as? Picker { return renderPickerVNode(picker, context: modifierContext) }
+        if let slider = view as? Slider { return renderSliderVNode(slider, context: modifierContext) }
+        if let dp = view as? DatePicker { return renderDatePickerVNode(dp, context: modifierContext) }
+        if let img = view as? Image { return renderImageVNode(img, context: modifierContext) }
+        if let icon = view as? Icon { return renderIconVNode(icon, context: modifierContext) }
+        if let navLink = view as? NavigationLink { return renderNavigationLinkVNode(navLink, context: modifierContext) }
+        if let pv = view as? ProgressView { return renderProgressViewVNode(pv, context: modifierContext) }
+        if view is Content { return renderContentVNode(context: modifierContext) }
+        if view is EmptyView { return .fragment([]) }
+        if let renderable = view as? any VNodeRenderable {
+            return renderable.renderVNode(with: self, modifierContext: modifierContext)
+        }
+        return nil
+    }
 
-        // Semantic tags for common styles
-        if span.isStrikethrough { html = "<del>\(html)</del>" }
-        if span.isUnderline { html = "<span class=\"underline\">\(html)</span>" }
+    func renderAnyErasedVNode(_ view: any View, modifierContext: ModifierContext) -> VNode {
+        func doRender<V: View>(_ v: V) -> VNode {
+            renderAnyVNode(v, modifierContext: modifierContext)
+        }
+        return doRender(view)
+    }
+
+    func renderChildrenVNodes(_ views: [any View], modifierContext: ModifierContext = ModifierContext()) -> [VNode] {
+        views.map { renderAnyErasedVNode($0, modifierContext: modifierContext) }
+    }
+
+    // MARK: - VNode primitive renderers
+
+    private func renderTextVNode(_ text: Text, context: ModifierContext) -> VNode {
+        let id = resolveId(context: context)
+        let tag = context.htmlTag ?? "p"
+        let el = ElementNode.build(
+            tag: tag, id: id,
+            classes: context.cssClasses,
+            styles: context.inlineStyles,
+            children: textSpanVNodes(text.spans)
+        )
+        return .element(el)
+    }
+
+    private func textSpanVNodes(_ spans: [TextSpan]) -> [VNode] {
+        if spans.count == 1 && !spans[0].hasInlineStyles {
+            return [.text(escapeHTML(spans[0].content))]
+        }
+        return spans.map { spanVNode($0) }
+    }
+
+    private func spanVNode(_ span: TextSpan) -> VNode {
+        if !span.hasInlineStyles {
+            return .text(escapeHTML(span.content))
+        }
+        // Build nested inline elements: innermost is the text
+        var node: VNode = .text(escapeHTML(span.content))
+        if span.isStrikethrough {
+            let id = renderState.allocateId()
+            node = .element(ElementNode.build(tag: "del", id: id, children: [node]))
+        }
+        if span.isUnderline {
+            let id = renderState.allocateId()
+            node = .element(ElementNode.build(tag: "span", id: id, classes: ["underline"], children: [node]))
+        }
         if let weight = span.fontWeight {
+            let id = renderState.allocateId()
             if weight == .bold {
-                html = "<strong>\(html)</strong>"
+                node = .element(ElementNode.build(tag: "strong", id: id, children: [node]))
             } else {
-                html = "<span class=\"\(weight.cssClass)\">\(html)</span>"
+                node = .element(ElementNode.build(tag: "span", id: id, classes: [weight.cssClass], children: [node]))
             }
         }
-        if span.isItalic { html = "<em>\(html)</em>" }
-        return html
+        if span.isItalic {
+            let id = renderState.allocateId()
+            node = .element(ElementNode.build(tag: "em", id: id, children: [node]))
+        }
+        return node
     }
 
-    private func renderButton(_ button: Button, context: ModifierContext) -> String {
+    private func renderButtonVNode(_ button: Button, context: ModifierContext) -> VNode {
         let id = resolveId(context: context)
         renderState.registerHandler(id: id, handler: button.action)
-
         let classes = ["btn", button.variant.cssClass, button.size.cssClass] + context.cssClasses
-        let classAttr = " class=\"\(classes.joined(separator: " "))\""
-        let styleAttr = context.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(context.inlineStyles))\""
-        let escaped = escapeHTML(button.label)
-        return "        <button id=\"\(id)\"\(classAttr) data-sparrow-event=\"click\"\(styleAttr)>\(escaped)</button>"
+        let el = ElementNode.build(
+            tag: "button", id: id,
+            classes: classes,
+            styles: context.inlineStyles,
+            extraAttrs: [("data-sparrow-event", "click")],
+            children: [.text(escapeHTML(button.label))]
+        )
+        return .element(el)
     }
 
-    private func renderLink(_ link: Link, context: ModifierContext) -> String {
+    private func renderLinkVNode(_ link: Link, context: ModifierContext) -> VNode {
         let id = resolveId(context: context)
         let classes = ["link"] + context.cssClasses
-        let classAttr = " class=\"\(classes.joined(separator: " "))\""
-        let styleAttr = context.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(context.inlineStyles))\""
-        let escaped = escapeHTML(link.label)
-        let href = escapeHTML(link.url)
-        return "        <a id=\"\(id)\" href=\"\(href)\" target=\"_blank\" rel=\"noopener noreferrer\"\(classAttr)\(styleAttr)>\(escaped)</a>"
+        let el = ElementNode.build(
+            tag: "a", id: id,
+            classes: classes,
+            styles: context.inlineStyles,
+            extraAttrs: [
+                ("href", escapeHTML(link.url)),
+                ("target", "_blank"),
+                ("rel", "noopener noreferrer"),
+            ],
+            children: [.text(escapeHTML(link.label))]
+        )
+        return .element(el)
     }
 
-    private func renderSpacer(context: ModifierContext) -> String {
+    private func renderSpacerVNode(context: ModifierContext) -> VNode {
         let id = resolveId(context: context)
         let classes = ["flex-grow"] + context.cssClasses
-        let classAttr = " class=\"\(classes.joined(separator: " "))\""
-        return "        <div id=\"\(id)\"\(classAttr)></div>"
+        return .element(ElementNode.build(tag: "div", id: id, classes: classes))
     }
 
-    private func renderDivider(context: ModifierContext) -> String {
+    private func renderDividerVNode(context: ModifierContext) -> VNode {
         let id = resolveId(context: context)
         let classes = ["divider"] + context.cssClasses
-        let classAttr = " class=\"\(classes.joined(separator: " "))\""
-        return "        <hr id=\"\(id)\"\(classAttr)>"
+        return .element(ElementNode.build(tag: "hr", id: id, classes: classes))
     }
 
-
-    private func renderMarkdown(_ md: Markdown, context: ModifierContext) -> String {
+    private func renderMarkdownVNode(_ md: Markdown, context: ModifierContext) -> VNode {
         let id = resolveId(context: context)
         let classes = ["markdown"] + context.cssClasses
-        let classAttr = " class=\"\(classes.joined(separator: " "))\""
-        let styleAttr = context.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(context.inlineStyles))\""
         let html = MarkdownParser.html(from: md.content)
-        return "        <div id=\"\(id)\"\(classAttr)\(styleAttr)>\(html)</div>"
+        // Markdown renders to raw HTML — wrap as a text node (already escaped by the parser)
+        let el = ElementNode.build(
+            tag: "div", id: id,
+            classes: classes,
+            styles: context.inlineStyles,
+            children: [.text(html)]
+        )
+        return .element(el)
     }
 
-    /// Input fields use `data-sparrow-debounce="300"` — the client JS debounces input
-    /// events by 300ms before sending to the server to avoid flooding the WebSocket.
-    private func renderTextField(_ field: TextField, context: ModifierContext) -> String {
+    private func renderTextFieldVNode(_ field: TextField, context: ModifierContext) -> VNode {
         let id = resolveId(context: context)
         let binding = field.text
-        renderState.registerValueHandler(id: id) { newValue in
-            binding.wrappedValue = newValue
-        }
+        renderState.registerValueHandler(id: id) { newValue in binding.wrappedValue = newValue }
         let classes = ["input"] + context.cssClasses
-        let classAttr = " class=\"\(classes.joined(separator: " "))\""
-        let styleAttr = context.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(context.inlineStyles))\""
-        let placeholder = escapeHTML(field.placeholder)
-        let value = escapeHTML(binding.wrappedValue)
-        return "        <input id=\"\(id)\" type=\"text\" placeholder=\"\(placeholder)\" value=\"\(value)\"\(classAttr) data-sparrow-event=\"input\" data-sparrow-debounce=\"300\"\(styleAttr)>"
+        let el = ElementNode.build(
+            tag: "input", id: id,
+            classes: classes,
+            styles: context.inlineStyles,
+            extraAttrs: [
+                ("type", "text"),
+                ("placeholder", escapeHTML(field.placeholder)),
+                ("value", escapeHTML(binding.wrappedValue)),
+                ("data-sparrow-event", "input"),
+                ("data-sparrow-debounce", "300"),
+            ]
+        )
+        return .element(el)
     }
 
-    private func renderSecureField(_ field: SecureField, context: ModifierContext) -> String {
+    private func renderSecureFieldVNode(_ field: SecureField, context: ModifierContext) -> VNode {
         let id = resolveId(context: context)
         let binding = field.text
-        renderState.registerValueHandler(id: id) { newValue in
-            binding.wrappedValue = newValue
-        }
+        renderState.registerValueHandler(id: id) { newValue in binding.wrappedValue = newValue }
         let classes = ["input"] + context.cssClasses
-        let classAttr = " class=\"\(classes.joined(separator: " "))\""
-        let styleAttr = context.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(context.inlineStyles))\""
-        let placeholder = escapeHTML(field.placeholder)
-        let value = escapeHTML(binding.wrappedValue)
-        return "        <input id=\"\(id)\" type=\"password\" placeholder=\"\(placeholder)\" value=\"\(value)\"\(classAttr) data-sparrow-event=\"input\" data-sparrow-debounce=\"300\"\(styleAttr)>"
+        let el = ElementNode.build(
+            tag: "input", id: id,
+            classes: classes,
+            styles: context.inlineStyles,
+            extraAttrs: [
+                ("type", "password"),
+                ("placeholder", escapeHTML(field.placeholder)),
+                ("value", escapeHTML(binding.wrappedValue)),
+                ("data-sparrow-event", "input"),
+                ("data-sparrow-debounce", "300"),
+            ]
+        )
+        return .element(el)
     }
 
-    private func renderTextEditor(_ editor: TextEditor, context: ModifierContext) -> String {
+    private func renderTextEditorVNode(_ editor: TextEditor, context: ModifierContext) -> VNode {
         let id = resolveId(context: context)
         let binding = editor.text
-        renderState.registerValueHandler(id: id) { newValue in
-            binding.wrappedValue = newValue
-        }
+        renderState.registerValueHandler(id: id) { newValue in binding.wrappedValue = newValue }
         let classes = ["textarea"] + context.cssClasses
-        let classAttr = " class=\"\(classes.joined(separator: " "))\""
-        let styleAttr = context.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(context.inlineStyles))\""
-        let escaped = escapeHTML(binding.wrappedValue)
-        return "        <textarea id=\"\(id)\"\(classAttr) data-sparrow-event=\"input\" data-sparrow-debounce=\"300\"\(styleAttr)>\(escaped)</textarea>"
+        let el = ElementNode.build(
+            tag: "textarea", id: id,
+            classes: classes,
+            styles: context.inlineStyles,
+            extraAttrs: [
+                ("data-sparrow-event", "input"),
+                ("data-sparrow-debounce", "300"),
+            ],
+            children: [.text(escapeHTML(binding.wrappedValue))]
+        )
+        return .element(el)
     }
 
-    private func renderToggle(_ toggle: Toggle, context: ModifierContext) -> String {
+    private func renderToggleVNode(_ toggle: Toggle, context: ModifierContext) -> VNode {
         let id = resolveId(context: context)
         let binding = toggle.isOn
-        renderState.registerValueHandler(id: id) { newValue in
-            binding.wrappedValue = (newValue == "true")
-        }
+        renderState.registerValueHandler(id: id) { newValue in binding.wrappedValue = (newValue == "true") }
         let classes = ["toggle"] + context.cssClasses
-        let classAttr = " class=\"\(classes.joined(separator: " "))\""
-        let styleAttr = context.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(context.inlineStyles))\""
-        let checked = binding.wrappedValue ? " checked" : ""
-        let escaped = escapeHTML(toggle.label)
-        return "        <label\(classAttr)\(styleAttr)><input id=\"\(id)\" type=\"checkbox\"\(checked) data-sparrow-event=\"change\"> \(escaped)</label>"
+        // Toggle is a <label> wrapping an <input type="checkbox">
+        var inputAttrs = OrderedAttributes([
+            ("id", id),
+            ("type", "checkbox"),
+            ("data-sparrow-event", "change"),
+        ])
+        if binding.wrappedValue { inputAttrs["checked"] = "" }
+        let inputNode = VNode.element(ElementNode(tag: "input", id: id, attributes: inputAttrs))
+        var labelAttrs = OrderedAttributes()
+        if !classes.isEmpty { labelAttrs["class"] = classes.joined(separator: " ") }
+        if !context.inlineStyles.isEmpty { labelAttrs["style"] = formatStyles(context.inlineStyles) }
+        let labelId = renderState.allocateId()
+        labelAttrs["id"] = labelId
+        let labelNode = ElementNode(tag: "label", id: labelId, attributes: labelAttrs, children: [
+            inputNode, .text(" " + escapeHTML(toggle.label)),
+        ])
+        return .element(labelNode)
     }
 
-    private func renderPicker(_ picker: Picker, context: ModifierContext) -> String {
+    private func renderPickerVNode(_ picker: Picker, context: ModifierContext) -> VNode {
         let id = resolveId(context: context)
         let binding = picker.selection
-        renderState.registerValueHandler(id: id) { newValue in
-            binding.wrappedValue = newValue
-        }
+        renderState.registerValueHandler(id: id) { newValue in binding.wrappedValue = newValue }
         let selected = binding.wrappedValue
         let classes = ["picker"] + context.cssClasses
-        let classAttr = " class=\"\(classes.joined(separator: " "))\""
-        let styleAttr = context.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(context.inlineStyles))\""
-        let options = picker.options.map { opt in
-            let selectedAttr = opt.value == selected ? " selected" : ""
-            return "            <option value=\"\(escapeHTML(opt.value))\"\(selectedAttr)>\(escapeHTML(opt.label))</option>"
-        }.joined(separator: "\n")
-        return """
-                <select id="\(id)" aria-label="\(escapeHTML(picker.label))"\(classAttr) data-sparrow-event="change"\(styleAttr)>
-        \(options)
-                </select>
-        """
+        let optionNodes: [VNode] = picker.options.map { opt in
+            let optId = renderState.allocateId()
+            var attrs = OrderedAttributes([("id", optId), ("value", escapeHTML(opt.value))])
+            if opt.value == selected { attrs["selected"] = "" }
+            return .element(ElementNode(tag: "option", id: optId, attributes: attrs, children: [.text(escapeHTML(opt.label))]))
+        }
+        let el = ElementNode.build(
+            tag: "select", id: id,
+            classes: classes,
+            styles: context.inlineStyles,
+            extraAttrs: [
+                ("aria-label", escapeHTML(picker.label)),
+                ("data-sparrow-event", "change"),
+            ],
+            children: optionNodes
+        )
+        return .element(el)
     }
 
-    private func renderSlider(_ slider: Slider, context: ModifierContext) -> String {
+    private func renderSliderVNode(_ slider: Slider, context: ModifierContext) -> VNode {
         let id = resolveId(context: context)
         let binding = slider.value
         renderState.registerValueHandler(id: id) { newValue in
-            if let d = Double(newValue) {
-                binding.wrappedValue = d
-            }
+            if let d = Double(newValue) { binding.wrappedValue = d }
         }
         let classes = ["slider"] + context.cssClasses
-        let classAttr = " class=\"\(classes.joined(separator: " "))\""
-        let styleAttr = context.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(context.inlineStyles))\""
-        return "        <input id=\"\(id)\" type=\"range\" min=\"\(slider.range.lowerBound)\" max=\"\(slider.range.upperBound)\" step=\"\(slider.step)\" value=\"\(binding.wrappedValue)\"\(classAttr) data-sparrow-event=\"input\"\(styleAttr)>"
+        let el = ElementNode.build(
+            tag: "input", id: id,
+            classes: classes,
+            styles: context.inlineStyles,
+            extraAttrs: [
+                ("type", "range"),
+                ("min", "\(slider.range.lowerBound)"),
+                ("max", "\(slider.range.upperBound)"),
+                ("step", "\(slider.step)"),
+                ("value", "\(binding.wrappedValue)"),
+                ("data-sparrow-event", "input"),
+            ]
+        )
+        return .element(el)
     }
 
-    private func renderDatePicker(_ dp: DatePicker, context: ModifierContext) -> String {
+    private func renderDatePickerVNode(_ dp: DatePicker, context: ModifierContext) -> VNode {
         let id = resolveId(context: context)
         let binding = dp.selection
-        renderState.registerValueHandler(id: id) { newValue in
-            binding.wrappedValue = newValue
-        }
+        renderState.registerValueHandler(id: id) { newValue in binding.wrappedValue = newValue }
         let classes = ["input"] + context.cssClasses
-        let classAttr = " class=\"\(classes.joined(separator: " "))\""
-        let styleAttr = context.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(context.inlineStyles))\""
-        let value = escapeHTML(binding.wrappedValue)
-        return "        <input id=\"\(id)\" type=\"date\" aria-label=\"\(escapeHTML(dp.label))\" value=\"\(value)\"\(classAttr) data-sparrow-event=\"change\"\(styleAttr)>"
+        let el = ElementNode.build(
+            tag: "input", id: id,
+            classes: classes,
+            styles: context.inlineStyles,
+            extraAttrs: [
+                ("type", "date"),
+                ("aria-label", escapeHTML(dp.label)),
+                ("value", escapeHTML(binding.wrappedValue)),
+                ("data-sparrow-event", "change"),
+            ]
+        )
+        return .element(el)
     }
 
-    private func renderImage(_ img: Image, context: ModifierContext) -> String {
+    private func renderImageVNode(_ img: Image, context: ModifierContext) -> VNode {
         let id = resolveId(context: context)
         let classes = ["img"] + context.cssClasses
-        let classAttr = " class=\"\(classes.joined(separator: " "))\""
-        let styleAttr = context.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(context.inlineStyles))\""
         let src: String
         switch img.source {
         case .asset(let name): src = "/assets/\(escapeHTML(name))"
         case .url(let url): src = escapeHTML(url)
         }
-        let alt = escapeHTML(img.alt)
-        return "        <img id=\"\(id)\" src=\"\(src)\" alt=\"\(alt)\"\(classAttr)\(styleAttr)>"
+        let el = ElementNode.build(
+            tag: "img", id: id,
+            classes: classes,
+            styles: context.inlineStyles,
+            extraAttrs: [
+                ("src", src),
+                ("alt", escapeHTML(img.alt)),
+            ]
+        )
+        return .element(el)
     }
 
-    private func renderIcon(_ icon: Icon, context: ModifierContext) -> String {
+    private func renderIconVNode(_ icon: Icon, context: ModifierContext) -> VNode {
         let id = resolveId(context: context)
         let classes = ["icon"] + context.cssClasses
-        let classAttr = " class=\"\(classes.joined(separator: " "))\""
-        let styleAttr = context.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(context.inlineStyles))\""
-        let escaped = escapeHTML(icon.systemName)
-        return "        <span id=\"\(id)\" data-icon=\"\(escaped)\"\(classAttr)\(styleAttr)></span>"
+        let el = ElementNode.build(
+            tag: "span", id: id,
+            classes: classes,
+            styles: context.inlineStyles,
+            extraAttrs: [("data-icon", escapeHTML(icon.systemName))]
+        )
+        return .element(el)
     }
 
-    private func renderNavigationLink(_ navLink: NavigationLink, context: ModifierContext) -> String {
+    private func renderNavigationLinkVNode(_ navLink: NavigationLink, context: ModifierContext) -> VNode {
         let id = resolveId(context: context)
         let isCurrent = navLink.current || renderState.currentPath == navLink.destination
         var classes = ["nav-link"] + context.cssClasses
-        if isCurrent {
-            classes.append("nav-link-current")
-        }
-        let classAttr = " class=\"\(classes.joined(separator: " "))\""
-        let styleAttr = context.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(context.inlineStyles))\""
-        let ariaAttr = isCurrent ? " aria-current=\"page\"" : ""
-        let escaped = escapeHTML(navLink.label)
-        let dest = escapeHTML(navLink.destination)
-        return "        <a id=\"\(id)\" href=\"\(dest)\" data-sparrow-nav\(classAttr)\(styleAttr)\(ariaAttr)>\(escaped)</a>"
+        if isCurrent { classes.append("nav-link-current") }
+        var extraAttrs: [(key: String, value: String)] = [
+            ("href", escapeHTML(navLink.destination)),
+            ("data-sparrow-nav", ""),
+        ]
+        if isCurrent { extraAttrs.append(("aria-current", "page")) }
+        let el = ElementNode.build(
+            tag: "a", id: id,
+            classes: classes,
+            styles: context.inlineStyles,
+            extraAttrs: extraAttrs,
+            children: [.text(escapeHTML(navLink.label))]
+        )
+        return .element(el)
     }
 
-
-
-
-    private func renderProgressView(_ pv: ProgressView, context: ModifierContext) -> String {
+    private func renderProgressViewVNode(_ pv: ProgressView, context: ModifierContext) -> VNode {
         let id = resolveId(context: context)
         let classes = ["progress"] + context.cssClasses
-        let classAttr = " class=\"\(classes.joined(separator: " "))\""
-        let styleAttr = context.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(context.inlineStyles))\""
+        var extraAttrs: [(key: String, value: String)] = []
         if let value = pv.value {
-            return "        <progress id=\"\(id)\" value=\"\(value)\" max=\"\(pv.total)\"\(classAttr)\(styleAttr)></progress>"
-        } else {
-            return "        <progress id=\"\(id)\"\(classAttr)\(styleAttr)></progress>"
+            extraAttrs.append(("value", "\(value)"))
+            extraAttrs.append(("max", "\(pv.total)"))
         }
+        let el = ElementNode.build(
+            tag: "progress", id: id,
+            classes: classes,
+            styles: context.inlineStyles,
+            extraAttrs: extraAttrs
+        )
+        return .element(el)
     }
 
-
-
-
-    /// Layout Content() placeholder — emits pre-rendered page HTML wrapped in a
-    /// targetable container so same-layout navigation can swap just this area.
-    private func renderContent(context: ModifierContext) -> String {
-        let contentHTML = renderState.contentSlot ?? ""
-        let classes = context.cssClasses
-        let classAttr = classes.isEmpty ? "" : " class=\"\(classes.joined(separator: " "))\""
-        let styleAttr = context.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(context.inlineStyles))\""
-        return "        <div id=\"sparrow-content\"\(classAttr)\(styleAttr)>\n\(contentHTML)\n        </div>"
-    }
-
-    // MARK: - Helpers (internal, used by HTMLRenderable conformances)
-
-    func renderChildren(_ views: [any View], modifierContext: ModifierContext = ModifierContext()) -> String {
-        views.map { renderAnyErased($0, modifierContext: modifierContext) }.joined(separator: "\n")
-    }
-
-    /// Render an existential `any View`. The local generic function opens the
-    /// existential so we can call the generic `renderAny` with a concrete type.
-    func renderAnyErased(_ view: any View, modifierContext: ModifierContext) -> String {
-        func doRender<V: View>(_ v: V) -> String {
-            renderAny(v, modifierContext: modifierContext)
-        }
-        return doRender(view)
+    private func renderContentVNode(context: ModifierContext) -> VNode {
+        let contentChildren = renderState.contentSlotVNode.map { [$0] } ?? []
+        let el = ElementNode.build(
+            tag: "div", id: "sparrow-content",
+            classes: context.cssClasses,
+            styles: context.inlineStyles,
+            children: contentChildren
+        )
+        return .element(el)
     }
 }
 

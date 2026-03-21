@@ -132,6 +132,8 @@ public struct Route: Sendable {
         if let renderLayout = _renderLayout {
             renderer.renderState.idPrefix = "c"
             let contentHTML = _renderBody(renderer, params)
+            // Capture the content VNode before the layout render overwrites rootVNode
+            renderer.renderState.contentSlotVNode = renderer.renderState.rootVNode
             renderer.renderState.idPrefix = "l"
             return renderLayout(renderer, contentHTML)
         }

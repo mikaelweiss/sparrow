@@ -6,25 +6,39 @@ struct Patch: Sendable {
     let target: String
     let html: String?
     let value: String?
+    let attr: String?
+    let beforeId: String?
+
+    init(op: String, target: String, html: String? = nil, value: String? = nil, attr: String? = nil, beforeId: String? = nil) {
+        self.op = op
+        self.target = target
+        self.html = html
+        self.value = value
+        self.attr = attr
+        self.beforeId = beforeId
+    }
 
     func toJSON() -> String {
         var parts = ["\"op\":\"\(op)\"", "\"target\":\"\(target)\""]
-        if let html {
-            parts.append("\"html\":\(jsonEscape(html))")
-        }
-        if let value {
-            parts.append("\"value\":\(jsonEscape(value))")
-        }
+        if let html { parts.append("\"html\":\(jsonEscape(html))") }
+        if let value { parts.append("\"value\":\(jsonEscape(value))") }
+        if let attr { parts.append("\"attr\":\(jsonEscape(attr))") }
+        if let beforeId { parts.append("\"beforeId\":\(jsonEscape(beforeId))") }
         return "{\(parts.joined(separator: ","))}"
     }
 }
 
 /// Per-WebSocket-connection actor that holds view state, event handlers,
 /// and manages the render → diff → patch cycle.
+///
+/// Safety: StateStorage is @unchecked Sendable with no internal locking.
+/// All access is serialized through this actor's isolation — do not expose
+/// the stateStore reference outside of this actor.
 actor SessionActor {
     let sessionId: String
     let stateStore: StateStorage
     private var renderBody: @Sendable (HTMLRenderer) -> String
+    private var lastVNode: VNode
     private var lastHTML: String
     private var eventHandlers: [String: @Sendable () -> Void]
     private var valueHandlers: [String: @Sendable (String) -> Void]
@@ -33,43 +47,40 @@ actor SessionActor {
         self.sessionId = sessionId
         self.stateStore = StateStorage()
         self.renderBody = renderBody
+        self.lastVNode = .fragment([])
         self.lastHTML = ""
         self.eventHandlers = [:]
         self.valueHandlers = [:]
 
-        // Initial render to populate lastHTML and handlers
         let result = Self.doRender(renderBody: renderBody, stateStore: stateStore)
+        self.lastVNode = result.vnode
         self.lastHTML = result.html
         self.eventHandlers = result.eventHandlers
         self.valueHandlers = result.valueHandlers
     }
 
-    /// Returns the current rendered HTML (for initial page sync).
     func getHTML() -> String {
         lastHTML
     }
 
     /// Navigate within the same layout — swap the render closure, re-render,
     /// and return just the content HTML for the client to inject into #sparrow-content.
-    /// Layout DOM is preserved on the client; only content is replaced.
     func navigateContent(
         newRenderBody: @escaping @Sendable (HTMLRenderer) -> String
     ) -> String {
         self.renderBody = newRenderBody
 
-        // Full re-render to get correct lastHTML and all handlers
         let result = Self.doRender(renderBody: renderBody, stateStore: stateStore)
+        self.lastVNode = result.vnode
         self.lastHTML = result.html
         self.eventHandlers = result.eventHandlers
         self.valueHandlers = result.valueHandlers
 
-        // Return just the content portion (set during layout rendering)
         return result.contentHTML
     }
 
-    /// Handle a client event. Invokes the registered handler, re-renders, and
-    /// returns a full-root replace patch if the HTML changed, nil otherwise.
-    /// Currently always diffs at the root level — no fine-grained patching yet.
+    /// Handle a client event. Invokes the registered handler, re-renders,
+    /// diffs the old and new VNode trees, and returns targeted patches.
     func handleEvent(id: String, event: String, value: String?) -> [Patch]? {
         switch event {
         case "click":
@@ -88,21 +99,22 @@ actor SessionActor {
             return nil
         }
 
-        // Re-render with updated state
         let result = Self.doRender(renderBody: renderBody, stateStore: stateStore)
         self.eventHandlers = result.eventHandlers
         self.valueHandlers = result.valueHandlers
 
-        if result.html != lastHTML {
+        let patches = diffVNode(old: lastVNode, new: result.vnode, parentId: "sparrow-root")
+
+        if !patches.isEmpty {
+            self.lastVNode = result.vnode
             self.lastHTML = result.html
-            return [Patch(op: "replace", target: "#sparrow-root", html: result.html, value: nil)]
+            return patches
         }
         return nil
     }
 
-    /// Static so it can be called from `init` before `self` is fully initialized.
-    /// Runs the render closure inside a `StateStorage.$current.withValue` scope
-    /// so that @State property wrappers resolve against this session's storage.
+    /// Renders the view tree via the string render path, which internally builds
+    /// a VNode tree (stored on renderState.rootVNode). Returns both outputs.
     private static func doRender(
         renderBody: @Sendable (HTMLRenderer) -> String,
         stateStore: StateStorage
@@ -111,7 +123,10 @@ actor SessionActor {
         let html = StateStorage.$current.withValue(stateStore) {
             renderBody(renderer)
         }
+        // HTMLRenderer.render() now builds a VNode tree internally and stores it
+        let vnode = renderer.renderState.rootVNode ?? .fragment([])
         return RenderResult(
+            vnode: vnode,
             html: html,
             contentHTML: renderer.renderState.contentSlot ?? html,
             eventHandlers: renderer.renderState.eventHandlers,
@@ -121,8 +136,8 @@ actor SessionActor {
 }
 
 private struct RenderResult {
+    let vnode: VNode
     let html: String
-    /// The content-only HTML (from contentSlot if layout was used, otherwise same as html).
     let contentHTML: String
     let eventHandlers: [String: @Sendable () -> Void]
     let valueHandlers: [String: @Sendable (String) -> Void]
