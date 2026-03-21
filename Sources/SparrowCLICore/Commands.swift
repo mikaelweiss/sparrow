@@ -221,14 +221,30 @@ public struct New: ParsableCommand {
     public func run() throws {
         let name: String
         if let provided = self.name {
+            guard isValidSwiftTypeName(provided) else {
+                if json {
+                    jsonError("Invalid project name '\(provided)'. Must be a valid Swift type name (e.g. MyApp, TodoList).", code: "invalid_name")
+                } else {
+                    print("  Error: '\(provided)' is not a valid Swift type name.")
+                    print("  Names must start with a letter, contain only letters, numbers, and underscores,")
+                    print("  and cannot be a Swift keyword. Example: MyApp, TodoList, WeatherTracker")
+                }
+                throw ExitCode.failure
+            }
             name = provided
         } else if json {
             jsonError("Project name is required in JSON mode", code: "missing_name")
             throw ExitCode.failure
         } else {
-            print("  Project name: ", terminator: "")
+            print("  Project name (e.g. MyApp, TodoList): ", terminator: "")
             guard let input = readLine()?.trimmingCharacters(in: .whitespaces), !input.isEmpty else {
                 print("  Error: project name is required.")
+                throw ExitCode.failure
+            }
+            guard isValidSwiftTypeName(input) else {
+                print("  Error: '\(input)' is not a valid Swift type name.")
+                print("  Names must start with a letter, contain only letters, numbers, and underscores,")
+                print("  and cannot be a Swift keyword. Example: MyApp, TodoList, WeatherTracker")
                 throw ExitCode.failure
             }
             name = input
@@ -484,6 +500,41 @@ public func shellWithSignalForwarding(_ args: [String], cwd: String) -> Int32 {
     termSource.cancel()
 
     return process.terminationStatus
+}
+
+/// Validates that a string is a valid Swift type name (usable as a struct/class name).
+///
+/// Rules: starts with a letter or underscore, followed by letters, digits, or underscores.
+/// Must not be a Swift reserved keyword.
+public func isValidSwiftTypeName(_ name: String) -> Bool {
+    guard !name.isEmpty else { return false }
+
+    let first = name.unicodeScalars.first!
+    let startsValid = CharacterSet.letters.union(CharacterSet(charactersIn: "_")).contains(first)
+    guard startsValid else { return false }
+
+    let allowed = CharacterSet.letters.union(.decimalDigits).union(CharacterSet(charactersIn: "_"))
+    for scalar in name.unicodeScalars {
+        guard allowed.contains(scalar) else { return false }
+    }
+
+    let keywords: Set<String> = [
+        // Declarations
+        "associatedtype", "class", "deinit", "enum", "extension", "fileprivate",
+        "func", "import", "init", "inout", "internal", "let", "open", "operator",
+        "private", "precedencegroup", "protocol", "public", "rethrows", "static",
+        "struct", "subscript", "typealias", "var",
+        // Statements
+        "break", "case", "catch", "continue", "default", "defer", "do", "else",
+        "fallthrough", "for", "guard", "if", "in", "repeat", "return", "switch",
+        "throw", "throws", "try", "where", "while",
+        // Expressions & types
+        "Any", "as", "catch", "false", "is", "nil", "self", "Self", "super",
+        "true", "Type",
+    ]
+    guard !keywords.contains(name) else { return false }
+
+    return true
 }
 
 /// Discover the first executable target name from Package.swift.

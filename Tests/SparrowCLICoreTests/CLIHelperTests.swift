@@ -57,3 +57,48 @@ struct CLIHelperTests {
         #expect(result == nil)
     }
 }
+
+@Suite("Swift Type Name Validation")
+struct SwiftTypeNameTests {
+
+    @Test("valid names")
+    func validNames() {
+        #expect(isValidSwiftTypeName("MyApp"))
+        #expect(isValidSwiftTypeName("TodoList"))
+        #expect(isValidSwiftTypeName("WeatherTracker"))
+        #expect(isValidSwiftTypeName("App2"))
+        #expect(isValidSwiftTypeName("_Private"))
+        #expect(isValidSwiftTypeName("a"))
+    }
+
+    @Test("rejects empty string")
+    func rejectsEmpty() {
+        #expect(!isValidSwiftTypeName(""))
+    }
+
+    @Test("rejects names starting with a digit")
+    func rejectsLeadingDigit() {
+        #expect(!isValidSwiftTypeName("2Cool"))
+        #expect(!isValidSwiftTypeName("123"))
+    }
+
+    @Test("rejects names with spaces or special characters")
+    func rejectsSpecialChars() {
+        #expect(!isValidSwiftTypeName("My App"))
+        #expect(!isValidSwiftTypeName("my-app"))
+        #expect(!isValidSwiftTypeName("my.app"))
+        #expect(!isValidSwiftTypeName("my/app"))
+        #expect(!isValidSwiftTypeName("hello!"))
+    }
+
+    @Test("rejects Swift keywords")
+    func rejectsKeywords() {
+        #expect(!isValidSwiftTypeName("class"))
+        #expect(!isValidSwiftTypeName("struct"))
+        #expect(!isValidSwiftTypeName("import"))
+        #expect(!isValidSwiftTypeName("var"))
+        #expect(!isValidSwiftTypeName("true"))
+        #expect(!isValidSwiftTypeName("nil"))
+        #expect(!isValidSwiftTypeName("Self"))
+    }
+}
