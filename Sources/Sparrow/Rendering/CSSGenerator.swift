@@ -827,14 +827,206 @@ public enum CSSGenerator {
     }
 
     /* ============================================
+       VISIBILITY
+       ============================================ */
+    .hidden { display: none; }
+    .redacted { filter: blur(4px); user-select: none; pointer-events: none; }
+
+    /* ============================================
+       TEXT LAYOUT
+       ============================================ */
+    .text-left { text-align: left; }
+    .text-center { text-align: center; }
+    .text-right { text-align: right; }
+    .line-clamp-1 { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+    .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .line-clamp-3 { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+    .line-clamp-4 { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+    .line-clamp-5 { display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden; }
+    .line-clamp-6 { display: -webkit-box; -webkit-line-clamp: 6; -webkit-box-orient: vertical; overflow: hidden; }
+    .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .select-text { user-select: text; }
+    .select-none { user-select: none; }
+
+    /* ============================================
+       BORDER
+       ============================================ */
+    .border { border-style: solid; border-color: var(--border); }
+    .border-primary { border-color: var(--primary); }
+    .border-secondary { border-color: var(--secondary); }
+    .border-accent { border-color: var(--accent); }
+    .border-error { border-color: var(--destructive); }
+    .border-success { border-color: var(--success); }
+    .border-warning { border-color: var(--warning); }
+    .border-info { border-color: var(--info); }
+    .border-red { border-color: var(--color-red); }
+    .border-orange { border-color: var(--color-orange); }
+    .border-yellow { border-color: var(--color-yellow); }
+    .border-green { border-color: var(--color-green); }
+    .border-blue { border-color: var(--color-blue); }
+    .border-purple { border-color: var(--color-purple); }
+    .border-pink { border-color: var(--color-pink); }
+    .border-gray { border-color: var(--color-gray); }
+    .border-white { border-color: var(--color-white); }
+    .border-black { border-color: var(--color-black); }
+    .border-clear { border-color: transparent; }
+    .border-current { border-color: currentColor; }
+
+    /* ============================================
+       OVERFLOW
+       ============================================ */
+    .overflow-hidden { overflow: hidden; }
+    .overflow-visible { overflow: visible; }
+    .overflow-auto { overflow: auto; }
+
+    /* ============================================
+       INTERACTION
+       ============================================ */
+    .disabled { opacity: 0.5; pointer-events: none; }
+    .cursor-default { cursor: default; }
+    .cursor-pointer { cursor: pointer; }
+    .cursor-text { cursor: text; }
+    .cursor-move { cursor: move; }
+    .cursor-not-allowed { cursor: not-allowed; }
+    .cursor-grab { cursor: grab; }
+    .cursor-grabbing { cursor: grabbing; }
+    .cursor-zoom-in { cursor: zoom-in; }
+    .cursor-zoom-out { cursor: zoom-out; }
+    .cursor-help { cursor: help; }
+    .cursor-wait { cursor: wait; }
+    .cursor-crosshair { cursor: crosshair; }
+    .cursor-progress { cursor: progress; }
+    .cursor-copy { cursor: copy; }
+    .cursor-none { cursor: none; }
+    .pointer-events-auto { pointer-events: auto; }
+    .pointer-events-none { pointer-events: none; }
+
+    /* ============================================
+       HOVER EFFECTS
+       ============================================ */
+    .hover-auto { transition: all 150ms ease; }
+    .hover-auto:hover { filter: brightness(0.95); }
+    .hover-highlight { transition: background-color 150ms ease; }
+    .hover-highlight:hover { background-color: var(--accent); }
+    .hover-lift { transition: transform 150ms ease, box-shadow 150ms ease; }
+    .hover-lift:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+
+    /* ============================================
+       ACCESSIBILITY
+       ============================================ */
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border-width: 0; }
+    .sr-only-labels label { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border-width: 0; }
+
+    /* ============================================
+       IMAGE
+       ============================================ */
+    .img-resizable { width: 100%; height: auto; }
+    .object-contain { object-fit: contain; }
+    .object-cover { object-fit: cover; }
+    .img-template { filter: var(--tint-filter, none); }
+
+    /* ============================================
+       LISTS
+       ============================================ */
+    .list-auto { }
+    .list-plain { list-style: none; padding-left: 0; }
+    .list-inset { list-style: none; padding-left: var(--spacing-4); }
+    .list-inset-grouped { list-style: none; padding-left: var(--spacing-4); background: var(--muted); border-radius: var(--radius); padding: var(--spacing-3); }
+    .list-sidebar { list-style: none; padding-left: 0; }
+    .list-separator-hidden { border-bottom: none; }
+    .list-separator-visible { border-bottom: 1px solid var(--border); }
+
+    /* ============================================
+       SCROLL
+       ============================================ */
+    .scrollbar-hidden { scrollbar-width: none; -ms-overflow-style: none; }
+    .scrollbar-hidden::-webkit-scrollbar { display: none; }
+    .scrollbar-visible { scrollbar-width: auto; }
+    .scroll-bg-hidden { background: transparent; }
+    .overscroll-contain { overscroll-behavior: contain; }
+    .overscroll-auto { overscroll-behavior: auto; }
+
+    /* ============================================
+       TINT COLORS
+       ============================================ */
+    .tint-primary { --tint: var(--primary); }
+    .tint-secondary { --tint: var(--muted-foreground); }
+    .tint-accent { --tint: var(--accent-foreground); }
+    .tint-error { --tint: var(--destructive); }
+    .tint-success { --tint: var(--success); }
+    .tint-blue { --tint: var(--color-blue); }
+    .tint-red { --tint: var(--color-red); }
+    .tint-green { --tint: var(--color-green); }
+
+    /* ============================================
+       TEXT FIELD STYLES
+       ============================================ */
+    .input-plain { border: none; background: transparent; padding: 0; outline: none; }
+    .input-plain:focus { box-shadow: none; }
+    .input-rounded { border-radius: 9999px; padding-left: 1rem; padding-right: 1rem; }
+
+    /* ============================================
+       PRESENTATION
+       ============================================ */
+    .sheet { position: fixed; bottom: 0; left: 0; right: 0; background: var(--background); border-top-left-radius: var(--radius); border-top-right-radius: var(--radius); box-shadow: var(--shadow-xl); transform: translateY(100%); visibility: hidden; z-index: 50; }
+    .sheet-active { transform: translateY(0); visibility: visible; }
+    .fullscreen-cover { position: fixed; inset: 0; background: var(--background); z-index: 50; visibility: hidden; }
+    .fullscreen-cover-active { visibility: visible; }
+    .popover { position: absolute; background: var(--popover); color: var(--popover-foreground); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-md); z-index: 50; visibility: hidden; }
+    .popover-active { visibility: visible; }
+    .context-menu-target { position: relative; }
+
+    /* ============================================
+       SEARCH
+       ============================================ */
+    .searchable { position: relative; }
+
+    /* ============================================
+       REFRESHABLE
+       ============================================ */
+    .refreshable { position: relative; }
+
+    /* ============================================
+       SAFE AREA
+       ============================================ */
+    .safe-area-ignore { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+    .safe-area-ignore-top { padding-top: env(safe-area-inset-top); }
+    .safe-area-ignore-bottom { padding-bottom: env(safe-area-inset-bottom); }
+    .safe-area-ignore-leading { padding-left: env(safe-area-inset-left); }
+    .safe-area-ignore-trailing { padding-right: env(safe-area-inset-right); }
+    .safe-area-ignore-horizontal { padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right); }
+    .safe-area-ignore-vertical { padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
+
+    /* ============================================
        RESPONSIVE — mobile (<768px)
        ============================================ */
     @media (max-width: 767px) {
         .desktop-only { display: none !important; }
+        .hidden-phone { display: none !important; }
+        .visible-tablet-only { display: none !important; }
+        .visible-desktop-only { display: none !important; }
     }
 
     /* ============================================
-       RESPONSIVE — desktop (>=768px)
+       RESPONSIVE — tablet (768px–1023px)
+       ============================================ */
+    @media (min-width: 768px) and (max-width: 1023px) {
+        .hidden-tablet { display: none !important; }
+        .visible-phone-only { display: none !important; }
+        .visible-desktop-only { display: none !important; }
+    }
+
+    /* ============================================
+       RESPONSIVE — desktop (>=1024px)
+       ============================================ */
+    @media (min-width: 1024px) {
+        .hidden-desktop { display: none !important; }
+        .visible-phone-only { display: none !important; }
+        .visible-tablet-only { display: none !important; }
+    }
+
+    /* ============================================
+       RESPONSIVE — legacy (>=768px)
        ============================================ */
     @media (min-width: 768px) {
         .mobile-only { display: none !important; }

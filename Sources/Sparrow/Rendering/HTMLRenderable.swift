@@ -46,7 +46,7 @@ extension VStack: VNodeRenderable {
         let childNodes = renderer.renderChildrenVNodes(children)
         var classes = ["flex", "flex-col", alignment.cssClass] + modifierContext.cssClasses
         if spacing > 0 { classes.append("gap-\(spacingToken(spacing))") }
-        let el = ElementNode.build(tag: "div", id: id, classes: classes, styles: modifierContext.inlineStyles, children: childNodes)
+        let el = ElementNode.build(tag: "div", id: id, classes: classes, styles: modifierContext.inlineStyles, extraAttrs: modifierContext.htmlAttributePairs, children: childNodes)
         return .element(el)
     }
 }
@@ -58,7 +58,7 @@ extension HStack: VNodeRenderable {
         let childNodes = renderer.renderChildrenVNodes(children)
         var classes = ["flex", "flex-row", alignment.cssClass] + modifierContext.cssClasses
         if spacing > 0 { classes.append("gap-\(spacingToken(spacing))") }
-        let el = ElementNode.build(tag: "div", id: id, classes: classes, styles: modifierContext.inlineStyles, children: childNodes)
+        let el = ElementNode.build(tag: "div", id: id, classes: classes, styles: modifierContext.inlineStyles, extraAttrs: modifierContext.htmlAttributePairs, children: childNodes)
         return .element(el)
     }
 }
@@ -71,32 +71,11 @@ extension TupleView: VNodeRenderable {
     }
 }
 
-extension ModifiedView: VNodeRenderable {
-    func renderVNode(with renderer: HTMLRenderer, modifierContext: ModifierContext) -> VNode {
-        if modifier.createsLayer {
-            let innerNode = renderer.renderAnyErasedVNode(content, modifierContext: modifierContext)
-            let id = renderer.resolveId(context: modifierContext)
-            let dataAttrs = modifier.dataAttributes.map { (key: $0.key, value: $0.value) }
-            let el = ElementNode.build(
-                tag: "div", id: id,
-                classes: modifier.cssClasses,
-                styles: modifier.inlineStyles,
-                extraAttrs: dataAttrs,
-                children: [innerNode]
-            )
-            return .element(el)
-        } else {
-            let newContext = modifierContext.applying(modifier)
-            return renderer.renderAnyErasedVNode(content, modifierContext: newContext)
-        }
-    }
-}
-
 extension ConditionalView: VNodeRenderable {
     func renderVNode(with renderer: HTMLRenderer, modifierContext: ModifierContext) -> VNode {
         switch self {
-        case .first(let view): return renderer.renderAnyErasedVNode(view, modifierContext: modifierContext)
-        case .second(let view): return renderer.renderAnyErasedVNode(view, modifierContext: modifierContext)
+        case .first(let view): return renderer.renderView(view, modifierContext: modifierContext)
+        case .second(let view): return renderer.renderView(view, modifierContext: modifierContext)
         }
     }
 }
@@ -107,7 +86,7 @@ extension ZStack: VNodeRenderable {
         let children = flattenChildren(content)
         let childNodes = renderer.renderChildrenVNodes(children)
         let classes = ["zstack", alignment.justifyCss, alignment.alignCss] + modifierContext.cssClasses
-        let el = ElementNode.build(tag: "div", id: id, classes: classes, styles: modifierContext.inlineStyles, children: childNodes)
+        let el = ElementNode.build(tag: "div", id: id, classes: classes, styles: modifierContext.inlineStyles, extraAttrs: modifierContext.htmlAttributePairs, children: childNodes)
         return .element(el)
     }
 }
@@ -123,7 +102,7 @@ extension ScrollView: VNodeRenderable {
         case .horizontal: classes.append("scroll-x")
         case .both: classes.append("scroll-both")
         }
-        let el = ElementNode.build(tag: "div", id: id, classes: classes, styles: modifierContext.inlineStyles, children: childNodes)
+        let el = ElementNode.build(tag: "div", id: id, classes: classes, styles: modifierContext.inlineStyles, extraAttrs: modifierContext.htmlAttributePairs, children: childNodes)
         return .element(el)
     }
 }
@@ -136,7 +115,7 @@ extension Grid: VNodeRenderable {
         var classes = ["grid"] + modifierContext.cssClasses
         classes.append("grid-cols-\(columns)")
         if spacing > 0 { classes.append("gap-\(spacingToken(spacing))") }
-        let el = ElementNode.build(tag: "div", id: id, classes: classes, styles: modifierContext.inlineStyles, children: childNodes)
+        let el = ElementNode.build(tag: "div", id: id, classes: classes, styles: modifierContext.inlineStyles, extraAttrs: modifierContext.htmlAttributePairs, children: childNodes)
         return .element(el)
     }
 }
@@ -147,12 +126,12 @@ extension List: VNodeRenderable {
         let children = flattenChildren(content)
         let liNodes: [VNode] = children.map { child in
             let liId = renderer.renderState.allocateId()
-            let inner = renderer.renderAnyErasedVNode(child, modifierContext: ModifierContext())
+            let inner = renderer.renderView(child, modifierContext: ModifierContext())
             return .element(ElementNode.build(tag: "li", id: liId, children: [inner]))
         }
         let tag = ordered ? "ol" : "ul"
         let classes = ["list"] + modifierContext.cssClasses
-        let el = ElementNode.build(tag: tag, id: id, classes: classes, styles: modifierContext.inlineStyles, children: liNodes)
+        let el = ElementNode.build(tag: tag, id: id, classes: classes, styles: modifierContext.inlineStyles, extraAttrs: modifierContext.htmlAttributePairs, children: liNodes)
         return .element(el)
     }
 }
@@ -163,7 +142,7 @@ extension Form: VNodeRenderable {
         let children = flattenChildren(content)
         let childNodes = renderer.renderChildrenVNodes(children)
         let classes = ["form"] + modifierContext.cssClasses
-        let el = ElementNode.build(tag: "form", id: id, classes: classes, styles: modifierContext.inlineStyles, children: childNodes)
+        let el = ElementNode.build(tag: "form", id: id, classes: classes, styles: modifierContext.inlineStyles, extraAttrs: modifierContext.htmlAttributePairs, children: childNodes)
         return .element(el)
     }
 }
@@ -185,7 +164,7 @@ extension Section: VNodeRenderable {
             allChildren.append(.element(headerEl))
         }
         allChildren.append(contentsOf: childNodes)
-        let el = ElementNode.build(tag: "section", id: id, classes: classes, styles: modifierContext.inlineStyles, children: allChildren)
+        let el = ElementNode.build(tag: "section", id: id, classes: classes, styles: modifierContext.inlineStyles, extraAttrs: modifierContext.htmlAttributePairs, children: allChildren)
         return .element(el)
     }
 }
@@ -193,7 +172,7 @@ extension Section: VNodeRenderable {
 extension ForEach: VNodeRenderable {
     func renderVNode(with renderer: HTMLRenderer, modifierContext: ModifierContext) -> VNode {
         let nodes = data.map { element in
-            renderer.renderAnyErasedVNode(content(element), modifierContext: modifierContext)
+            renderer.renderView(content(element), modifierContext: modifierContext)
         }
         return .fragment(nodes)
     }

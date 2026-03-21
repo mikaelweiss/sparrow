@@ -25,6 +25,8 @@ public protocol ViewModifier: Sendable {
     var createsLayer: Bool { get }
     /// HTML data attributes this modifier adds (e.g., for animation/transition hooks).
     var dataAttributes: [String: String] { get }
+    /// HTML attributes this modifier adds (e.g. aria-label, disabled, title).
+    var htmlAttributes: [String: String] { get }
 }
 
 extension ViewModifier {
@@ -32,6 +34,29 @@ extension ViewModifier {
     public var inlineStyles: [String: String] { [:] }
     public var createsLayer: Bool { false }
     public var dataAttributes: [String: String] { [:] }
+    public var htmlAttributes: [String: String] { [:] }
+}
+
+/// A modifier that registers an event handler during rendering.
+protocol EventModifying: ViewModifier {
+    func registerEvents(id: String, with state: RenderState)
+    var eventAttributes: [String: String] { get }
+}
+
+extension EventModifying {
+    var eventAttributes: [String: String] { [:] }
+}
+
+/// Protocol for iteratively unwrapping ModifiedView chains without recursion.
+/// Used by the renderer to avoid stack overflow on deeply nested modifier chains.
+protocol ModifiedViewUnwrapping {
+    var unwrappedContent: any View { get }
+    var unwrappedModifier: any ViewModifier { get }
+}
+
+extension ModifiedView: ModifiedViewUnwrapping {
+    var unwrappedContent: any View { content }
+    var unwrappedModifier: any ViewModifier { modifier }
 }
 
 extension View {
