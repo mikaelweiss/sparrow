@@ -11,6 +11,7 @@ enum ClientRuntime {
         var maxReconnectDelay = 5000;
         var reconnectTimer = null;
         var indicator = null;
+        var pendingFragment = null;
 
         // --- WebSocket connection ---
 
@@ -87,6 +88,12 @@ enum ClientRuntime {
                 case "page":
                     replacePage(msg);
                     break;
+                case "redirect":
+                    if (msg.url) {
+                        send({type: "navigate", url: msg.url});
+                        window.history.replaceState({}, "", msg.url);
+                    }
+                    break;
                 case "pong":
                     break;
             }
@@ -160,7 +167,15 @@ enum ClientRuntime {
             if (msg.title) {
                 document.title = msg.title;
             }
-            window.scrollTo(0, 0);
+            if (pendingFragment) {
+                var target = document.getElementById(pendingFragment);
+                if (target) {
+                    target.scrollIntoView({behavior: "smooth"});
+                }
+                pendingFragment = null;
+            } else {
+                window.scrollTo(0, 0);
+            }
         }
 
         // --- Event capture (delegation on #sparrow-root) ---
@@ -220,12 +235,30 @@ enum ClientRuntime {
             if (link) {
                 e.preventDefault();
                 var url = link.getAttribute("href");
-                send({type: "navigate", url: url});
+                var hashIndex = url.indexOf("#");
+                var path = hashIndex >= 0 ? url.substring(0, hashIndex) : url;
+                var fragment = hashIndex >= 0 ? url.substring(hashIndex + 1) : null;
+
+                // Same-page fragment navigation — just scroll, no server round-trip
+                if (path === "" || path === location.pathname) {
+                    if (fragment) {
+                        var target = document.getElementById(fragment);
+                        if (target) target.scrollIntoView({behavior: "smooth"});
+                    }
+                    window.history.pushState({}, "", url);
+                    return;
+                }
+
+                // Cross-page navigation
+                if (fragment) pendingFragment = fragment;
+                send({type: "navigate", url: path});
                 window.history.pushState({}, "", url);
             }
         });
 
         window.addEventListener("popstate", function() {
+            var fragment = location.hash ? location.hash.substring(1) : null;
+            if (fragment) pendingFragment = fragment;
             send({type: "navigate", url: location.pathname});
         });
 

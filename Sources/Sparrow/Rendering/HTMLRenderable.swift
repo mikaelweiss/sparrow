@@ -10,7 +10,7 @@ protocol HTMLRenderable {
 
 extension VStack: HTMLRenderable {
     func renderHTML(with renderer: HTMLRenderer, modifierContext: ModifierContext) -> String {
-        let id = renderer.renderState.allocateId()
+        let id = renderer.resolveId(context: modifierContext)
         let children = flattenChildren(content)
         let childrenHTML = renderer.renderChildren(children)
         var classes = ["flex", "flex-col", alignment.cssClass] + modifierContext.cssClasses
@@ -31,7 +31,7 @@ extension VStack: HTMLRenderable {
 
 extension HStack: HTMLRenderable {
     func renderHTML(with renderer: HTMLRenderer, modifierContext: ModifierContext) -> String {
-        let id = renderer.renderState.allocateId()
+        let id = renderer.resolveId(context: modifierContext)
         let children = flattenChildren(content)
         let childrenHTML = renderer.renderChildren(children)
         var classes = ["flex", "flex-row", alignment.cssClass] + modifierContext.cssClasses
@@ -63,7 +63,7 @@ extension ModifiedView: HTMLRenderable {
     func renderHTML(with renderer: HTMLRenderer, modifierContext: ModifierContext) -> String {
         if modifier.createsLayer {
             let innerHTML = renderer.renderAnyErased(content, modifierContext: modifierContext)
-            let id = renderer.renderState.allocateId()
+            let id = renderer.resolveId(context: modifierContext)
             let classes = modifier.cssClasses
             let styles = modifier.inlineStyles
             let classAttr = classes.isEmpty ? "" : " class=\"\(classes.joined(separator: " "))\""
@@ -93,7 +93,7 @@ extension ConditionalView: HTMLRenderable {
 
 extension ZStack: HTMLRenderable {
     func renderHTML(with renderer: HTMLRenderer, modifierContext: ModifierContext) -> String {
-        let id = renderer.renderState.allocateId()
+        let id = renderer.resolveId(context: modifierContext)
         let children = flattenChildren(content)
         let childrenHTML = renderer.renderChildren(children)
         let classes = ["zstack", alignment.justifyCss, alignment.alignCss] + modifierContext.cssClasses
@@ -111,7 +111,7 @@ extension ZStack: HTMLRenderable {
 
 extension ScrollView: HTMLRenderable {
     func renderHTML(with renderer: HTMLRenderer, modifierContext: ModifierContext) -> String {
-        let id = renderer.renderState.allocateId()
+        let id = renderer.resolveId(context: modifierContext)
         let children = flattenChildren(content)
         let childrenHTML = renderer.renderChildren(children)
         var classes = ["scroll"] + modifierContext.cssClasses
@@ -134,7 +134,7 @@ extension ScrollView: HTMLRenderable {
 
 extension Grid: HTMLRenderable {
     func renderHTML(with renderer: HTMLRenderer, modifierContext: ModifierContext) -> String {
-        let id = renderer.renderState.allocateId()
+        let id = renderer.resolveId(context: modifierContext)
         let children = flattenChildren(content)
         let childrenHTML = renderer.renderChildren(children)
         var classes = ["grid"] + modifierContext.cssClasses
@@ -156,7 +156,7 @@ extension Grid: HTMLRenderable {
 
 extension List: HTMLRenderable {
     func renderHTML(with renderer: HTMLRenderer, modifierContext: ModifierContext) -> String {
-        let id = renderer.renderState.allocateId()
+        let id = renderer.resolveId(context: modifierContext)
         let children = flattenChildren(content)
         let childrenHTML = children.map { child in
             "        <li>\(renderer.renderAnyErased(child, modifierContext: ModifierContext()))</li>"
@@ -177,7 +177,7 @@ extension List: HTMLRenderable {
 
 extension Form: HTMLRenderable {
     func renderHTML(with renderer: HTMLRenderer, modifierContext: ModifierContext) -> String {
-        let id = renderer.renderState.allocateId()
+        let id = renderer.resolveId(context: modifierContext)
         let children = flattenChildren(content)
         let childrenHTML = renderer.renderChildren(children)
         let classes = ["form"] + modifierContext.cssClasses
@@ -195,7 +195,7 @@ extension Form: HTMLRenderable {
 
 extension Section: HTMLRenderable {
     func renderHTML(with renderer: HTMLRenderer, modifierContext: ModifierContext) -> String {
-        let id = renderer.renderState.allocateId()
+        let id = renderer.resolveId(context: modifierContext)
         let children = flattenChildren(content)
         let childrenHTML = renderer.renderChildren(children)
         let classes = ["section"] + modifierContext.cssClasses

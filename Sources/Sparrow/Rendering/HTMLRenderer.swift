@@ -101,6 +101,10 @@ public struct HTMLRenderer: Sendable {
         if let pv = view as? ProgressView {
             return renderProgressView(pv, context: modifierContext)
         }
+        // Content (Layout placeholder)
+        if view is Content {
+            return renderContent(context: modifierContext)
+        }
         // EmptyView
         if view is EmptyView {
             return ""
@@ -112,12 +116,19 @@ public struct HTMLRenderer: Sendable {
         return nil
     }
 
+    /// Allocate an element ID, using a custom ID from `.id()` modifier if set.
+    /// Always advances the auto-counter for deterministic ID allocation.
+    func resolveId(context: ModifierContext) -> String {
+        let autoId = renderState.allocateId()
+        return context.customId ?? autoId
+    }
+
     // MARK: - Primitive renderers
 
     /// Text renders as the semantic HTML tag from its font modifier (h1 for .largeTitle,
     /// h2 for .title, etc.) or falls back to `<p>` if no font modifier is applied.
     private func renderText(_ text: Text, context: ModifierContext) -> String {
-        let id = renderState.allocateId()
+        let id = resolveId(context: context)
         let classes = context.cssClasses
         let styles = context.inlineStyles
         let idAttr = " id=\"\(id)\""
@@ -130,7 +141,7 @@ public struct HTMLRenderer: Sendable {
     }
 
     private func renderButton(_ button: Button, context: ModifierContext) -> String {
-        let id = renderState.allocateId()
+        let id = resolveId(context: context)
         renderState.registerHandler(id: id, handler: button.action)
 
         let classes = ["btn", button.variant.cssClass, button.size.cssClass] + context.cssClasses
@@ -141,7 +152,7 @@ public struct HTMLRenderer: Sendable {
     }
 
     private func renderLink(_ link: Link, context: ModifierContext) -> String {
-        let id = renderState.allocateId()
+        let id = resolveId(context: context)
         let classes = ["link"] + context.cssClasses
         let classAttr = " class=\"\(classes.joined(separator: " "))\""
         let styleAttr = context.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(context.inlineStyles))\""
@@ -151,14 +162,14 @@ public struct HTMLRenderer: Sendable {
     }
 
     private func renderSpacer(context: ModifierContext) -> String {
-        let id = renderState.allocateId()
+        let id = resolveId(context: context)
         let classes = ["flex-grow"] + context.cssClasses
         let classAttr = " class=\"\(classes.joined(separator: " "))\""
         return "        <div id=\"\(id)\"\(classAttr)></div>"
     }
 
     private func renderDivider(context: ModifierContext) -> String {
-        let id = renderState.allocateId()
+        let id = resolveId(context: context)
         let classes = ["divider"] + context.cssClasses
         let classAttr = " class=\"\(classes.joined(separator: " "))\""
         return "        <hr id=\"\(id)\"\(classAttr)>"
@@ -166,7 +177,7 @@ public struct HTMLRenderer: Sendable {
 
 
     private func renderMarkdown(_ md: Markdown, context: ModifierContext) -> String {
-        let id = renderState.allocateId()
+        let id = resolveId(context: context)
         let classes = ["markdown"] + context.cssClasses
         let classAttr = " class=\"\(classes.joined(separator: " "))\""
         let styleAttr = context.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(context.inlineStyles))\""
@@ -177,7 +188,7 @@ public struct HTMLRenderer: Sendable {
     /// Input fields use `data-sparrow-debounce="300"` — the client JS debounces input
     /// events by 300ms before sending to the server to avoid flooding the WebSocket.
     private func renderTextField(_ field: TextField, context: ModifierContext) -> String {
-        let id = renderState.allocateId()
+        let id = resolveId(context: context)
         let binding = field.text
         renderState.registerValueHandler(id: id) { newValue in
             binding.wrappedValue = newValue
@@ -191,7 +202,7 @@ public struct HTMLRenderer: Sendable {
     }
 
     private func renderSecureField(_ field: SecureField, context: ModifierContext) -> String {
-        let id = renderState.allocateId()
+        let id = resolveId(context: context)
         let binding = field.text
         renderState.registerValueHandler(id: id) { newValue in
             binding.wrappedValue = newValue
@@ -205,7 +216,7 @@ public struct HTMLRenderer: Sendable {
     }
 
     private func renderTextEditor(_ editor: TextEditor, context: ModifierContext) -> String {
-        let id = renderState.allocateId()
+        let id = resolveId(context: context)
         let binding = editor.text
         renderState.registerValueHandler(id: id) { newValue in
             binding.wrappedValue = newValue
@@ -218,7 +229,7 @@ public struct HTMLRenderer: Sendable {
     }
 
     private func renderToggle(_ toggle: Toggle, context: ModifierContext) -> String {
-        let id = renderState.allocateId()
+        let id = resolveId(context: context)
         let binding = toggle.isOn
         renderState.registerValueHandler(id: id) { newValue in
             binding.wrappedValue = (newValue == "true")
@@ -232,7 +243,7 @@ public struct HTMLRenderer: Sendable {
     }
 
     private func renderPicker(_ picker: Picker, context: ModifierContext) -> String {
-        let id = renderState.allocateId()
+        let id = resolveId(context: context)
         let binding = picker.selection
         renderState.registerValueHandler(id: id) { newValue in
             binding.wrappedValue = newValue
@@ -253,7 +264,7 @@ public struct HTMLRenderer: Sendable {
     }
 
     private func renderSlider(_ slider: Slider, context: ModifierContext) -> String {
-        let id = renderState.allocateId()
+        let id = resolveId(context: context)
         let binding = slider.value
         renderState.registerValueHandler(id: id) { newValue in
             if let d = Double(newValue) {
@@ -267,7 +278,7 @@ public struct HTMLRenderer: Sendable {
     }
 
     private func renderDatePicker(_ dp: DatePicker, context: ModifierContext) -> String {
-        let id = renderState.allocateId()
+        let id = resolveId(context: context)
         let binding = dp.selection
         renderState.registerValueHandler(id: id) { newValue in
             binding.wrappedValue = newValue
@@ -280,7 +291,7 @@ public struct HTMLRenderer: Sendable {
     }
 
     private func renderImage(_ img: Image, context: ModifierContext) -> String {
-        let id = renderState.allocateId()
+        let id = resolveId(context: context)
         let classes = ["img"] + context.cssClasses
         let classAttr = " class=\"\(classes.joined(separator: " "))\""
         let styleAttr = context.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(context.inlineStyles))\""
@@ -293,7 +304,7 @@ public struct HTMLRenderer: Sendable {
     }
 
     private func renderIcon(_ icon: Icon, context: ModifierContext) -> String {
-        let id = renderState.allocateId()
+        let id = resolveId(context: context)
         let classes = ["icon"] + context.cssClasses
         let classAttr = " class=\"\(classes.joined(separator: " "))\""
         let styleAttr = context.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(context.inlineStyles))\""
@@ -302,7 +313,7 @@ public struct HTMLRenderer: Sendable {
     }
 
     private func renderNavigationLink(_ navLink: NavigationLink, context: ModifierContext) -> String {
-        let id = renderState.allocateId()
+        let id = resolveId(context: context)
         var classes = ["nav-link"] + context.cssClasses
         if navLink.current {
             classes.append("nav-link-current")
@@ -319,7 +330,7 @@ public struct HTMLRenderer: Sendable {
 
 
     private func renderProgressView(_ pv: ProgressView, context: ModifierContext) -> String {
-        let id = renderState.allocateId()
+        let id = resolveId(context: context)
         let classes = ["progress"] + context.cssClasses
         let classAttr = " class=\"\(classes.joined(separator: " "))\""
         let styleAttr = context.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(context.inlineStyles))\""
@@ -332,6 +343,16 @@ public struct HTMLRenderer: Sendable {
 
 
 
+
+    /// Layout Content() placeholder — emits pre-rendered page HTML wrapped in a
+    /// targetable container so same-layout navigation can swap just this area.
+    private func renderContent(context: ModifierContext) -> String {
+        let contentHTML = renderState.contentSlot ?? ""
+        let classes = context.cssClasses
+        let classAttr = classes.isEmpty ? "" : " class=\"\(classes.joined(separator: " "))\""
+        let styleAttr = context.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(context.inlineStyles))\""
+        return "        <div id=\"sparrow-content\"\(classAttr)\(styleAttr)>\n\(contentHTML)\n        </div>"
+    }
 
     // MARK: - Helpers (internal, used by HTMLRenderable conformances)
 

@@ -6,6 +6,8 @@ final class RenderState: @unchecked Sendable {
     private(set) var nextId: Int = 0
     private(set) var eventHandlers: [String: @Sendable () -> Void] = [:]
     private(set) var valueHandlers: [String: @Sendable (String) -> Void] = [:]
+    /// Pre-rendered page HTML injected at `Content()` inside a Layout.
+    var contentSlot: String? = nil
 
     func allocateId() -> String {
         defer { nextId += 1 }

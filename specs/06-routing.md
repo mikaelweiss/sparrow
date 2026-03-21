@@ -153,6 +153,20 @@ Routes {
 
 If no route matches, the `notFound` page renders. If not defined, Sparrow shows a default 404 page.
 
+## Catch-All Routes
+
+Match an entire subtree of paths with a wildcard:
+
+```swift
+Routes {
+    Page("/docs/*") { params in
+        DocsView(path: params.wildcard ?? "")
+    }
+}
+```
+
+`/docs/*` matches `/docs/getting-started`, `/docs/api/auth`, etc. The matched portion is available as `params.wildcard`.
+
 ## Redirects
 
 ```swift
@@ -161,6 +175,34 @@ Routes {
     Redirect("/legacy/:id", to: "/modern/:id")   // preserves params
 }
 ```
+
+## Fragment Links (Anchors)
+
+Fragment links scroll to a specific section of the page. Use `.id()` to set an anchor target:
+
+```swift
+struct DocsView: View {
+    var body: some View {
+        VStack {
+            // Table of contents
+            NavigationLink("Installation", destination: "#installation")
+            NavigationLink("Usage", destination: "#usage")
+
+            // Sections
+            Text("Installation").font(.title).id("installation")
+            Text("Run: sparrow new MyApp")
+
+            Text("Usage").font(.title).id("usage")
+            Text("Run: sparrow run")
+        }
+    }
+}
+```
+
+When clicked:
+1. Same-page fragments (`#section`) scroll without a server round-trip
+2. Cross-page fragments (`/docs#section`) navigate then scroll after load
+3. Pasting a URL with a fragment (e.g. `yoursite.com/docs#usage`) loads the page and scrolls natively
 
 ## SEO
 
