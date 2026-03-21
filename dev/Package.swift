@@ -10,17 +10,16 @@ let parentPackage = URL(fileURLWithPath: #filePath)
     .lowercased()
 
 let package = Package(
-    name: "SparrowDocs",
+    name: "DevApp",
     platforms: [.macOS(.v15)],
     dependencies: [
         .package(path: ".."),
     ],
     targets: [
         .executableTarget(
-            name: "SparrowDocs",
+            name: "DevApp",
             dependencies: [
                 .product(name: "Sparrow", package: parentPackage),
-                .product(name: "SparrowMarkdown", package: parentPackage),
             ],
             path: "Sources"
         ),
