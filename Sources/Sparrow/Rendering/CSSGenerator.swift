@@ -375,6 +375,7 @@ public enum CSSGenerator {
     .rounded-lg { border-radius: var(--radius); }
     .rounded-xl { border-radius: calc(var(--radius) + 4px); }
     .rounded-2xl { border-radius: calc(var(--radius) + 8px); }
+    .rounded-3xl { border-radius: calc(var(--radius) + 16px); }
     .rounded-full { border-radius: 9999px; }
 
     /* ============================================
