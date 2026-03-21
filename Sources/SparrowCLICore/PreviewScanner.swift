@@ -8,6 +8,7 @@ public struct PreviewEntry: Sendable {
     public let hashId: String        // 6-char hex from djb2
     public let name: String?         // extracted from string literal, if parseable
     public let layout: String        // "component" or "fullPage"
+    public let closureBody: String   // extracted Swift code inside the trailing closure
 }
 
 /// Scans project source files for `#Preview` invocations.
@@ -48,6 +49,9 @@ public struct PreviewScanner {
                 // Extract layout
                 let layout = trimmed.contains(".fullPage") ? "fullPage" : "component"
 
+                // Extract the trailing closure body via brace matching
+                let closureBody = extractClosureBody(lines: lines, startIndex: index)
+
                 // Compute hash — uses absolute path to match macro's #filePath
                 let hashId = previewHashId(filePath: absolutePath, line: lineNumber)
 
@@ -57,12 +61,56 @@ public struct PreviewScanner {
                     line: lineNumber,
                     hashId: hashId,
                     name: name,
-                    layout: layout
+                    layout: layout,
+                    closureBody: closureBody
                 ))
             }
         }
 
         return entries
+    }
+
+    /// Extract the body of the trailing closure starting from the line with `#Preview`.
+    /// Uses brace matching to find the opening `{` and its corresponding `}`.
+    private func extractClosureBody(lines: [String], startIndex: Int) -> String {
+        // Find the opening brace of the trailing closure
+        var braceDepth = 0
+        var foundOpen = false
+        var bodyLines: [String] = []
+
+        for i in startIndex..<lines.count {
+            let line = lines[i]
+            for char in line {
+                if char == "{" {
+                    if foundOpen {
+                        braceDepth += 1
+                    } else {
+                        foundOpen = true
+                        braceDepth = 1
+                    }
+                } else if char == "}" && foundOpen {
+                    braceDepth -= 1
+                    if braceDepth == 0 {
+                        // We've found the matching close brace
+                        return bodyLines.joined(separator: "\n")
+                    }
+                }
+            }
+            // Collect lines inside the closure (after the opening brace line)
+            if foundOpen && braceDepth > 0 && i > startIndex {
+                bodyLines.append(line)
+            } else if foundOpen && braceDepth > 0 && i == startIndex {
+                // The opening brace is on the #Preview line — capture anything after it
+                if let braceIndex = line.firstIndex(of: "{") {
+                    let afterBrace = String(line[line.index(after: braceIndex)...]).trimmingCharacters(in: .whitespaces)
+                    if !afterBrace.isEmpty {
+                        bodyLines.append(afterBrace)
+                    }
+                }
+            }
+        }
+
+        return bodyLines.joined(separator: "\n")
     }
 
     private func extractName(from line: String) -> String? {

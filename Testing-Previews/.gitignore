@@ -1,0 +1,5 @@
+.build/
+.sparrow/
+Package.resolved
+.env
+.DS_Store

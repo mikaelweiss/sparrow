@@ -29,11 +29,16 @@ impl zed::Extension for SparrowPreviewExtension {
             return Err("Not a Sparrow project".into());
         }
 
+        // Resolve the sparrow binary from PATH
+        let sparrow_path = worktree
+            .which("sparrow")
+            .ok_or("Could not find 'sparrow' on PATH. Run: swift package experimental-install")?;
+
         // Start the preview server as an LSP process.
         // Zed manages the lifecycle: starts on workspace open, kills on close.
         // The preview chrome is available at http://localhost:5457/_preview/
         Ok(zed::Command {
-            command: "sparrow".to_string(),
+            command: sparrow_path,
             args: vec![
                 "preview".to_string(),
                 "--lsp".to_string(),

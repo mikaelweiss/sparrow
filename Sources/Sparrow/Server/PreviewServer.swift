@@ -116,7 +116,7 @@ private func buildPreviewInfo<P: SparrowPreview>(_ type: P.Type) -> PreviewInfo 
         renderVariant: { index, renderer in
             let views = flattenChildren(P.content)
             guard index < views.count else { return "" }
-            return renderer.renderAnyErased(views[index], modifierContext: ModifierContext())
+            return renderer.renderAnyErasedVNode(views[index], modifierContext: ModifierContext()).toHTML()
         },
         renderAll: { renderer in
             renderer.render(P.content)

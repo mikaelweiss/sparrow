@@ -17,72 +17,19 @@ public func previewHashId(_ input: String) -> String {
     return result
 }
 
+/// The `#Preview` macro expands to nothing in regular builds.
+///
+/// Preview structs are generated externally by `sparrow preview` (via PreviewRegistryGenerator)
+/// because Swift doesn't allow freestanding declaration macros to introduce new named types
+/// at file scope. The macro exists so `#Preview` is valid syntax and the compiler parses
+/// the trailing closure (catching basic errors), but the real work happens in the CLI pipeline.
 public struct PreviewMacro: DeclarationMacro {
     public static func expansion(
         of node: some FreestandingMacroExpansionSyntax,
         in context: some MacroExpansionContext
     ) throws -> [DeclSyntax] {
-        // Extract source location for stable hash
-        let location = context.location(of: node)
-        let filePath = location.map { "\($0.file)" } ?? "unknown"
-        let line = location.map { "\($0.line)" } ?? "0"
-        let hashInput = "\(filePath):\(line)"
-        let hashId = previewHashId(hashInput)
-
-        // Parse arguments
-        var name: String?
-        var layout: String = ".component"
-
-        for argument in node.arguments {
-            if argument.label == nil, let stringLiteral = argument.expression.as(StringLiteralExprSyntax.self) {
-                // First positional argument is the name
-                name = stringLiteral.segments.description
-            } else if argument.label?.text == "layout" {
-                layout = argument.expression.trimmedDescription
-            }
-        }
-
-        // Build the name expression
-        let nameExpr: String
-        if let name {
-            nameExpr = "\"\(name)\""
-        } else {
-            // Default: "Preview (FileName.swift:42)"
-            let cleaned = filePath.filter { $0 != "\"" }
-            let fileNameComponent = cleaned.split(separator: "/").last.map(String.init) ?? "unknown"
-            nameExpr = "\"Preview (\(fileNameComponent):\(line))\""
-        }
-
-        // Extract trailing closure body
-        guard let trailingClosure = node.trailingClosure else {
-            throw MacroExpansionError.missingTrailingClosure
-        }
-        let bodyStatements = trailingClosure.statements
-
-        let structDecl: DeclSyntax = """
-        struct _SparrowPreview_\(raw: hashId): SparrowPreview {
-            static let name = \(raw: nameExpr)
-            static let sourceFile = #filePath
-            static let line: Int = \(raw: line)
-            static let layout: PreviewLayout = \(raw: layout)
-            @ViewBuilder
-            static var content: some View {
-                \(bodyStatements)
-            }
-        }
-        """
-
-        return [structDecl]
-    }
-}
-
-enum MacroExpansionError: Error, CustomStringConvertible {
-    case missingTrailingClosure
-
-    var description: String {
-        switch self {
-        case .missingTrailingClosure:
-            return "#Preview requires a trailing closure containing view content"
-        }
+        // No-op: the CLI generates preview structs externally.
+        // The trailing closure is parsed by the compiler but not expanded here.
+        return []
     }
 }
