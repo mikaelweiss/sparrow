@@ -76,10 +76,12 @@ extension ModifiedView: VNodeRenderable {
         if modifier.createsLayer {
             let innerNode = renderer.renderAnyErasedVNode(content, modifierContext: modifierContext)
             let id = renderer.resolveId(context: modifierContext)
+            let dataAttrs = modifier.dataAttributes.map { (key: $0.key, value: $0.value) }
             let el = ElementNode.build(
                 tag: "div", id: id,
                 classes: modifier.cssClasses,
                 styles: modifier.inlineStyles,
+                extraAttrs: dataAttrs,
                 children: [innerNode]
             )
             return .element(el)

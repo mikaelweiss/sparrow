@@ -2,20 +2,92 @@
 
 ## Overview
 
-Animations in Sparrow are declarative and CSS-based. The server sends the target state, and the browser handles the animation. No JavaScript animation logic. Respects `prefers-reduced-motion` automatically.
+Animations in Sparrow are declarative and CSS-based. The server sends the target state, and the browser handles the animation. No JavaScript animation logic required (except for the thin presence/scroll observers in the client runtime). Respects `prefers-reduced-motion` automatically.
 
-## Transitions
+## Animation Curves
 
-Transitions animate views entering or leaving the view tree.
+All animation APIs accept a `SparrowAnimation` curve that controls timing.
+
+### Standard Curves
+
+```swift
+.animation(.default)             // fast ease-out (0.35s)
+.animation(.linear)              // constant speed
+.animation(.easeIn)              // slow start
+.animation(.easeOut)             // slow end
+.animation(.easeInOut)           // slow start and end
+```
+
+### Spring Animations
+
+Springs use `linear()` CSS timing function with analytically-computed sample points. No JavaScript runtime — pure CSS.
+
+```swift
+.animation(.spring())                        // default spring (0.5s, no bounce)
+.animation(.spring(duration: 0.5, bounce: 0.3)) // custom spring
+.animation(.bouncy)                          // preset: 0.5s, bounce 0.3
+.animation(.snappy)                          // preset: 0.3s, bounce 0.15
+.animation(.smooth)                          // preset: 0.5s, no bounce
+```
+
+- `duration` — perceptual duration in seconds (how long the animation feels)
+- `bounce` — 0.0 = critically damped (no overshoot), 0.3 = moderate bounce, 0.5 = very bouncy
+
+### Modifiers on Curves
+
+```swift
+.animation(.spring().speed(2.0))             // 2x playback speed
+.animation(.easeInOut.delay(0.2))            // 200ms delay before starting
+.animation(.linear.repeatForever())          // loop forever
+.animation(.easeInOut.repeatCount(3, autoreverses: true))
+```
+
+## Implicit Animations — `.animation(_:)`
+
+Animate any property change on a view:
+
+```swift
+Text("Count: \(count)")
+    .font(count > 10 ? .title : .body)
+    .animation(.spring)
+
+VStack { content }
+    .background(isError ? .error : .surface)
+    .animation(.easeInOut)
+```
+
+When a state change causes the server to re-render with different classes/styles, the element already has `transition` CSS applied, so the browser animates automatically.
+
+```swift
+// Track a specific value — identical behavior in Sparrow since
+// CSS transitions fire on any property change, but communicates intent.
+.animation(.spring, value: count)
+```
+
+## `withAnimation()` — Global Animated State Changes
+
+Wraps a state mutation so ALL resulting DOM changes animate:
+
+```swift
+Button("Toggle") {
+    withAnimation(.spring) {
+        isExpanded.toggle()
+    }
+}
+```
+
+The server includes the animation curve in the WebSocket patch message. The client temporarily adds `transition` CSS to the root, applies the patch, and the browser animates all changes.
+
+## Transitions — `.transition(_:)`
+
+Animate views entering or leaving the view tree:
 
 ```swift
 if showCard {
     ProfileCard(user: user)
-        .transition(.opacity)           // fade in/out
+        .transition(.opacity)
 }
 ```
-
-When `showCard` changes from `false` to `true`, the card fades in. When it changes to `false`, it fades out.
 
 ### Built-In Transitions
 
@@ -27,8 +99,9 @@ When `showCard` changes from `false` to `true`, the card fades in. When it chang
 | `.slide(.trailing)` | Slide in from right / out to right |
 | `.slide(.top)` | Slide in from top / out to top |
 | `.slide(.bottom)` | Slide in from bottom / out to bottom |
-| `.move(.leading)` | Move in from left (no clip) |
-| `.push(.leading)` | Push existing content to the right |
+| `.move(.leading)` | Alias for slide |
+| `.push(.leading)` | Slide + fade combined |
+| `.identity` | No transition (instant appear/disappear) |
 
 ### Combining Transitions
 
@@ -43,118 +116,170 @@ Different animation for entering vs. leaving:
 
 ```swift
 .transition(.asymmetric(
-    insertion: .slide(.trailing).combined(with: .opacity),
-    removal: .slide(.leading).combined(with: .opacity)
+    insertion: .push(edge: .trailing),
+    removal: .push(edge: .leading)
 ))
 ```
 
-## Animation Curves
+### Custom Animation on Transition
 
 ```swift
-.animation(.easeInOut)                          // default
-.animation(.easeIn)
-.animation(.easeOut)
-.animation(.linear)
-.animation(.spring)                              // spring with default parameters
-.animation(.spring(damping: 0.7, stiffness: 300))
-.animation(.easeInOut(duration: 0.5))           // custom duration
+.transition(.opacity, animation: .spring(duration: 0.5, bounce: 0.2))
 ```
 
-Default duration is 0.3 seconds. Spring animations use CSS `spring()` if supported, falling back to a cubic-bezier approximation.
+### How It Works
 
-## Implicit Animations
-
-Animate any modifier change:
-
-```swift
-Text("Count: \(count)")
-    .font(count > 10 ? .title : .body)
-    .animation(.spring)         // font change animates smoothly
-
-VStack {
-    content
-}
-.background(isError ? .error : .surface)
-.animation(.easeInOut)          // background color change animates
-```
-
-When the modifier value changes due to a state update, the CSS transition handles the animation. The server sends the new class/style, and the browser transitions between old and new values.
-
-## How It Works Under the Hood
-
-### For transitions (enter/exit):
-
-1. When a view enters the tree, the server sends it with both a "from" class and a "to" class
-2. The client runtime adds the element to the DOM with the "from" state
-3. On the next animation frame, the client swaps to the "to" class
+1. Server renders the view wrapped in a div with "from" classes and data attributes
+2. Client runtime's presence system detects `data-sparrow-enter` on the new element
+3. On the next animation frame, swaps from-classes → to-classes
 4. CSS transition handles the animation
+5. On removal, swaps to exit classes, waits for `transitionend`, then removes the element
 
 ```html
-<!-- Server sends: -->
-<div id="v_0" class="card transition-opacity opacity-0" data-sparrow-enter="opacity-100">
+<!-- Server renders: -->
+<div id="v3" class="sp-opacity-0" style="transition-property: opacity; ..."
+     data-sparrow-enter="sp-opacity-1" data-sparrow-enter-from="sp-opacity-0"
+     data-sparrow-exit="sp-opacity-0" data-sparrow-exit-from="sp-opacity-1">
+  <div>Profile Card content</div>
+</div>
 
-<!-- Client immediately applies: -->
-<div id="v_0" class="card transition-opacity opacity-100">
+<!-- Client swaps on enter: removes sp-opacity-0, adds sp-opacity-1 -->
+<!-- Browser transitions opacity from 0 → 1 -->
 ```
 
-For removal, the process reverses — the client applies exit classes, waits for the CSS transition to complete, then removes the element.
+## Content Transitions — `.contentTransition(_:)`
 
-### For implicit animations:
-
-1. The server sends new CSS classes
-2. The element already has `transition` properties from the `.animation()` modifier
-3. The browser handles the transition automatically
-
-```html
-<!-- Before: -->
-<div class="bg-surface transition-all duration-300">
-
-<!-- After state change, server patches the class: -->
-<div class="bg-error transition-all duration-300">
-
-<!-- Browser animates between surface and error colors -->
-```
-
-## Page Transitions
-
-Navigation between pages can be animated:
+Animate content changes within a view (not the view itself entering/leaving):
 
 ```swift
-@main
-struct MyApp: App {
-    var body: some Scene {
-        Routes {
-            Page("/") { HomeView() }
-            Page("/about") { AboutView() }
-        }
-        .pageTransition(.slide(.leading))
+Text("Score: \(score)")
+    .contentTransition(.numericText())
+
+Image(icon)
+    .contentTransition(.opacity)
+```
+
+| Type | Effect |
+|---|---|
+| `.opacity` | Crossfade between old and new content |
+| `.numericText()` | Roll counter effect (slide up/down) |
+| `.numericText(countsDown: true)` | Roll counter going down |
+| `.interpolate` | Best-effort morph between content |
+
+## Scroll Transitions — `.scrollTransition(_:)`
+
+Animate views as they scroll into the viewport:
+
+```swift
+ForEach(items) { item in
+    ItemCard(item)
+        .scrollTransition(transition: .opacity)
+}
+
+// Combine transitions:
+HeroImage(url)
+    .scrollTransition(
+        transition: .opacity.combined(with: .scale),
+        animation: .spring
+    )
+```
+
+Uses `IntersectionObserver` — no scroll event listeners, no jank. Elements start in the "from" state and transition to the "to" state when they enter the viewport.
+
+## Matched Geometry — `.matchedGeometryEffect(id:in:)`
+
+Shared element transitions between views using the View Transition API:
+
+```swift
+// List view
+ForEach(items) { item in
+    ItemThumbnail(item)
+        .matchedGeometryEffect(id: item.id, in: "items")
+}
+
+// Detail view
+ItemHero(item)
+    .matchedGeometryEffect(id: item.id, in: "items")
+```
+
+When navigating between views, elements with the same `id` and namespace morph between their old and new positions/sizes. Maps to CSS `view-transition-name`.
+
+## Phase Animator
+
+Cycle through a sequence of phases automatically, generating CSS @keyframes:
+
+```swift
+PhaseAnimator([false, true]) { phase in
+    Circle()
+        .opacity(phase ? 1.0 : 0.3)
+        .scaleEffect(phase ? 1.0 : 0.8)
+} animation: { _ in .easeInOut }
+```
+
+The renderer evaluates the content at each phase, diffs the CSS, and generates a `@keyframes` rule that loops continuously. No JavaScript animation runtime.
+
+## Keyframe Animator
+
+Drive a view with explicit keyframe tracks:
+
+```swift
+KeyframeAnimator(
+    initialValue: AnimState(y: 0, scale: 1),
+    repeating: true
+) { value in
+    Circle()
+        .offset(y: value.y)
+        .scaleEffect(value.scale)
+} keyframes: {
+    KeyframeTrack(cssProperty: "transform") {
+        SpringKeyframe(-50, duration: 0.3)
+        SpringKeyframe(0, duration: 0.5)
     }
 }
 ```
 
-Page transitions work by:
-1. Server sends the new page content
-2. Client holds both old and new content briefly
-3. Old content animates out, new content animates in
-4. Old content is removed from DOM
+Each track maps to a CSS property. The renderer computes the combined timeline and generates a single `@keyframes` rule with per-keyframe timing functions.
 
-## Gesture-Driven Animations
+## Symbol Effects — `.symbolEffect(_:)`
+
+Repeating animation effects for icons and views:
 
 ```swift
-Card()
-    .gesture(
-        Drag { offset in
-            position += offset
-        }
-    )
-    .gesture(
-        Pinch { scale in
-            zoom *= scale
-        }
-    )
+Icon(.activity)
+    .symbolEffect(.pulse)
+
+Image("loading")
+    .symbolEffect(.rotate)
 ```
 
-Gesture-driven animations require client-side JavaScript for touch/mouse event tracking, which extends the client runtime.
+| Effect | Animation |
+|---|---|
+| `.bounce` | Bouncing up and down |
+| `.pulse` | Pulsing opacity |
+| `.wiggle` | Side-to-side wiggle |
+| `.breathe` | Slow scale + opacity pulse |
+| `.rotate` | Continuous rotation |
+
+## Navigation Transitions — `.navigationTransition(_:)`
+
+Control the animation when navigating between pages:
+
+```swift
+struct ContentView: View {
+    var body: some View {
+        VStack { ... }
+            .navigationTransition(.slide)
+    }
+}
+```
+
+| Style | Effect |
+|---|---|
+| `.automatic` | Default crossfade |
+| `.slide` | Slide from leading edge |
+| `.zoom` | Zoom from matched geometry source |
+
+Uses the View Transition API. Page and content replacements are wrapped in `document.startViewTransition()` when the browser supports it, enabling smooth animated transitions between pages.
 
 ## Rive Animations
 
@@ -240,7 +365,22 @@ LottieAnimation("celebration")
 
 ## Reduced Motion
 
-All animations respect `prefers-reduced-motion` automatically (see 16-accessibility.md). When reduced motion is enabled:
-- Transitions complete instantly (duration set to ~0)
+All animations respect `prefers-reduced-motion` automatically. The stylesheet includes:
+
+```css
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+```
+
+When reduced motion is enabled:
+- CSS transitions complete instantly (near-zero duration)
+- CSS animations play once and stop
 - Content still appears/disappears, but without motion
+- Rive/Lottie animations are unaffected (they run in their own runtime)
 - No developer action needed

@@ -7,6 +7,10 @@ import Foundation
 public final class StateStorage: @unchecked Sendable {
     private var values: [String: any Sendable] = [:]
 
+    /// Set by `withAnimation()` before a state mutation. The renderer reads this
+    /// during the next render cycle and clears it after producing patches.
+    var pendingAnimation: SparrowAnimation?
+
     /// Set by SessionActor during render and event handling. @State reads/writes
     /// go through this to find the correct session's storage.
     @TaskLocal static var current: StateStorage?

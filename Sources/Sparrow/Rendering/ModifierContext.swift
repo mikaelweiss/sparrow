@@ -6,6 +6,8 @@ public struct ModifierContext {
     public var htmlTag: String? = nil
     /// Custom HTML id from `.id("section")` modifier, for anchor/fragment links.
     public var customId: String? = nil
+    /// HTML data attributes from modifiers (e.g., animation/transition hooks).
+    public var dataAttributes: [String: String] = [:]
 
     public init() {}
 
@@ -15,6 +17,9 @@ public struct ModifierContext {
         copy.cssClasses.append(contentsOf: modifier.cssClasses)
         for (key, value) in modifier.inlineStyles {
             copy.inlineStyles[key] = value
+        }
+        for (key, value) in modifier.dataAttributes {
+            copy.dataAttributes[key] = value
         }
         // Check if this is a font modifier and extract the HTML tag
         if let fontMod = modifier as? FontModifier, let tag = fontMod.font.htmlTag {

@@ -60,6 +60,8 @@ public struct HTMLRenderer: Sendable {
         if let pv = view as? ProgressView { return renderProgressViewVNode(pv, context: modifierContext) }
         if let rive = view as? RiveAnimation { return renderRiveAnimationVNode(rive, context: modifierContext) }
         if let lottie = view as? LottieAnimation { return renderLottieAnimationVNode(lottie, context: modifierContext) }
+        if let phaseAnim = view as? any _PhaseAnimatorRenderable { return renderPhaseAnimatorVNode(phaseAnim, context: modifierContext) }
+        if let kfAnim = view as? any _KeyframeAnimatorRenderable { return renderKeyframeAnimatorVNode(kfAnim, context: modifierContext) }
         if view is Content { return renderContentVNode(context: modifierContext) }
         if view is EmptyView { return .fragment([]) }
         if let renderable = view as? any VNodeRenderable {
@@ -104,7 +106,6 @@ public struct HTMLRenderer: Sendable {
         if !span.hasInlineStyles {
             return .text(escapeHTML(span.content))
         }
-        // Build nested inline elements: innermost is the text
         var node: VNode = .text(escapeHTML(span.content))
         if span.isStrikethrough {
             let id = renderState.allocateId()
@@ -134,9 +135,7 @@ public struct HTMLRenderer: Sendable {
         renderState.registerHandler(id: id, handler: button.action)
         let classes = ["btn", button.variant.cssClass, button.size.cssClass] + context.cssClasses
         let el = ElementNode.build(
-            tag: "button", id: id,
-            classes: classes,
-            styles: context.inlineStyles,
+            tag: "button", id: id, classes: classes, styles: context.inlineStyles,
             extraAttrs: [("data-sparrow-event", "click")],
             children: [.text(escapeHTML(button.label))]
         )
@@ -147,14 +146,8 @@ public struct HTMLRenderer: Sendable {
         let id = resolveId(context: context)
         let classes = ["link"] + context.cssClasses
         let el = ElementNode.build(
-            tag: "a", id: id,
-            classes: classes,
-            styles: context.inlineStyles,
-            extraAttrs: [
-                ("href", escapeHTML(link.url)),
-                ("target", "_blank"),
-                ("rel", "noopener noreferrer"),
-            ],
+            tag: "a", id: id, classes: classes, styles: context.inlineStyles,
+            extraAttrs: [("href", escapeHTML(link.url)), ("target", "_blank"), ("rel", "noopener noreferrer")],
             children: [.text(escapeHTML(link.label))]
         )
         return .element(el)
@@ -162,25 +155,19 @@ public struct HTMLRenderer: Sendable {
 
     private func renderSpacerVNode(context: ModifierContext) -> VNode {
         let id = resolveId(context: context)
-        let classes = ["flex-grow"] + context.cssClasses
-        return .element(ElementNode.build(tag: "div", id: id, classes: classes))
+        return .element(ElementNode.build(tag: "div", id: id, classes: ["flex-grow"] + context.cssClasses))
     }
 
     private func renderDividerVNode(context: ModifierContext) -> VNode {
         let id = resolveId(context: context)
-        let classes = ["divider"] + context.cssClasses
-        return .element(ElementNode.build(tag: "hr", id: id, classes: classes))
+        return .element(ElementNode.build(tag: "hr", id: id, classes: ["divider"] + context.cssClasses))
     }
 
     private func renderMarkdownVNode(_ md: Markdown, context: ModifierContext) -> VNode {
         let id = resolveId(context: context)
-        let classes = ["markdown"] + context.cssClasses
         let html = MarkdownParser.html(from: md.content)
-        // Markdown renders to raw HTML — wrap as a text node (already escaped by the parser)
         let el = ElementNode.build(
-            tag: "div", id: id,
-            classes: classes,
-            styles: context.inlineStyles,
+            tag: "div", id: id, classes: ["markdown"] + context.cssClasses, styles: context.inlineStyles,
             children: [.text(html)]
         )
         return .element(el)
@@ -190,17 +177,12 @@ public struct HTMLRenderer: Sendable {
         let id = resolveId(context: context)
         let binding = field.text
         renderState.registerValueHandler(id: id) { newValue in binding.wrappedValue = newValue }
-        let classes = ["input"] + context.cssClasses
         let el = ElementNode.build(
-            tag: "input", id: id,
-            classes: classes,
-            styles: context.inlineStyles,
+            tag: "input", id: id, classes: ["input"] + context.cssClasses, styles: context.inlineStyles,
             extraAttrs: [
-                ("type", "text"),
-                ("placeholder", escapeHTML(field.placeholder)),
+                ("type", "text"), ("placeholder", escapeHTML(field.placeholder)),
                 ("value", escapeHTML(binding.wrappedValue)),
-                ("data-sparrow-event", "input"),
-                ("data-sparrow-debounce", "300"),
+                ("data-sparrow-event", "input"), ("data-sparrow-debounce", "300"),
             ]
         )
         return .element(el)
@@ -210,17 +192,12 @@ public struct HTMLRenderer: Sendable {
         let id = resolveId(context: context)
         let binding = field.text
         renderState.registerValueHandler(id: id) { newValue in binding.wrappedValue = newValue }
-        let classes = ["input"] + context.cssClasses
         let el = ElementNode.build(
-            tag: "input", id: id,
-            classes: classes,
-            styles: context.inlineStyles,
+            tag: "input", id: id, classes: ["input"] + context.cssClasses, styles: context.inlineStyles,
             extraAttrs: [
-                ("type", "password"),
-                ("placeholder", escapeHTML(field.placeholder)),
+                ("type", "password"), ("placeholder", escapeHTML(field.placeholder)),
                 ("value", escapeHTML(binding.wrappedValue)),
-                ("data-sparrow-event", "input"),
-                ("data-sparrow-debounce", "300"),
+                ("data-sparrow-event", "input"), ("data-sparrow-debounce", "300"),
             ]
         )
         return .element(el)
@@ -230,15 +207,9 @@ public struct HTMLRenderer: Sendable {
         let id = resolveId(context: context)
         let binding = editor.text
         renderState.registerValueHandler(id: id) { newValue in binding.wrappedValue = newValue }
-        let classes = ["textarea"] + context.cssClasses
         let el = ElementNode.build(
-            tag: "textarea", id: id,
-            classes: classes,
-            styles: context.inlineStyles,
-            extraAttrs: [
-                ("data-sparrow-event", "input"),
-                ("data-sparrow-debounce", "300"),
-            ],
+            tag: "textarea", id: id, classes: ["textarea"] + context.cssClasses, styles: context.inlineStyles,
+            extraAttrs: [("data-sparrow-event", "input"), ("data-sparrow-debounce", "300")],
             children: [.text(escapeHTML(binding.wrappedValue))]
         )
         return .element(el)
@@ -249,12 +220,7 @@ public struct HTMLRenderer: Sendable {
         let binding = toggle.isOn
         renderState.registerValueHandler(id: id) { newValue in binding.wrappedValue = (newValue == "true") }
         let classes = ["toggle"] + context.cssClasses
-        // Toggle is a <label> wrapping an <input type="checkbox">
-        var inputAttrs = OrderedAttributes([
-            ("id", id),
-            ("type", "checkbox"),
-            ("data-sparrow-event", "change"),
-        ])
+        var inputAttrs = OrderedAttributes([("id", id), ("type", "checkbox"), ("data-sparrow-event", "change")])
         if binding.wrappedValue { inputAttrs["checked"] = "" }
         let inputNode = VNode.element(ElementNode(tag: "input", id: id, attributes: inputAttrs))
         var labelAttrs = OrderedAttributes()
@@ -273,7 +239,6 @@ public struct HTMLRenderer: Sendable {
         let binding = picker.selection
         renderState.registerValueHandler(id: id) { newValue in binding.wrappedValue = newValue }
         let selected = binding.wrappedValue
-        let classes = ["picker"] + context.cssClasses
         let optionNodes: [VNode] = picker.options.map { opt in
             let optId = renderState.allocateId()
             var attrs = OrderedAttributes([("id", optId), ("value", escapeHTML(opt.value))])
@@ -281,13 +246,8 @@ public struct HTMLRenderer: Sendable {
             return .element(ElementNode(tag: "option", id: optId, attributes: attrs, children: [.text(escapeHTML(opt.label))]))
         }
         let el = ElementNode.build(
-            tag: "select", id: id,
-            classes: classes,
-            styles: context.inlineStyles,
-            extraAttrs: [
-                ("aria-label", escapeHTML(picker.label)),
-                ("data-sparrow-event", "change"),
-            ],
+            tag: "select", id: id, classes: ["picker"] + context.cssClasses, styles: context.inlineStyles,
+            extraAttrs: [("aria-label", escapeHTML(picker.label)), ("data-sparrow-event", "change")],
             children: optionNodes
         )
         return .element(el)
@@ -296,21 +256,12 @@ public struct HTMLRenderer: Sendable {
     private func renderSliderVNode(_ slider: Slider, context: ModifierContext) -> VNode {
         let id = resolveId(context: context)
         let binding = slider.value
-        renderState.registerValueHandler(id: id) { newValue in
-            if let d = Double(newValue) { binding.wrappedValue = d }
-        }
-        let classes = ["slider"] + context.cssClasses
+        renderState.registerValueHandler(id: id) { newValue in if let d = Double(newValue) { binding.wrappedValue = d } }
         let el = ElementNode.build(
-            tag: "input", id: id,
-            classes: classes,
-            styles: context.inlineStyles,
+            tag: "input", id: id, classes: ["slider"] + context.cssClasses, styles: context.inlineStyles,
             extraAttrs: [
-                ("type", "range"),
-                ("min", "\(slider.range.lowerBound)"),
-                ("max", "\(slider.range.upperBound)"),
-                ("step", "\(slider.step)"),
-                ("value", "\(binding.wrappedValue)"),
-                ("data-sparrow-event", "input"),
+                ("type", "range"), ("min", "\(slider.range.lowerBound)"), ("max", "\(slider.range.upperBound)"),
+                ("step", "\(slider.step)"), ("value", "\(binding.wrappedValue)"), ("data-sparrow-event", "input"),
             ]
         )
         return .element(el)
@@ -320,16 +271,11 @@ public struct HTMLRenderer: Sendable {
         let id = resolveId(context: context)
         let binding = dp.selection
         renderState.registerValueHandler(id: id) { newValue in binding.wrappedValue = newValue }
-        let classes = ["input"] + context.cssClasses
         let el = ElementNode.build(
-            tag: "input", id: id,
-            classes: classes,
-            styles: context.inlineStyles,
+            tag: "input", id: id, classes: ["input"] + context.cssClasses, styles: context.inlineStyles,
             extraAttrs: [
-                ("type", "date"),
-                ("aria-label", escapeHTML(dp.label)),
-                ("value", escapeHTML(binding.wrappedValue)),
-                ("data-sparrow-event", "change"),
+                ("type", "date"), ("aria-label", escapeHTML(dp.label)),
+                ("value", escapeHTML(binding.wrappedValue)), ("data-sparrow-event", "change"),
             ]
         )
         return .element(el)
@@ -337,31 +283,22 @@ public struct HTMLRenderer: Sendable {
 
     private func renderImageVNode(_ img: Image, context: ModifierContext) -> VNode {
         let id = resolveId(context: context)
-        let classes = ["img"] + context.cssClasses
         let src: String
         switch img.source {
         case .asset(let name): src = "/assets/\(escapeHTML(name))"
         case .url(let url): src = escapeHTML(url)
         }
         let el = ElementNode.build(
-            tag: "img", id: id,
-            classes: classes,
-            styles: context.inlineStyles,
-            extraAttrs: [
-                ("src", src),
-                ("alt", escapeHTML(img.alt)),
-            ]
+            tag: "img", id: id, classes: ["img"] + context.cssClasses, styles: context.inlineStyles,
+            extraAttrs: [("src", src), ("alt", escapeHTML(img.alt))]
         )
         return .element(el)
     }
 
     private func renderIconVNode(_ icon: Icon, context: ModifierContext) -> VNode {
         let id = resolveId(context: context)
-        let classes = ["icon"] + context.cssClasses
         let el = ElementNode.build(
-            tag: "span", id: id,
-            classes: classes,
-            styles: context.inlineStyles,
+            tag: "span", id: id, classes: ["icon"] + context.cssClasses, styles: context.inlineStyles,
             extraAttrs: [("data-icon", escapeHTML(icon.systemName))]
         )
         return .element(el)
@@ -372,35 +309,23 @@ public struct HTMLRenderer: Sendable {
         let isCurrent = navLink.current || renderState.currentPath == navLink.destination
         var classes = ["nav-link"] + context.cssClasses
         if isCurrent { classes.append("nav-link-current") }
-        var extraAttrs: [(key: String, value: String)] = [
-            ("href", escapeHTML(navLink.destination)),
-            ("data-sparrow-nav", ""),
-        ]
+        var extraAttrs: [(key: String, value: String)] = [("href", escapeHTML(navLink.destination)), ("data-sparrow-nav", "")]
         if isCurrent { extraAttrs.append(("aria-current", "page")) }
         let el = ElementNode.build(
-            tag: "a", id: id,
-            classes: classes,
-            styles: context.inlineStyles,
-            extraAttrs: extraAttrs,
-            children: [.text(escapeHTML(navLink.label))]
+            tag: "a", id: id, classes: classes, styles: context.inlineStyles,
+            extraAttrs: extraAttrs, children: [.text(escapeHTML(navLink.label))]
         )
         return .element(el)
     }
 
     private func renderProgressViewVNode(_ pv: ProgressView, context: ModifierContext) -> VNode {
         let id = resolveId(context: context)
-        let classes = ["progress"] + context.cssClasses
         var extraAttrs: [(key: String, value: String)] = []
         if let value = pv.value {
             extraAttrs.append(("value", "\(value)"))
             extraAttrs.append(("max", "\(pv.total)"))
         }
-        let el = ElementNode.build(
-            tag: "progress", id: id,
-            classes: classes,
-            styles: context.inlineStyles,
-            extraAttrs: extraAttrs
-        )
+        let el = ElementNode.build(tag: "progress", id: id, classes: ["progress"] + context.cssClasses, styles: context.inlineStyles, extraAttrs: extraAttrs)
         return .element(el)
     }
 
@@ -413,38 +338,19 @@ public struct HTMLRenderer: Sendable {
         case .asset(let name): src = "/assets/\(escapeHTML(name))"
         case .url(let url): src = escapeHTML(url)
         }
-
         var extraAttrs: [(key: String, value: String)] = [
-            ("data-sparrow-rive", src),
-            ("data-sparrow-rive-fit", rive.fit.rawValue),
+            ("data-sparrow-rive", src), ("data-sparrow-rive-fit", rive.fit.rawValue),
         ]
-        if let sm = rive.stateMachine {
-            extraAttrs.append(("data-sparrow-rive-sm", escapeHTML(sm)))
-        }
-        if let artboard = rive.artboard {
-            extraAttrs.append(("data-sparrow-rive-artboard", escapeHTML(artboard)))
-        }
-        if rive.autoplay {
-            extraAttrs.append(("data-sparrow-rive-autoplay", ""))
-        }
-        if !rive.inputs.isEmpty {
-            extraAttrs.append(("data-sparrow-rive-inputs", escapeHTML(serializeRiveInputs(rive.inputs))))
-        }
-
+        if let sm = rive.stateMachine { extraAttrs.append(("data-sparrow-rive-sm", escapeHTML(sm))) }
+        if let artboard = rive.artboard { extraAttrs.append(("data-sparrow-rive-artboard", escapeHTML(artboard))) }
+        if rive.autoplay { extraAttrs.append(("data-sparrow-rive-autoplay", "")) }
+        if !rive.inputs.isEmpty { extraAttrs.append(("data-sparrow-rive-inputs", escapeHTML(serializeRiveInputs(rive.inputs)))) }
         if !rive.eventHandlers.isEmpty {
             let handlers = rive.eventHandlers
-            renderState.registerValueHandler(id: id) { eventName in
-                handlers[eventName]?()
-            }
+            renderState.registerValueHandler(id: id) { eventName in handlers[eventName]?() }
             extraAttrs.append(("data-sparrow-event", "rive"))
         }
-
-        let el = ElementNode.build(
-            tag: "canvas", id: id,
-            classes: context.cssClasses,
-            styles: context.inlineStyles,
-            extraAttrs: extraAttrs
-        )
+        let el = ElementNode.build(tag: "canvas", id: id, classes: context.cssClasses, styles: context.inlineStyles, extraAttrs: extraAttrs)
         return .element(el)
     }
 
@@ -457,26 +363,12 @@ public struct HTMLRenderer: Sendable {
         case .asset(let name): src = "/assets/\(escapeHTML(name))"
         case .url(let url): src = escapeHTML(url)
         }
-
-        var extraAttrs: [(key: String, value: String)] = [
-            ("data-sparrow-lottie", src),
-        ]
-        if lottie.loop {
-            extraAttrs.append(("data-sparrow-lottie-loop", ""))
-        }
-        if lottie.autoplay {
-            extraAttrs.append(("data-sparrow-lottie-autoplay", ""))
-        }
-        if lottie.speed != 1.0 {
-            extraAttrs.append(("data-sparrow-lottie-speed", "\(lottie.speed)"))
-        }
-        if lottie.direction != .forward {
-            extraAttrs.append(("data-sparrow-lottie-direction", "\(lottie.direction.rawValue)"))
-        }
-        if lottie.renderer != .svg {
-            extraAttrs.append(("data-sparrow-lottie-renderer", lottie.renderer.rawValue))
-        }
-
+        var extraAttrs: [(key: String, value: String)] = [("data-sparrow-lottie", src)]
+        if lottie.loop { extraAttrs.append(("data-sparrow-lottie-loop", "")) }
+        if lottie.autoplay { extraAttrs.append(("data-sparrow-lottie-autoplay", "")) }
+        if lottie.speed != 1.0 { extraAttrs.append(("data-sparrow-lottie-speed", "\(lottie.speed)")) }
+        if lottie.direction != .forward { extraAttrs.append(("data-sparrow-lottie-direction", "\(lottie.direction.rawValue)")) }
+        if lottie.renderer != .svg { extraAttrs.append(("data-sparrow-lottie-renderer", lottie.renderer.rawValue)) }
         let hasHandlers = lottie.onCompleteHandler != nil || lottie.onLoopCompleteHandler != nil
         if hasHandlers {
             let onComplete = lottie.onCompleteHandler
@@ -490,14 +382,102 @@ public struct HTMLRenderer: Sendable {
             }
             extraAttrs.append(("data-sparrow-event", "lottie"))
         }
-
-        let el = ElementNode.build(
-            tag: "div", id: id,
-            classes: context.cssClasses,
-            styles: context.inlineStyles,
-            extraAttrs: extraAttrs
-        )
+        let el = ElementNode.build(tag: "div", id: id, classes: context.cssClasses, styles: context.inlineStyles, extraAttrs: extraAttrs)
         return .element(el)
+    }
+
+    // MARK: - PhaseAnimator
+
+    private func renderPhaseAnimatorVNode(_ animator: any _PhaseAnimatorRenderable, context: ModifierContext) -> VNode {
+        let phaseCount = animator._phaseCount
+        guard phaseCount > 1 else {
+            if phaseCount == 1 { return renderAnyErasedVNode(animator._contentForPhase(0), modifierContext: context) }
+            return .fragment([])
+        }
+
+        // Render at each phase, extract inline styles from the VNode
+        var phaseStyles: [[String: String]] = []
+        var firstNode: VNode = .fragment([])
+        for i in 0..<phaseCount {
+            let node = renderAnyErasedVNode(animator._contentForPhase(i), modifierContext: ModifierContext())
+            if i == 0 { firstNode = node }
+            phaseStyles.append(extractVNodeStyles(node))
+        }
+
+        var allProps = Set<String>()
+        for styles in phaseStyles { allProps.formUnion(styles.keys) }
+        let animatedProps = allProps.filter { prop in
+            Set(phaseStyles.map { $0[prop] ?? "" }).count > 1
+        }
+        guard !animatedProps.isEmpty else { return firstNode }
+
+        let animName = "sp-phase-\(renderState.allocateId())"
+        var keyframeCSS = "@keyframes \(animName) { "
+        for (i, styles) in phaseStyles.enumerated() {
+            let pct = i * 100 / (phaseCount - 1)
+            let props = animatedProps.compactMap { prop -> String? in
+                guard let val = styles[prop] else { return nil }
+                return "\(prop): \(val)"
+            }
+            keyframeCSS += "\(pct)% { \(props.joined(separator: "; ")); } "
+        }
+        keyframeCSS += "}"
+
+        let totalDuration = (0..<phaseCount).reduce(0.0) { $0 + animator._animationForPhase($1).duration }
+        let id = resolveId(context: context)
+        var animStyles = context.inlineStyles
+        animStyles["animation"] = "\(animName) \(SparrowAnimation.default.formatDuration(totalDuration)) infinite"
+
+        // Emit the @keyframes as a raw text node before the animated wrapper
+        let styleNode = VNode.text("<style>\(keyframeCSS)</style>")
+        let wrapperEl = ElementNode.build(tag: "div", id: id, classes: context.cssClasses, styles: animStyles, children: [firstNode])
+        return .fragment([styleNode, .element(wrapperEl)])
+    }
+
+    // MARK: - KeyframeAnimator
+
+    private func renderKeyframeAnimatorVNode(_ animator: any _KeyframeAnimatorRenderable, context: ModifierContext) -> VNode {
+        let tracks = animator._tracks
+        guard !tracks.isEmpty else { return renderAnyErasedVNode(animator._contentForInitial(), modifierContext: context) }
+
+        let totalDuration = tracks.map { $0.totalDuration }.max() ?? 0
+        guard totalDuration > 0 else { return renderAnyErasedVNode(animator._contentForInitial(), modifierContext: context) }
+
+        var timePoints = Set<Double>([0])
+        for track in tracks {
+            var t = 0.0
+            for kf in track.keyframes { t += kf.duration; timePoints.insert(t) }
+        }
+
+        let animName = "sp-kf-\(renderState.allocateId())"
+        var keyframeCSS = "@keyframes \(animName) { "
+        for time in timePoints.sorted() {
+            let pct = Int((time / totalDuration) * 100)
+            var props: [String] = []
+            for track in tracks {
+                var t = 0.0
+                var value = track.keyframes.first?.cssValue ?? "0"
+                var timing = "linear"
+                for kf in track.keyframes {
+                    if t + kf.duration >= time { value = kf.cssValue; timing = kf.timingFunction; break }
+                    t += kf.duration; value = kf.cssValue
+                }
+                props.append("\(track.cssProperty): \(value)")
+                if timing != "linear" { props.append("animation-timing-function: \(timing)") }
+            }
+            keyframeCSS += "\(pct)% { \(props.joined(separator: "; ")); } "
+        }
+        keyframeCSS += "}"
+
+        let id = resolveId(context: context)
+        let contentNode = renderAnyErasedVNode(animator._contentForInitial(), modifierContext: ModifierContext())
+        let iterCount = animator._repeating ? "infinite" : "1"
+        var animStyles = context.inlineStyles
+        animStyles["animation"] = "\(animName) \(SparrowAnimation.default.formatDuration(totalDuration)) \(iterCount)"
+
+        let styleNode = VNode.text("<style>\(keyframeCSS)</style>")
+        let wrapperEl = ElementNode.build(tag: "div", id: id, classes: context.cssClasses, styles: animStyles, children: [contentNode])
+        return .fragment([styleNode, .element(wrapperEl)])
     }
 
     // MARK: - Content
@@ -506,11 +486,25 @@ public struct HTMLRenderer: Sendable {
         let contentChildren = renderState.contentSlotVNode.map { [$0] } ?? []
         let el = ElementNode.build(
             tag: "div", id: "sparrow-content",
-            classes: context.cssClasses,
-            styles: context.inlineStyles,
+            classes: context.cssClasses, styles: context.inlineStyles,
             children: contentChildren
         )
         return .element(el)
+    }
+
+    // MARK: - VNode style extraction
+
+    private func extractVNodeStyles(_ node: VNode) -> [String: String] {
+        guard case .element(let el) = node,
+              let styleStr = el.attributes["style"] else { return [:] }
+        var result: [String: String] = [:]
+        for pair in styleStr.split(separator: ";") {
+            let parts = pair.split(separator: ":", maxSplits: 1)
+            if parts.count == 2 {
+                result[parts[0].trimmingCharacters(in: .whitespaces)] = parts[1].trimmingCharacters(in: .whitespaces)
+            }
+        }
+        return result
     }
 }
 

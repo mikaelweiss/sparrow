@@ -743,6 +743,90 @@ public enum CSSGenerator {
     progress::-webkit-progress-value { background: var(--primary); border-radius: 9999px; }
 
     /* ============================================
+       ANIMATIONS & TRANSITIONS
+       ============================================ */
+
+    /* Transition state classes (used by .transition() modifier) */
+    .sp-opacity-0 { opacity: 0; }
+    .sp-opacity-1 { opacity: 1; }
+    .sp-scale-0 { transform: scale(0); }
+    .sp-scale-1 { transform: scale(1); }
+    .sp-translate-0 { transform: translate(0, 0); }
+    .sp-translate-x-full { transform: translateX(100%); }
+    .sp-translate-x-neg-full { transform: translateX(-100%); }
+    .sp-translate-y-full { transform: translateY(100%); }
+    .sp-translate-y-neg-full { transform: translateY(-100%); }
+
+    /* Keyframe animations */
+    @keyframes sp-spin {
+        to { transform: rotate(360deg); }
+    }
+    @keyframes sp-pulse {
+        50% { opacity: 0.5; }
+    }
+    @keyframes sp-ping {
+        75%, 100% { transform: scale(2); opacity: 0; }
+    }
+    @keyframes sp-bounce {
+        0%, 100% {
+            transform: translateY(-25%);
+            animation-timing-function: cubic-bezier(0.8, 0, 1, 1);
+        }
+        50% {
+            transform: translateY(0);
+            animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
+        }
+    }
+    @keyframes sp-wiggle {
+        0%, 100% { transform: rotate(0deg); }
+        25% { transform: rotate(-12deg); }
+        75% { transform: rotate(12deg); }
+    }
+    @keyframes sp-breathe {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.6; transform: scale(0.97); }
+    }
+    @keyframes sp-shimmer {
+        to { background-position: -200% 0; }
+    }
+
+    /* Animation utility classes */
+    .sp-animate-spin { animation: sp-spin 1s linear infinite; }
+    .sp-animate-pulse { animation: sp-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+    .sp-animate-ping { animation: sp-ping 1s cubic-bezier(0, 0, 0.2, 1) infinite; }
+    .sp-animate-bounce { animation: sp-bounce 1s infinite; }
+    .sp-animate-wiggle { animation: sp-wiggle 0.5s ease-in-out infinite; }
+    .sp-animate-breathe { animation: sp-breathe 3s ease-in-out infinite; }
+    .sp-animate-shimmer {
+        background: linear-gradient(90deg, transparent 25%, var(--muted) 50%, transparent 75%);
+        background-size: 200% 100%;
+        animation: sp-shimmer 1.5s infinite;
+    }
+
+    /* withAnimation — applied to sparrow-root during animated patches */
+    .sp-animating * { transition: var(--sp-animation) !important; }
+
+    /* View Transition API styles for navigation transitions */
+    ::view-transition-old(sparrow-page) {
+        animation: 200ms ease-out both sp-fade-out;
+    }
+    ::view-transition-new(sparrow-page) {
+        animation: 200ms ease-in both sp-fade-in;
+    }
+    @keyframes sp-fade-out { to { opacity: 0; } }
+    @keyframes sp-fade-in { from { opacity: 0; } }
+
+    /* Reduced motion — disables all animations and transitions */
+    @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
+            scroll-behavior: auto !important;
+        }
+    }
+
+    /* ============================================
        RESPONSIVE — mobile (<768px)
        ============================================ */
     @media (max-width: 767px) {
