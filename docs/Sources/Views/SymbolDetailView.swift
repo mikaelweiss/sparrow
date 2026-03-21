@@ -1,5 +1,4 @@
 import Sparrow
-import SparrowMarkdown
 
 /// Detail page for a single API symbol — shows declaration, doc comment, and members.
 struct SymbolDetailView: View {
@@ -10,7 +9,7 @@ struct SymbolDetailView: View {
             // Header
             VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 8) {
-                    Badge(symbol.kindDisplayName, style: badgeStyle)
+                    Badge(symbol.kindDisplayName, variant: badgeVariant)
                     Text(symbol.name)
                         .font(.largeTitle)
                 }
@@ -81,12 +80,12 @@ struct SymbolDetailView: View {
         symbol.children.filter { $0.kind == "swift.type.method" }
     }
 
-    private var badgeStyle: BadgeStyle {
+    private var badgeVariant: BadgeVariant {
         switch symbol.kind {
-        case "swift.protocol": return .info
-        case "swift.struct": return .success
-        case "swift.class": return .warning
-        case "swift.enum": return .default
+        case "swift.protocol": return .outline
+        case "swift.struct": return .default
+        case "swift.class": return .secondary
+        case "swift.enum": return .destructive
         default: return .default
         }
     }

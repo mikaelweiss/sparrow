@@ -20,7 +20,6 @@ let package = Package(
             name: "SparrowDocs",
             dependencies: [
                 .product(name: "Sparrow", package: parentPackage),
-                .product(name: "SparrowMarkdown", package: parentPackage),
             ],
             path: "Sources"
         ),

@@ -34,19 +34,47 @@ let symbolsBySlug: [String: DocSymbol] = {
     return map
 }()
 
+// MARK: - Layout
+
+struct DocsLayout: Layout {
+    init() {}
+
+    var body: some View {
+        HStack(spacing: 0) {
+            Sidebar {
+                SidebarHeader {
+                    NavigationLink("Sparrow", destination: "/")
+                        .font(.title3)
+                }
+                SidebarContent {
+                    SymbolListView(symbols: resolvedSymbols)
+                }
+            }
+            VStack(alignment: .leading) {
+                Content()
+                Spacer()
+                Divider()
+                HStack {
+                    Text("Built with Sparrow")
+                        .font(.footnote)
+                        .foreground(.textSecondary)
+                }
+                .padding(16)
+            }
+            .frame(maxWidth: .infinity)
+        }
+    }
+}
+
+// MARK: - App
+
 @main
 struct SparrowDocs: App {
     init() {}
 
     var routes: [Route] {
-        // Home page
-        Page("/", title: "Sparrow Documentation") {
-            SidebarLayout {
-                NavigationLink("Sparrow", destination: "/")
-                    .font(.title3)
-                Divider()
-                SymbolListView(symbols: resolvedSymbols)
-            } main: {
+        RouteGroup(layout: DocsLayout.self) {
+            Page("/", title: "Sparrow Documentation") {
                 VStack(alignment: .leading, spacing: 32) {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Sparrow")
@@ -87,51 +115,19 @@ struct SparrowDocs: App {
                         """)
                 }
                 .padding(32)
-
-                Spacer()
-                Footer {
-                    Text("Built with Sparrow")
-                }
             }
-        }
 
-        // API index
-        Page("/api", title: "API Reference — Sparrow") {
-            SidebarLayout {
-                NavigationLink("Sparrow", destination: "/")
-                    .font(.title3)
-                Divider()
-                SymbolListView(symbols: resolvedSymbols)
-            } main: {
+            Page("/api", title: "API Reference — Sparrow") {
                 APIIndexView(symbols: resolvedSymbols)
-
-                Spacer()
-                Footer {
-                    Text("Built with Sparrow")
-                }
             }
-        }
 
-        // Individual symbol detail pages
-        for sym in resolvedSymbols {
-            Page("/api/\(sym.slug)", title: "\(sym.name) — Sparrow") {
-                SidebarLayout {
-                    NavigationLink("Sparrow", destination: "/")
-                        .font(.title3)
-                    Divider()
-                    SymbolListView(symbols: resolvedSymbols)
-                } main: {
+            for sym in resolvedSymbols {
+                Page("/api/\(sym.slug)", title: "\(sym.name) — Sparrow") {
                     SymbolDetailView(symbol: sym)
-
-                    Spacer()
-                    Footer {
-                        Text("Built with Sparrow")
-                    }
                 }
             }
         }
 
-        // LLM-readable docs
         FileRoute("/llms.txt", file: "llms.txt")
     }
 }
