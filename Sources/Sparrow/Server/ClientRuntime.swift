@@ -11,6 +11,7 @@ enum ClientRuntime {
         var maxReconnectDelay = 5000;
         var reconnectTimer = null;
         var indicator = null;
+        var pendingFragment = null;
 
         // --- WebSocket connection ---
 
@@ -87,6 +88,15 @@ enum ClientRuntime {
                 case "page":
                     replacePage(msg);
                     break;
+                case "content":
+                    replaceContent(msg);
+                    break;
+                case "redirect":
+                    if (msg.url) {
+                        send({type: "navigate", url: msg.url});
+                        window.history.replaceState({}, "", msg.url);
+                    }
+                    break;
                 case "pong":
                     break;
             }
@@ -160,7 +170,35 @@ enum ClientRuntime {
             if (msg.title) {
                 document.title = msg.title;
             }
-            window.scrollTo(0, 0);
+            if (pendingFragment) {
+                var target = document.getElementById(pendingFragment);
+                if (target) {
+                    target.scrollIntoView({behavior: "smooth"});
+                }
+                pendingFragment = null;
+            } else {
+                window.scrollTo(0, 0);
+            }
+        }
+
+        function replaceContent(msg) {
+            var content = document.getElementById("sparrow-content");
+            if (content && msg.html) {
+                content.innerHTML = msg.html;
+            }
+            if (msg.title) {
+                document.title = msg.title;
+            }
+            if (pendingFragment) {
+                var target = document.getElementById(pendingFragment);
+                if (target) {
+                    target.scrollIntoView({behavior: "smooth"});
+                }
+                pendingFragment = null;
+            }
+            // Don't scroll to top — layout preserves position
+            var root = document.getElementById("sparrow-root");
+            if (root) activatePrimitives(root);
         }
 
         // --- Event capture (delegation on #sparrow-root) ---
@@ -213,61 +251,6 @@ enum ClientRuntime {
             });
         }
 
-        // --- Sidebar collapse toggle (client-side) ---
-
-        document.addEventListener("click", function(e) {
-            var btn = e.target.closest(".sidebar-collapse-btn");
-            if (btn) {
-                var sidebar = btn.closest(".sidebar-layout-sidebar");
-                if (sidebar) {
-                    sidebar.classList.toggle("sidebar-collapsed");
-                }
-                return;
-            }
-        });
-
-        // --- Mobile sidebar toggle ---
-
-        document.addEventListener("click", function(e) {
-            // Open via hamburger button
-            var hamburger = e.target.closest(".sidebar-mobile-toggle");
-            if (hamburger) {
-                var layout = hamburger.closest(".sidebar-layout");
-                if (layout) {
-                    var sidebar = layout.querySelector(".sidebar-layout-sidebar");
-                    if (sidebar) sidebar.classList.add("sidebar-open");
-                }
-                return;
-            }
-            // Close when clicking outside the sidebar on mobile
-            var sidebarOpen = document.querySelector(".sidebar-layout-sidebar.sidebar-open");
-            if (sidebarOpen && !e.target.closest(".sidebar-layout-sidebar")) {
-                sidebarOpen.classList.remove("sidebar-open");
-            }
-        });
-
-        // --- Menu toggle (client-side, no server round-trip) ---
-
-        document.addEventListener("click", function(e) {
-            var trigger = e.target.closest(".menu-trigger");
-            if (trigger) {
-                e.stopPropagation();
-                var menu = trigger.closest(".menu");
-                if (menu) {
-                    var content = menu.querySelector(".menu-content");
-                    if (content) {
-                        content.style.display = content.style.display === "block" ? "none" : "block";
-                    }
-                }
-                return;
-            }
-            // Close all open menus when clicking outside
-            var openMenus = document.querySelectorAll(".menu-content");
-            for (var i = 0; i < openMenus.length; i++) {
-                openMenus[i].style.display = "none";
-            }
-        });
-
         // --- Navigation (intercept internal links) ---
 
         document.addEventListener("click", function(e) {
@@ -275,12 +258,30 @@ enum ClientRuntime {
             if (link) {
                 e.preventDefault();
                 var url = link.getAttribute("href");
-                send({type: "navigate", url: url});
+                var hashIndex = url.indexOf("#");
+                var path = hashIndex >= 0 ? url.substring(0, hashIndex) : url;
+                var fragment = hashIndex >= 0 ? url.substring(hashIndex + 1) : null;
+
+                // Same-page fragment navigation — just scroll, no server round-trip
+                if (path === "" || path === location.pathname) {
+                    if (fragment) {
+                        var target = document.getElementById(fragment);
+                        if (target) target.scrollIntoView({behavior: "smooth"});
+                    }
+                    window.history.pushState({}, "", url);
+                    return;
+                }
+
+                // Cross-page navigation
+                if (fragment) pendingFragment = fragment;
+                send({type: "navigate", url: path});
                 window.history.pushState({}, "", url);
             }
         });
 
         window.addEventListener("popstate", function() {
+            var fragment = location.hash ? location.hash.substring(1) : null;
+            if (fragment) pendingFragment = fragment;
             send({type: "navigate", url: location.pathname});
         });
 

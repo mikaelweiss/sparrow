@@ -52,7 +52,7 @@ struct SparrowDocs: App {
                         Text("Sparrow")
                             .font(.largeTitle)
                         Text(
-                            "A batteries-included Swift web framework. SwiftUI-like code on the server, HTML/CSS in the browser."
+                            "A Swift web platform. SwiftUI-like code on the server, HTML/CSS in the browser."
                         )
                         .foreground(.textSecondary)
                     }

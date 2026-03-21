@@ -101,49 +101,9 @@ public struct HTMLRenderer: Sendable {
         if let pv = view as? ProgressView {
             return renderProgressView(pv, context: modifierContext)
         }
-        // SegmentedControl
-        if let seg = view as? SegmentedControl {
-            return renderSegmentedControl(seg, context: modifierContext)
-        }
-        // RadioGroup
-        if let radio = view as? RadioGroup {
-            return renderRadioGroup(radio, context: modifierContext)
-        }
-        // Checkbox
-        if let checkbox = view as? Checkbox {
-            return renderCheckbox(checkbox, context: modifierContext)
-        }
-        // Combobox
-        if let combo = view as? Combobox {
-            return renderCombobox(combo, context: modifierContext)
-        }
-        // ColorPicker
-        if let cp = view as? ColorPicker {
-            return renderColorPicker(cp, context: modifierContext)
-        }
-        // SearchField
-        if let sf = view as? SearchField {
-            return renderSearchField(sf, context: modifierContext)
-        }
-        // Skeleton
-        if let sk = view as? Skeleton {
-            return renderSkeleton(sk, context: modifierContext)
-        }
-        // Gauge
-        if let gauge = view as? Gauge {
-            return renderGauge(gauge, context: modifierContext)
-        }
-        // Accordion
-        if let acc = view as? Accordion {
-            return renderAccordion(acc, context: modifierContext)
-        }
-        // Pagination
-        if let pg = view as? Pagination {
-            return renderPagination(pg, context: modifierContext)
-        }
-        // DataTable
-        if let dt = view as? DataTable {
-            return renderDataTable(dt, context: modifierContext)
+        // Content (Layout placeholder)
+        if view is Content {
+            return renderContent(context: modifierContext)
         }
         // EmptyView
         if view is EmptyView {
@@ -156,13 +116,20 @@ public struct HTMLRenderer: Sendable {
         return nil
     }
 
+    /// Allocate an element ID, using a custom ID from `.id()` modifier if set.
+    /// Always advances the auto-counter for deterministic ID allocation.
+    func resolveId(context: ModifierContext) -> String {
+        let autoId = renderState.allocateId()
+        return context.customId ?? autoId
+    }
+
     // MARK: - Primitive renderers
 
     /// Text renders as the semantic HTML tag from its font modifier (h1 for .largeTitle,
     /// h2 for .title, etc.) or falls back to `<p>` if no font modifier is applied.
     /// Supports inline styling via TextSpans for concatenated text.
     private func renderText(_ text: Text, context: ModifierContext) -> String {
-        let id = renderState.allocateId()
+        let id = resolveId(context: context)
         let classes = context.cssClasses
         let styles = context.inlineStyles
         let idAttr = " id=\"\(id)\""
@@ -200,7 +167,7 @@ public struct HTMLRenderer: Sendable {
     }
 
     private func renderButton(_ button: Button, context: ModifierContext) -> String {
-        let id = renderState.allocateId()
+        let id = resolveId(context: context)
         renderState.registerHandler(id: id, handler: button.action)
 
         let classes = ["btn", button.variant.cssClass, button.size.cssClass] + context.cssClasses
@@ -211,7 +178,7 @@ public struct HTMLRenderer: Sendable {
     }
 
     private func renderLink(_ link: Link, context: ModifierContext) -> String {
-        let id = renderState.allocateId()
+        let id = resolveId(context: context)
         let classes = ["link"] + context.cssClasses
         let classAttr = " class=\"\(classes.joined(separator: " "))\""
         let styleAttr = context.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(context.inlineStyles))\""
@@ -221,14 +188,14 @@ public struct HTMLRenderer: Sendable {
     }
 
     private func renderSpacer(context: ModifierContext) -> String {
-        let id = renderState.allocateId()
+        let id = resolveId(context: context)
         let classes = ["flex-grow"] + context.cssClasses
         let classAttr = " class=\"\(classes.joined(separator: " "))\""
         return "        <div id=\"\(id)\"\(classAttr)></div>"
     }
 
     private func renderDivider(context: ModifierContext) -> String {
-        let id = renderState.allocateId()
+        let id = resolveId(context: context)
         let classes = ["divider"] + context.cssClasses
         let classAttr = " class=\"\(classes.joined(separator: " "))\""
         return "        <hr id=\"\(id)\"\(classAttr)>"
@@ -236,7 +203,7 @@ public struct HTMLRenderer: Sendable {
 
 
     private func renderMarkdown(_ md: Markdown, context: ModifierContext) -> String {
-        let id = renderState.allocateId()
+        let id = resolveId(context: context)
         let classes = ["markdown"] + context.cssClasses
         let classAttr = " class=\"\(classes.joined(separator: " "))\""
         let styleAttr = context.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(context.inlineStyles))\""
@@ -247,7 +214,7 @@ public struct HTMLRenderer: Sendable {
     /// Input fields use `data-sparrow-debounce="300"` — the client JS debounces input
     /// events by 300ms before sending to the server to avoid flooding the WebSocket.
     private func renderTextField(_ field: TextField, context: ModifierContext) -> String {
-        let id = renderState.allocateId()
+        let id = resolveId(context: context)
         let binding = field.text
         renderState.registerValueHandler(id: id) { newValue in
             binding.wrappedValue = newValue
@@ -261,7 +228,7 @@ public struct HTMLRenderer: Sendable {
     }
 
     private func renderSecureField(_ field: SecureField, context: ModifierContext) -> String {
-        let id = renderState.allocateId()
+        let id = resolveId(context: context)
         let binding = field.text
         renderState.registerValueHandler(id: id) { newValue in
             binding.wrappedValue = newValue
@@ -275,7 +242,7 @@ public struct HTMLRenderer: Sendable {
     }
 
     private func renderTextEditor(_ editor: TextEditor, context: ModifierContext) -> String {
-        let id = renderState.allocateId()
+        let id = resolveId(context: context)
         let binding = editor.text
         renderState.registerValueHandler(id: id) { newValue in
             binding.wrappedValue = newValue
@@ -288,7 +255,7 @@ public struct HTMLRenderer: Sendable {
     }
 
     private func renderToggle(_ toggle: Toggle, context: ModifierContext) -> String {
-        let id = renderState.allocateId()
+        let id = resolveId(context: context)
         let binding = toggle.isOn
         renderState.registerValueHandler(id: id) { newValue in
             binding.wrappedValue = (newValue == "true")
@@ -302,7 +269,7 @@ public struct HTMLRenderer: Sendable {
     }
 
     private func renderPicker(_ picker: Picker, context: ModifierContext) -> String {
-        let id = renderState.allocateId()
+        let id = resolveId(context: context)
         let binding = picker.selection
         renderState.registerValueHandler(id: id) { newValue in
             binding.wrappedValue = newValue
@@ -323,7 +290,7 @@ public struct HTMLRenderer: Sendable {
     }
 
     private func renderSlider(_ slider: Slider, context: ModifierContext) -> String {
-        let id = renderState.allocateId()
+        let id = resolveId(context: context)
         let binding = slider.value
         renderState.registerValueHandler(id: id) { newValue in
             if let d = Double(newValue) {
@@ -337,7 +304,7 @@ public struct HTMLRenderer: Sendable {
     }
 
     private func renderDatePicker(_ dp: DatePicker, context: ModifierContext) -> String {
-        let id = renderState.allocateId()
+        let id = resolveId(context: context)
         let binding = dp.selection
         renderState.registerValueHandler(id: id) { newValue in
             binding.wrappedValue = newValue
@@ -350,7 +317,7 @@ public struct HTMLRenderer: Sendable {
     }
 
     private func renderImage(_ img: Image, context: ModifierContext) -> String {
-        let id = renderState.allocateId()
+        let id = resolveId(context: context)
         let classes = ["img"] + context.cssClasses
         let classAttr = " class=\"\(classes.joined(separator: " "))\""
         let styleAttr = context.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(context.inlineStyles))\""
@@ -363,7 +330,7 @@ public struct HTMLRenderer: Sendable {
     }
 
     private func renderIcon(_ icon: Icon, context: ModifierContext) -> String {
-        let id = renderState.allocateId()
+        let id = resolveId(context: context)
         let classes = ["icon"] + context.cssClasses
         let classAttr = " class=\"\(classes.joined(separator: " "))\""
         let styleAttr = context.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(context.inlineStyles))\""
@@ -372,7 +339,7 @@ public struct HTMLRenderer: Sendable {
     }
 
     private func renderNavigationLink(_ navLink: NavigationLink, context: ModifierContext) -> String {
-        let id = renderState.allocateId()
+        let id = resolveId(context: context)
         var classes = ["nav-link"] + context.cssClasses
         if navLink.current {
             classes.append("nav-link-current")
@@ -389,7 +356,7 @@ public struct HTMLRenderer: Sendable {
 
 
     private func renderProgressView(_ pv: ProgressView, context: ModifierContext) -> String {
-        let id = renderState.allocateId()
+        let id = resolveId(context: context)
         let classes = ["progress"] + context.cssClasses
         let classAttr = " class=\"\(classes.joined(separator: " "))\""
         let styleAttr = context.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(context.inlineStyles))\""
@@ -402,230 +369,15 @@ public struct HTMLRenderer: Sendable {
 
 
 
-    private func renderSegmentedControl(_ seg: SegmentedControl, context: ModifierContext) -> String {
-        let id = renderState.allocateId()
-        let classes = ["segmented"] + context.cssClasses
-        let classAttr = " class=\"\(classes.joined(separator: " "))\""
+
+    /// Layout Content() placeholder — emits pre-rendered page HTML wrapped in a
+    /// targetable container so same-layout navigation can swap just this area.
+    private func renderContent(context: ModifierContext) -> String {
+        let contentHTML = renderState.contentSlot ?? ""
+        let classes = context.cssClasses
+        let classAttr = classes.isEmpty ? "" : " class=\"\(classes.joined(separator: " "))\""
         let styleAttr = context.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(context.inlineStyles))\""
-        let buttons = seg.options.map { opt in
-            let segId = renderState.allocateId()
-            let isSelected = opt.value == seg.selection
-            let selectedCls = isSelected ? " segmented-btn-active" : ""
-            let ariaSelected = isSelected ? " aria-selected=\"true\"" : " aria-selected=\"false\""
-            let tabindex = isSelected ? " tabindex=\"0\"" : " tabindex=\"-1\""
-            let escaped = escapeHTML(opt.label)
-            return "            <button id=\"\(segId)\" class=\"segmented-btn\(selectedCls)\" role=\"tab\"\(ariaSelected)\(tabindex) data-sparrow-roving-item data-sparrow-event=\"click\" data-value=\"\(escapeHTML(opt.value))\">\(escaped)</button>"
-        }.joined(separator: "\n")
-        return """
-                <div id="\(id)" role="tablist" data-sparrow-roving="horizontal"\(classAttr)\(styleAttr)>
-        \(buttons)
-                </div>
-        """
-    }
-
-    private func renderRadioGroup(_ radio: RadioGroup, context: ModifierContext) -> String {
-        let id = renderState.allocateId()
-        let classes = ["radio-group"] + context.cssClasses
-        let classAttr = " class=\"\(classes.joined(separator: " "))\""
-        let styleAttr = context.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(context.inlineStyles))\""
-        let groupName = "radio_\(id)"
-        let options = radio.options.map { opt in
-            let optId = renderState.allocateId()
-            let checked = opt.value == radio.selection ? " checked" : ""
-            let escaped = escapeHTML(opt.label)
-            return "            <label class=\"radio-option\" data-sparrow-roving-item><input id=\"\(optId)\" type=\"radio\" name=\"\(groupName)\" value=\"\(escapeHTML(opt.value))\"\(checked) data-sparrow-event=\"change\"> \(escaped)</label>"
-        }.joined(separator: "\n")
-        let legend = escapeHTML(radio.label)
-        return """
-                <fieldset id="\(id)"\(classAttr)\(styleAttr) role="radiogroup" data-sparrow-roving="vertical">
-                    <legend class="radio-legend">\(legend)</legend>
-        \(options)
-                </fieldset>
-        """
-    }
-
-    private func renderCheckbox(_ checkbox: Checkbox, context: ModifierContext) -> String {
-        let id = renderState.allocateId()
-        let classes = ["checkbox"] + context.cssClasses
-        let classAttr = " class=\"\(classes.joined(separator: " "))\""
-        let styleAttr = context.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(context.inlineStyles))\""
-        let checked = checkbox.isChecked ? " checked" : ""
-        let escaped = escapeHTML(checkbox.label)
-        return "        <label id=\"\(id)\"\(classAttr)\(styleAttr)><input type=\"checkbox\"\(checked) data-sparrow-event=\"change\"> \(escaped)</label>"
-    }
-
-    private func renderCombobox(_ combo: Combobox, context: ModifierContext) -> String {
-        let id = renderState.allocateId()
-        let listId = "dl_\(id)"
-        let classes = ["input", "combobox"] + context.cssClasses
-        let classAttr = " class=\"\(classes.joined(separator: " "))\""
-        let styleAttr = context.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(context.inlineStyles))\""
-        let options = combo.options.map { opt in
-            "            <option value=\"\(escapeHTML(opt.value))\">\(escapeHTML(opt.label))</option>"
-        }.joined(separator: "\n")
-        return """
-                <input id="\(id)" type="text" list="\(listId)" placeholder="\(escapeHTML(combo.label))" value="\(escapeHTML(combo.text))"\(classAttr)\(styleAttr) data-sparrow-event="input" data-sparrow-debounce="300">
-                <datalist id="\(listId)">
-        \(options)
-                </datalist>
-        """
-    }
-
-    private func renderColorPicker(_ cp: ColorPicker, context: ModifierContext) -> String {
-        let id = renderState.allocateId()
-        let classes = ["color-picker"] + context.cssClasses
-        let classAttr = " class=\"\(classes.joined(separator: " "))\""
-        let styleAttr = context.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(context.inlineStyles))\""
-        let escaped = escapeHTML(cp.label)
-        return "        <label id=\"\(id)\"\(classAttr)\(styleAttr)>\(escaped) <input type=\"color\" value=\"\(escapeHTML(cp.selection))\" data-sparrow-event=\"change\"></label>"
-    }
-
-    private func renderSearchField(_ sf: SearchField, context: ModifierContext) -> String {
-        let id = renderState.allocateId()
-        let classes = ["input", "search-field"] + context.cssClasses
-        let classAttr = " class=\"\(classes.joined(separator: " "))\""
-        let styleAttr = context.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(context.inlineStyles))\""
-        return "        <input id=\"\(id)\" type=\"search\" placeholder=\"\(escapeHTML(sf.placeholder))\" value=\"\(escapeHTML(sf.text))\"\(classAttr)\(styleAttr) data-sparrow-event=\"input\" data-sparrow-debounce=\"300\">"
-    }
-
-    private func renderSkeleton(_ sk: Skeleton, context: ModifierContext) -> String {
-        let id = renderState.allocateId()
-        switch sk.shape {
-        case .rectangle:
-            let classes = ["skeleton", "skeleton-rect"] + context.cssClasses
-            let classAttr = " class=\"\(classes.joined(separator: " "))\""
-            let styleAttr = context.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(context.inlineStyles))\""
-            return "        <div id=\"\(id)\"\(classAttr)\(styleAttr)></div>"
-        case .circle:
-            let classes = ["skeleton", "skeleton-circle"] + context.cssClasses
-            let classAttr = " class=\"\(classes.joined(separator: " "))\""
-            let styleAttr = context.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(context.inlineStyles))\""
-            return "        <div id=\"\(id)\"\(classAttr)\(styleAttr)></div>"
-        case .text(let lines):
-            let classes = ["skeleton-text"] + context.cssClasses
-            let classAttr = " class=\"\(classes.joined(separator: " "))\""
-            let styleAttr = context.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(context.inlineStyles))\""
-            let lineHTML = (0..<lines).map { i in
-                let lineId = i == 0 ? id : renderState.allocateId()
-                let widthClass = i == lines - 1 ? " skeleton-line-short" : ""
-                return "            <div id=\"\(lineId)\" class=\"skeleton skeleton-line\(widthClass)\"></div>"
-            }.joined(separator: "\n")
-            return """
-                    <div\(classAttr)\(styleAttr)>
-            \(lineHTML)
-                    </div>
-            """
-        }
-    }
-
-
-    private func renderGauge(_ gauge: Gauge, context: ModifierContext) -> String {
-        let id = renderState.allocateId()
-        let classes = ["gauge"] + context.cssClasses
-        let classAttr = " class=\"\(classes.joined(separator: " "))\""
-        let styleAttr = context.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(context.inlineStyles))\""
-        let label = gauge.label.isEmpty ? "" : " aria-label=\"\(escapeHTML(gauge.label))\""
-        return "        <meter id=\"\(id)\" min=\"\(gauge.range.lowerBound)\" max=\"\(gauge.range.upperBound)\" value=\"\(gauge.value)\"\(label)\(classAttr)\(styleAttr)></meter>"
-    }
-
-    private func renderAccordion(_ acc: Accordion, context: ModifierContext) -> String {
-        let id = renderState.allocateId()
-        let classes = ["accordion"] + context.cssClasses
-        let classAttr = " class=\"\(classes.joined(separator: " "))\""
-        let styleAttr = context.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(context.inlineStyles))\""
-        let nameAttr = acc.allowMultiple ? "" : " name=\"acc_\(id)\""
-        let items = acc.items.map { item in
-            let itemId = renderState.allocateId()
-            let open = item.isExpanded ? " open" : ""
-            return """
-                        <details id="\(itemId)" class="accordion-item"\(nameAttr)\(open)>
-                            <summary class="accordion-header">\(escapeHTML(item.label))</summary>
-                            <div class="accordion-content">\(escapeHTML(item.content))</div>
-                        </details>
-            """
-        }.joined(separator: "\n")
-        return """
-                <div id="\(id)"\(classAttr)\(styleAttr)>
-        \(items)
-                </div>
-        """
-    }
-
-
-    private func renderPagination(_ pg: Pagination, context: ModifierContext) -> String {
-        let id = renderState.allocateId()
-        let classes = ["pagination"] + context.cssClasses
-        let classAttr = " class=\"\(classes.joined(separator: " "))\""
-        let styleAttr = context.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(context.inlineStyles))\""
-
-        let prevId = renderState.allocateId()
-        let nextId = renderState.allocateId()
-        let prevDisabled = pg.currentPage <= 1 ? " disabled" : ""
-        let nextDisabled = pg.currentPage >= pg.totalPages ? " disabled" : ""
-
-        // Page number buttons (desktop only)
-        var pageButtons = ""
-        for page in 1...pg.totalPages {
-            let pageId = renderState.allocateId()
-            let activeCls = page == pg.currentPage ? " pagination-btn-active" : ""
-            pageButtons += "            <button id=\"\(pageId)\" class=\"pagination-btn pagination-page\(activeCls)\" data-sparrow-event=\"click\">\(page)</button>\n"
-        }
-
-        return """
-                <nav id="\(id)" aria-label="Pagination"\(classAttr)\(styleAttr)>
-                    <button id="\(prevId)" class="pagination-btn pagination-prev" data-sparrow-event="click"\(prevDisabled)>Previous</button>
-        \(pageButtons)            <button id="\(nextId)" class="pagination-btn pagination-next" data-sparrow-event="click"\(nextDisabled)>Next</button>
-                </nav>
-        """
-    }
-
-    private func renderDataTable(_ dt: DataTable, context: ModifierContext) -> String {
-        let id = renderState.allocateId()
-        let classes = ["data-table-wrapper"] + context.cssClasses
-        let classAttr = " class=\"\(classes.joined(separator: " "))\""
-        let styleAttr = context.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(context.inlineStyles))\""
-
-        let headers = dt.columns.map { col in
-            let alignCls: String
-            switch col.alignment {
-            case .leading: alignCls = "text-start"
-            case .center: alignCls = "text-center"
-            case .trailing: alignCls = "text-end"
-            }
-            return "                <th class=\"\(alignCls)\">\(escapeHTML(col.header))</th>"
-        }.joined(separator: "\n")
-
-        let rows = dt.rows.map { row in
-            let cells = row.enumerated().map { i, cell in
-                let alignCls: String
-                if i < dt.columns.count {
-                    switch dt.columns[i].alignment {
-                    case .leading: alignCls = "text-start"
-                    case .center: alignCls = "text-center"
-                    case .trailing: alignCls = "text-end"
-                    }
-                } else {
-                    alignCls = "text-start"
-                }
-                return "                <td class=\"\(alignCls)\">\(escapeHTML(cell))</td>"
-            }.joined(separator: "\n")
-            return "            <tr>\n\(cells)\n            </tr>"
-        }.joined(separator: "\n")
-
-        return """
-                <div id="\(id)"\(classAttr)\(styleAttr)>
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-        \(headers)
-                            </tr>
-                        </thead>
-                        <tbody>
-        \(rows)
-                        </tbody>
-                    </table>
-                </div>
-        """
+        return "        <div id=\"sparrow-content\"\(classAttr)\(styleAttr)>\n\(contentHTML)\n        </div>"
     }
 
     // MARK: - Helpers (internal, used by HTMLRenderable conformances)

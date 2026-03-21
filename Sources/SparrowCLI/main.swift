@@ -5,7 +5,7 @@ import SparrowCLICore
 struct SparrowCLI: ParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "sparrow",
-        abstract: "Sparrow — a batteries-included Swift web framework",
+        abstract: "Sparrow — a Swift web platform",
         subcommands: [Serve.self, Build.self, New.self],
         defaultSubcommand: Serve.self
     )

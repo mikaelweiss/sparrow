@@ -2,15 +2,15 @@
 
 ## What Sparrow Is
 
-Sparrow is a batteries-included Swift web framework. You write SwiftUI-like Swift code. It renders to server-side HTML/CSS and delivers it to the browser. The developer writes zero HTML, zero CSS, zero JavaScript.
+Sparrow is a Swift web platform. You write SwiftUI-like Swift code. It renders to server-side HTML/CSS and delivers it to the browser. The developer writes zero HTML, zero CSS, zero JavaScript.
 
 ## Who It's For
 
-Developers building new web projects with AI assistance. People who want to ship a beautiful, functional web app without making 50 tooling decisions first.
+Developers who want to build a web app the way iOS developers build iOS apps — open the project, write your code, and ship. No tooling decisions, no dependency wiring, no stack assembly.
 
 ## Core Principles
 
-1. **Zero decision fatigue.** Everything is built in. You don't choose a router, a state manager, a CSS framework, an auth library, or a component library. Sparrow has one answer for each, and it works.
+1. **Zero decision fatigue.** You don't choose a router, a state manager, a CSS framework, an auth library, or a component library. Sparrow has one answer for each, and it works. It's a platform, not a collection of libraries.
 
 2. **Beautiful by default.** The built-in design system produces professional UI out of the box. `Button("Submit", style: .primary)` looks good without design skills. No "AI slop" aesthetic.
 
@@ -31,7 +31,7 @@ Developers building new web projects with AI assistance. People who want to ship
 
 ## The One-Liner
 
-**SwiftUI for the web. Everything included. Ship in minutes.**
+**SwiftUI for the web. Just build your app.**
 
 ## Inspirations
 

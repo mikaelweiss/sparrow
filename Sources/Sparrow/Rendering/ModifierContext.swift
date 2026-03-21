@@ -4,6 +4,8 @@ public struct ModifierContext {
     public var inlineStyles: [String: String] = [:]
     /// The HTML tag override from a font modifier (e.g., "h1" for .largeTitle).
     public var htmlTag: String? = nil
+    /// Custom HTML id from `.id("section")` modifier, for anchor/fragment links.
+    public var customId: String? = nil
 
     public init() {}
 
@@ -17,6 +19,10 @@ public struct ModifierContext {
         // Check if this is a font modifier and extract the HTML tag
         if let fontMod = modifier as? FontModifier, let tag = fontMod.font.htmlTag {
             copy.htmlTag = tag
+        }
+        // Check if this is an ID modifier and extract the custom ID
+        if let idMod = modifier as? IDModifier {
+            copy.customId = idMod.identifier
         }
         return copy
     }
