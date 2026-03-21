@@ -34,9 +34,9 @@ struct CSSGeneratorTests {
         #expect(css.contains("--spacing-16:"))
     }
 
-    @Test("Stylesheet includes dark mode media query")
+    @Test("Stylesheet includes class-based dark mode")
     func darkMode() {
-        #expect(CSSGenerator.defaultStylesheet.contains("prefers-color-scheme: dark"))
+        #expect(CSSGenerator.defaultStylesheet.contains(".dark {"))
     }
 
     @Test("Stylesheet includes flexbox utility classes")
