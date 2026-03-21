@@ -72,10 +72,13 @@ public struct SparrowServer: Sendable {
             }
         }
 
-        // Catch-all route handler — matches all GET requests against our routes
-        httpRouter.get("**") { request, _ -> Response in
+        // Route handler — Hummingbird's "**" wildcard doesn't match "/",
+        // so we register the root path explicitly alongside the catch-all.
+        let handleRoute: @Sendable (Request, BasicRequestContext) async throws -> Response = { request, _ in
             Self.handleHTTPRequest(path: request.uri.path, routes: allRoutes, themeCSS: themeCSS)
         }
+        httpRouter.get("/", use: handleRoute)
+        httpRouter.get("**", use: handleRoute)
 
         // WebSocket router for live interactivity
         let wsRouter = Router(context: BasicWebSocketRequestContext.self)
