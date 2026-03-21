@@ -42,6 +42,7 @@ Detailed specs in `specs/`. Read the relevant spec before implementing a feature
 | Transitions, animation curves, CSS-based | `specs/17-animations.md` |
 | Forms, validators, file upload | `specs/18-forms-validation.md` |
 | Plain text & markdown routes, llms.txt | `specs/20-plain-text-routes.md` |
+| Live previews, #Preview macro, Zed extension | `specs/21-live-previews.md` |
 | Vision, philosophy, inspirations | `specs/01-vision.md` |
 | Full architecture diagram, request lifecycle | `specs/02-architecture.md` |
 

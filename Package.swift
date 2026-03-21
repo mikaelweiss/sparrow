@@ -1,5 +1,6 @@
 // swift-tools-version: 6.2
 
+import CompilerPluginSupport
 import PackageDescription
 
 let package = Package(
@@ -15,6 +16,7 @@ let package = Package(
         .package(url: "https://github.com/hummingbird-project/hummingbird-websocket.git", from: "2.0.0"),
         .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.3.0"),
         .package(url: "https://github.com/swiftlang/swift-markdown.git", from: "0.5.0"),
+        .package(url: "https://github.com/swiftlang/swift-syntax.git", from: "602.0.0-latest"),
     ],
     targets: [
         .target(
@@ -23,12 +25,20 @@ let package = Package(
                 .product(name: "Markdown", package: "swift-markdown"),
             ]
         ),
+        .macro(
+            name: "SparrowMacros",
+            dependencies: [
+                .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
+                .product(name: "SwiftCompilerPlugin", package: "swift-syntax"),
+            ]
+        ),
         .target(
             name: "Sparrow",
             dependencies: [
                 .product(name: "Hummingbird", package: "hummingbird"),
                 .product(name: "HummingbirdWebSocket", package: "hummingbird-websocket"),
                 "SparrowMarkdown",
+                "SparrowMacros",
             ]
         ),
         .target(
@@ -51,6 +61,13 @@ let package = Package(
         .testTarget(
             name: "SparrowCLICoreTests",
             dependencies: ["SparrowCLICore"]
+        ),
+        .testTarget(
+            name: "SparrowMacrosTests",
+            dependencies: [
+                "SparrowMacros",
+                .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax"),
+            ]
         ),
     ]
 )

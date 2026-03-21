@@ -301,7 +301,7 @@ public struct New: ParsableCommand {
 
             var body: some View {
                 VStack(spacing: 12) {
-                    TextField("Your name", text: \\$name)
+                    TextField("Your name", text: $name)
                     if !name.isEmpty {
                         Text("Hello, \\(name)!")
                             .font(.title2)
@@ -327,12 +327,24 @@ public struct New: ParsableCommand {
                 }
             }
         }
+
+        #Preview("\(name)", layout: .fullPage) {
+            VStack(spacing: 24) {
+                Text("Welcome to \(name)")
+                    .font(.largeTitle)
+                Greeter()
+                Counter()
+                Link("sparrowframework.dev", url: "https://sparrowframework.dev")
+            }
+            .padding(32)
+        }
         """
         try appSwift.write(toFile: sourcesDir + "/App.swift", atomically: true, encoding: .utf8)
 
         // .gitignore
         let gitignore = """
         .build/
+        .sparrow/
         Package.resolved
         .env
         .DS_Store
