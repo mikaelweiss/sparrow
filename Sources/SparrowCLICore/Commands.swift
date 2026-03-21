@@ -293,53 +293,54 @@ public struct New: ParsableCommand {
         let appSwift = """
         import Sparrow
 
-        struct Counter: View {
-            @State var count = 0
-
-            var body: some View {
-                HStack(spacing: 16) {
-                    Button("-") {
-                        count -= 1
-                    }
-                    .clipShape(.circle)
-                    Text("\\(count)")
-                        .font(.title)
-                    Button("+") {
-                        count += 1
-                    }
-                    .clipShape(.circle)
-                }
-            }
-        }
-
-        struct Greeter: View {
-            @State var name = ""
-
-            var body: some View {
-                VStack(spacing: 12) {
-                    TextField("Your name", text: \\$name)
-                    if !name.isEmpty {
-                        Text("Hello, \\(name)!")
-                            .font(.title2)
-                    }
-                }
-            }
-        }
-
         @main
         struct \(name): App {
+            @State var count = 0
             init() {}
 
             var routes: [Route] {
                 Page("/") {
-                    VStack(spacing: 24) {
-                        Text("Welcome to \(name)")
-                            .font(.largeTitle)
-                        Greeter()
-                        Counter()
-                        Link("sparrowframework.dev", url: "https://sparrowframework.dev")
+                    VStack(spacing: 48) {
+                        Spacer()
+
+                        VStack(spacing: 16) {
+                            Icon("bird")
+                                .font(.largeTitle)
+                                .foreground(.accent)
+
+                            Text("Welcome to \(name)!")
+                                .font(.largeTitle)
+                                .bold()
+
+                            Text("Simplicity for the web.")
+                                .font(.title3)
+                                .foreground(.textSecondary)
+                        }
+
+                        VStack(spacing: 12) {
+                            HStack(spacing: 16) {
+                                Button("-") { count -= 1 }
+                                Text("\\(count)").font(.title)
+                                Button("+") { count += 1 }
+                            }
+                        }
+                        .padding(24)
+                        .background(.surface)
+                        .cornerRadius(.lg)
+                        Spacer()
+                        VStack(spacing: 8) {
+                            HStack(spacing: 16) {
+                                Link("Docs", url: "https://sparrow.dev/docs")
+                                Spacer()
+                                Link("GitHub", url: "https://github.com/code-puppies/sparrow")
+                            }
+                            .font(.callout)
+                        }
+
+                        Spacer()
                     }
                     .padding(32)
+                    .frame(maxWidth: .infinity)
                 }
             }
         }
