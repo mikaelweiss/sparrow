@@ -44,6 +44,18 @@ extension EventModifying {
     var eventAttributes: [String: String] { [:] }
 }
 
+/// Protocol for iteratively unwrapping ModifiedView chains without recursion.
+/// Used by the renderer to avoid stack overflow on deeply nested modifier chains.
+protocol ModifiedViewUnwrapping {
+    var unwrappedContent: any View { get }
+    var unwrappedModifier: any ViewModifier { get }
+}
+
+extension ModifiedView: ModifiedViewUnwrapping {
+    var unwrappedContent: any View { content }
+    var unwrappedModifier: any ViewModifier { modifier }
+}
+
 extension View {
     /// Apply a modifier to this view.
     public func modifier<M: ViewModifier>(_ modifier: M) -> ModifiedView<Self, M> {

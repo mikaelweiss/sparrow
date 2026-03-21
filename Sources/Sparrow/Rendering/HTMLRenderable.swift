@@ -71,44 +71,11 @@ extension TupleView: VNodeRenderable {
     }
 }
 
-extension ModifiedView: VNodeRenderable {
-    func renderVNode(with renderer: HTMLRenderer, modifierContext: ModifierContext) -> VNode {
-        if modifier.createsLayer {
-            let innerNode = renderer.renderAnyErasedVNode(content, modifierContext: modifierContext)
-            let id = renderer.resolveId(context: modifierContext)
-            var extraAttrs = modifier.htmlAttributes.sorted(by: { $0.key < $1.key }).map { (key: $0.key, value: $0.value) }
-            // Register event handlers for event modifiers
-            if let eventMod = modifier as? any EventModifying {
-                eventMod.registerEvents(id: id, with: renderer.renderState)
-                for (key, value) in eventMod.eventAttributes {
-                    extraAttrs.append((key: key, value: value))
-                }
-            }
-            let el = ElementNode.build(
-                tag: "div", id: id,
-                classes: modifier.cssClasses,
-                styles: modifier.inlineStyles,
-                extraAttrs: extraAttrs,
-                children: [innerNode]
-            )
-            return .element(el)
-        } else {
-            let newContext = modifierContext.applying(modifier)
-            // Register event handlers for flat event modifiers
-            if let eventMod = modifier as? any EventModifying {
-                let id = renderer.resolveId(context: modifierContext)
-                eventMod.registerEvents(id: id, with: renderer.renderState)
-            }
-            return renderer.renderAnyErasedVNode(content, modifierContext: newContext)
-        }
-    }
-}
-
 extension ConditionalView: VNodeRenderable {
     func renderVNode(with renderer: HTMLRenderer, modifierContext: ModifierContext) -> VNode {
         switch self {
-        case .first(let view): return renderer.renderAnyErasedVNode(view, modifierContext: modifierContext)
-        case .second(let view): return renderer.renderAnyErasedVNode(view, modifierContext: modifierContext)
+        case .first(let view): return renderer.renderView(view, modifierContext: modifierContext)
+        case .second(let view): return renderer.renderView(view, modifierContext: modifierContext)
         }
     }
 }
@@ -159,7 +126,7 @@ extension List: VNodeRenderable {
         let children = flattenChildren(content)
         let liNodes: [VNode] = children.map { child in
             let liId = renderer.renderState.allocateId()
-            let inner = renderer.renderAnyErasedVNode(child, modifierContext: ModifierContext())
+            let inner = renderer.renderView(child, modifierContext: ModifierContext())
             return .element(ElementNode.build(tag: "li", id: liId, children: [inner]))
         }
         let tag = ordered ? "ol" : "ul"
@@ -205,7 +172,7 @@ extension Section: VNodeRenderable {
 extension ForEach: VNodeRenderable {
     func renderVNode(with renderer: HTMLRenderer, modifierContext: ModifierContext) -> VNode {
         let nodes = data.map { element in
-            renderer.renderAnyErasedVNode(content(element), modifierContext: modifierContext)
+            renderer.renderView(content(element), modifierContext: modifierContext)
         }
         return .fragment(nodes)
     }

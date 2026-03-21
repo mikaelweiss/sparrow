@@ -30,17 +30,25 @@ public struct HTMLRenderer: Sendable {
 
     /// Render a view to a virtual DOM tree. Used by SessionActor for diffing.
     public func renderVNode(_ view: some View) -> VNode {
-        renderAnyVNode(view, modifierContext: ModifierContext())
+        renderView(view, modifierContext: ModifierContext())
     }
 
-    func renderAnyVNode(_ view: some View, modifierContext: ModifierContext) -> VNode {
-        if let result = renderKnownVNode(view, modifierContext: modifierContext) {
+    /// Main render entry point — uses existential dispatch to avoid monomorphizing
+    /// for huge body types (which would cause stack overflows from large stack frames).
+    func renderView(_ view: any View, modifierContext: ModifierContext) -> VNode {
+        // ModifiedView chains: unwrap iteratively
+        if let modified = view as? any ModifiedViewUnwrapping {
+            return renderModifiedViewChain(modified, modifierContext: modifierContext)
+        }
+        // Primitive views and structural containers
+        if let result = renderKnownView(view, modifierContext: modifierContext) {
             return result
         }
-        return renderAnyVNode(view.body, modifierContext: ModifierContext())
+        // User-defined composite view: render its body (type-erased, stays on heap)
+        return renderView(view.body, modifierContext: ModifierContext())
     }
 
-    private func renderKnownVNode(_ view: some View, modifierContext: ModifierContext) -> VNode? {
+    private func renderKnownView(_ view: any View, modifierContext: ModifierContext) -> VNode? {
         if let text = view as? Text { return renderTextVNode(text, context: modifierContext) }
         if let button = view as? Button { return renderButtonVNode(button, context: modifierContext) }
         if let link = view as? Link { return renderLinkVNode(link, context: modifierContext) }
@@ -66,15 +74,75 @@ public struct HTMLRenderer: Sendable {
         return nil
     }
 
-    func renderAnyErasedVNode(_ view: any View, modifierContext: ModifierContext) -> VNode {
-        func doRender<V: View>(_ v: V) -> VNode {
-            renderAnyVNode(v, modifierContext: modifierContext)
+    /// Iteratively unwrap a ModifiedView chain and render it without recursion.
+    /// Collects all modifiers, applies flat ones to the context, renders the leaf,
+    /// then wraps with layer-creating modifier divs from inside out.
+    func renderModifiedViewChain(_ outermost: any ModifiedViewUnwrapping, modifierContext: ModifierContext) -> VNode {
+        // Collect modifiers from outer to inner
+        var modifiers: [any ViewModifier] = []
+        var leaf: any View = outermost.unwrappedContent
+        modifiers.append(outermost.unwrappedModifier)
+
+        while let modified = leaf as? any ModifiedViewUnwrapping {
+            modifiers.append(modified.unwrappedModifier)
+            leaf = modified.unwrappedContent
         }
-        return doRender(view)
+        // modifiers[0] = outermost, modifiers.last = innermost
+
+        // Separate flat modifiers (accumulate onto context) from layer modifiers (create wrapper divs).
+        // Layer modifiers pass the context through unchanged; flat modifiers enrich it.
+        var context = modifierContext
+
+        struct LayerInfo {
+            let modifier: any ViewModifier
+            let id: String
+        }
+        var layers: [LayerInfo] = []
+
+        for mod in modifiers {
+            if mod.createsLayer {
+                let id = resolveId(context: context)
+                if let eventMod = mod as? any EventModifying {
+                    eventMod.registerEvents(id: id, with: renderState)
+                }
+                layers.append(LayerInfo(modifier: mod, id: id))
+            } else {
+                context = context.applying(mod)
+                if let eventMod = mod as? any EventModifying {
+                    let id = resolveId(context: context)
+                    eventMod.registerEvents(id: id, with: renderState)
+                }
+            }
+        }
+
+        // Render the leaf view with accumulated flat modifier context
+        var node = renderView(leaf, modifierContext: context)
+
+        // Wrap with layer divs from innermost to outermost
+        for layer in layers.reversed() {
+            var extraAttrs = layer.modifier.htmlAttributes
+                .sorted(by: { $0.key < $1.key })
+                .map { (key: $0.key, value: $0.value) }
+            if let eventMod = layer.modifier as? any EventModifying {
+                for (key, value) in eventMod.eventAttributes {
+                    extraAttrs.append((key: key, value: value))
+                }
+            }
+            let el = ElementNode.build(
+                tag: "div", id: layer.id,
+                classes: layer.modifier.cssClasses,
+                styles: layer.modifier.inlineStyles,
+                extraAttrs: extraAttrs,
+                children: [node]
+            )
+            node = .element(el)
+        }
+
+        return node
     }
 
     func renderChildrenVNodes(_ views: [any View], modifierContext: ModifierContext = ModifierContext()) -> [VNode] {
-        views.map { renderAnyErasedVNode($0, modifierContext: modifierContext) }
+        views.map { renderView($0, modifierContext: modifierContext) }
     }
 
     // MARK: - VNode primitive renderers
