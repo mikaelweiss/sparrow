@@ -15,37 +15,19 @@ public struct Sidebar<Content: View>: View {
 public struct SidebarHeader<Content: View>: View {
     let content: Content
     public init(@ViewBuilder content: () -> Content) { self.content = content() }
-
-    public var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            content
-        }
-        .padding(16)
-    }
+    public var body: Never { fatalError() }
 }
 
 public struct SidebarContent<Content: View>: View {
     let content: Content
     public init(@ViewBuilder content: () -> Content) { self.content = content() }
-
-    public var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            content
-        }
-        .padding(16)
-    }
+    public var body: Never { fatalError() }
 }
 
 public struct SidebarFooter<Content: View>: View {
     let content: Content
     public init(@ViewBuilder content: () -> Content) { self.content = content() }
-
-    public var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            content
-        }
-        .padding(16)
-    }
+    public var body: Never { fatalError() }
 }
 
 public struct SidebarGroup<Content: View>: View {
@@ -55,21 +37,7 @@ public struct SidebarGroup<Content: View>: View {
         self.label = label
         self.content = content()
     }
-
-    @ViewBuilder
-    public var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            if let label {
-                Text(label)
-                    .font(.caption)
-                    .fontWeight(.medium)
-                    .foreground(.mutedForeground)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-            }
-            content
-        }
-    }
+    public var body: Never { fatalError() }
 }
 
 /// PrimitiveView — text label in sidebar.
@@ -81,11 +49,70 @@ public struct SidebarGroupLabel: PrimitiveView, Sendable {
 public struct SidebarMenuItem<Content: View>: View {
     let content: Content
     public init(@ViewBuilder content: () -> Content) { self.content = content() }
+    public var body: Never { fatalError() }
+}
 
-    public var body: some View {
-        VStack(alignment: .leading) {
-            content
+// MARK: - VNodeRenderable
+
+extension SidebarHeader: VNodeRenderable {
+    func renderVNode(with renderer: HTMLRenderer, modifierContext: ModifierContext) -> VNode {
+        let id = renderer.resolveId(context: modifierContext)
+        let children = flattenChildren(content)
+        let childNodes = renderer.renderChildrenVNodes(children)
+        let classes = ["sidebar-header"] + modifierContext.cssClasses
+        let el = ElementNode.build(tag: "div", id: id, classes: classes, styles: modifierContext.inlineStyles, extraAttrs: modifierContext.allExtraAttributePairs, children: childNodes)
+        return .element(el)
+    }
+}
+
+extension SidebarContent: VNodeRenderable {
+    func renderVNode(with renderer: HTMLRenderer, modifierContext: ModifierContext) -> VNode {
+        let id = renderer.resolveId(context: modifierContext)
+        let children = flattenChildren(content)
+        let childNodes = renderer.renderChildrenVNodes(children)
+        let classes = ["sidebar-content"] + modifierContext.cssClasses
+        let el = ElementNode.build(tag: "div", id: id, classes: classes, styles: modifierContext.inlineStyles, extraAttrs: modifierContext.allExtraAttributePairs, children: childNodes)
+        return .element(el)
+    }
+}
+
+extension SidebarFooter: VNodeRenderable {
+    func renderVNode(with renderer: HTMLRenderer, modifierContext: ModifierContext) -> VNode {
+        let id = renderer.resolveId(context: modifierContext)
+        let children = flattenChildren(content)
+        let childNodes = renderer.renderChildrenVNodes(children)
+        let classes = ["sidebar-footer"] + modifierContext.cssClasses
+        let el = ElementNode.build(tag: "div", id: id, classes: classes, styles: modifierContext.inlineStyles, extraAttrs: modifierContext.allExtraAttributePairs, children: childNodes)
+        return .element(el)
+    }
+}
+
+extension SidebarGroup: VNodeRenderable {
+    func renderVNode(with renderer: HTMLRenderer, modifierContext: ModifierContext) -> VNode {
+        let id = renderer.resolveId(context: modifierContext)
+        let children = flattenChildren(content)
+        let childNodes = renderer.renderChildrenVNodes(children)
+        let classes = ["sidebar-group"] + modifierContext.cssClasses
+        var allChildren: [VNode] = []
+        if let label {
+            let labelId = renderer.renderState.allocateId()
+            let labelEl = ElementNode.build(tag: "div", id: labelId, classes: ["sidebar-group-label"], children: [.text(escapeHTML(label))])
+            allChildren.append(.element(labelEl))
         }
+        allChildren.append(contentsOf: childNodes)
+        let el = ElementNode.build(tag: "div", id: id, classes: classes, styles: modifierContext.inlineStyles, extraAttrs: modifierContext.allExtraAttributePairs, children: allChildren)
+        return .element(el)
+    }
+}
+
+extension SidebarMenuItem: VNodeRenderable {
+    func renderVNode(with renderer: HTMLRenderer, modifierContext: ModifierContext) -> VNode {
+        let id = renderer.resolveId(context: modifierContext)
+        let children = flattenChildren(content)
+        let childNodes = renderer.renderChildrenVNodes(children)
+        let classes = ["sidebar-menu-item"] + modifierContext.cssClasses
+        let el = ElementNode.build(tag: "div", id: id, classes: classes, styles: modifierContext.inlineStyles, extraAttrs: modifierContext.allExtraAttributePairs, children: childNodes)
+        return .element(el)
     }
 }
 
