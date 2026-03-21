@@ -8,14 +8,17 @@ struct Patch: Sendable {
     let value: String?
     let attr: String?
     let beforeId: String?
+    /// CSS transition to apply when animating this patch (from withAnimation).
+    let animation: String?
 
-    init(op: String, target: String, html: String? = nil, value: String? = nil, attr: String? = nil, beforeId: String? = nil) {
+    init(op: String, target: String, html: String? = nil, value: String? = nil, attr: String? = nil, beforeId: String? = nil, animation: String? = nil) {
         self.op = op
         self.target = target
         self.html = html
         self.value = value
         self.attr = attr
         self.beforeId = beforeId
+        self.animation = animation
     }
 
     func toJSON() -> String {
@@ -24,6 +27,7 @@ struct Patch: Sendable {
         if let value { parts.append("\"value\":\(jsonEscape(value))") }
         if let attr { parts.append("\"attr\":\(jsonEscape(attr))") }
         if let beforeId { parts.append("\"beforeId\":\(jsonEscape(beforeId))") }
+        if let animation { parts.append("\"animation\":\(jsonEscape(animation))") }
         return "{\(parts.joined(separator: ","))}"
     }
 }
@@ -89,7 +93,7 @@ actor SessionActor {
                 handler()
             }
 
-        case "input", "change":
+        case "input", "change", "rive", "lottie":
             guard let value, let handler = valueHandlers[id] else { return nil }
             StateStorage.$current.withValue(stateStore) {
                 handler(value)
@@ -99,11 +103,21 @@ actor SessionActor {
             return nil
         }
 
+        // Capture pending animation (set by withAnimation) before re-render clears it
+        let animationCSS = stateStore.pendingAnimation?.cssTransition
+        stateStore.pendingAnimation = nil
+
         let result = Self.doRender(renderBody: renderBody, stateStore: stateStore)
         self.eventHandlers = result.eventHandlers
         self.valueHandlers = result.valueHandlers
 
-        let patches = diffVNode(old: lastVNode, new: result.vnode, parentId: "sparrow-root")
+        var patches = diffVNode(old: lastVNode, new: result.vnode, parentId: "sparrow-root")
+
+        // If withAnimation was used, tag the first patch with the animation CSS
+        if let animationCSS, !patches.isEmpty {
+            let first = patches[0]
+            patches[0] = Patch(op: first.op, target: first.target, html: first.html, value: first.value, attr: first.attr, beforeId: first.beforeId, animation: animationCSS)
+        }
 
         if !patches.isEmpty {
             self.lastVNode = result.vnode
@@ -123,7 +137,6 @@ actor SessionActor {
         let html = StateStorage.$current.withValue(stateStore) {
             renderBody(renderer)
         }
-        // HTMLRenderer.render() now builds a VNode tree internally and stores it
         let vnode = renderer.renderState.rootVNode ?? .fragment([])
         return RenderResult(
             vnode: vnode,

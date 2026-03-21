@@ -324,6 +324,10 @@ enum ClientRuntime {
             activatePresence(root);
             activateRovingFocus(root);
             activateFloating(root);
+            activateRive(root);
+            activateLottie(root);
+            updateRiveInputs(root);
+            activateScrollTransitions(root);
         }
 
         // --- FocusTrap ---
@@ -646,10 +650,190 @@ enum ClientRuntime {
             for (var i = 0; i < floats.length; i++) positionFloating(floats[i]);
         });
 
+        // --- Script loader (shared) ---
+
+        function loadScript(url, onLoad) {
+            var s = document.createElement("script");
+            s.src = url;
+            s.onload = onLoad;
+            s.onerror = function() { console.error("Sparrow: failed to load " + url); };
+            document.head.appendChild(s);
+        }
+
+        // --- Rive Animations ---
+        // Lazy-loads the Rive WASM runtime from CDN when a RiveAnimation
+        // view is first encountered. Subsequent activations reuse the runtime.
+
+        var riveReady = false;
+        var riveQueue = [];
+        var riveInstances = {};
+
+        function activateRive(root) {
+            var els = root.querySelectorAll("[data-sparrow-rive]:not([data-sparrow-rive-init])");
+            if (els.length === 0) return;
+
+            function doInit() {
+                for (var i = 0; i < els.length; i++) initRiveElement(els[i]);
+            }
+
+            if (riveReady) { doInit(); return; }
+            riveQueue.push(doInit);
+            if (riveQueue.length > 1) return;
+            loadScript("https://unpkg.com/@rive-app/canvas@2.27.0", function() {
+                riveReady = true;
+                for (var i = 0; i < riveQueue.length; i++) riveQueue[i]();
+                riveQueue = [];
+            });
+        }
+
+        function initRiveElement(el) {
+            el.setAttribute("data-sparrow-rive-init", "");
+            var src = el.getAttribute("data-sparrow-rive");
+            var sm = el.getAttribute("data-sparrow-rive-sm");
+            var artboard = el.getAttribute("data-sparrow-rive-artboard");
+            var fitName = el.getAttribute("data-sparrow-rive-fit") || "contain";
+            var autoplay = el.hasAttribute("data-sparrow-rive-autoplay");
+            var elId = el.id;
+
+            var fitMap = {
+                "contain": rive.Fit.Contain,
+                "cover": rive.Fit.Cover,
+                "fill": rive.Fit.Fill,
+                "fitWidth": rive.Fit.FitWidth,
+                "fitHeight": rive.Fit.FitHeight,
+                "none": rive.Fit.None,
+                "scaleDown": rive.Fit.ScaleDown
+            };
+
+            var r = new rive.Rive({
+                src: src,
+                canvas: el,
+                autoplay: autoplay,
+                stateMachines: sm ? [sm] : undefined,
+                artboard: artboard || undefined,
+                layout: new rive.Layout({
+                    fit: fitMap[fitName] || rive.Fit.Contain
+                }),
+                onLoad: function() {
+                    r.resizeDrawingSurfaceToCanvas();
+                    applyRiveInputs(el, r, sm);
+                }
+            });
+
+            // Forward Rive Events (custom events authored in the Rive editor) to the server
+            if (r.on && rive.EventType) {
+                r.on(rive.EventType.RiveEvent, function(event) {
+                    if (elId && event.data) {
+                        send({type: "event", id: elId, event: "rive", value: event.data.name || ""});
+                    }
+                });
+            }
+
+            riveInstances[elId] = r;
+        }
+
+        function applyRiveInputs(el, riveInstance, sm) {
+            var inputsAttr = el.getAttribute("data-sparrow-rive-inputs");
+            if (!inputsAttr || !sm) return;
+            try {
+                var inputs = JSON.parse(inputsAttr);
+                var smInputs = riveInstance.stateMachineInputs(sm);
+                if (!smInputs) return;
+                for (var k in inputs) {
+                    for (var i = 0; i < smInputs.length; i++) {
+                        if (smInputs[i].name === k) {
+                            if (inputs[k] === "__trigger__") {
+                                smInputs[i].fire();
+                            } else {
+                                smInputs[i].value = inputs[k];
+                            }
+                            break;
+                        }
+                    }
+                }
+            } catch(e) {}
+        }
+
+        // Re-apply inputs after DOM patches (server may have updated state)
+        function updateRiveInputs(root) {
+            var els = root.querySelectorAll("[data-sparrow-rive-init]");
+            for (var i = 0; i < els.length; i++) {
+                var el = els[i];
+                var r = riveInstances[el.id];
+                var sm = el.getAttribute("data-sparrow-rive-sm");
+                if (r && sm) applyRiveInputs(el, r, sm);
+            }
+        }
+
+        // --- Lottie Animations ---
+        // Lazy-loads lottie-web from CDN when a LottieAnimation view is
+        // first encountered. Uses the bodymovin global for rendering.
+
+        var lottieReady = false;
+        var lottieQueue = [];
+        var lottieInstances = {};
+
+        function activateLottie(root) {
+            var els = root.querySelectorAll("[data-sparrow-lottie]:not([data-sparrow-lottie-init])");
+            if (els.length === 0) return;
+
+            function doInit() {
+                for (var i = 0; i < els.length; i++) initLottieElement(els[i]);
+            }
+
+            if (lottieReady) { doInit(); return; }
+            lottieQueue.push(doInit);
+            if (lottieQueue.length > 1) return;
+            loadScript("https://unpkg.com/lottie-web@5.12.2/build/player/lottie.min.js", function() {
+                lottieReady = true;
+                for (var i = 0; i < lottieQueue.length; i++) lottieQueue[i]();
+                lottieQueue = [];
+            });
+        }
+
+        function initLottieElement(el) {
+            el.setAttribute("data-sparrow-lottie-init", "");
+            var src = el.getAttribute("data-sparrow-lottie");
+            var loop = el.hasAttribute("data-sparrow-lottie-loop");
+            var autoplay = el.hasAttribute("data-sparrow-lottie-autoplay");
+            var speed = parseFloat(el.getAttribute("data-sparrow-lottie-speed") || "1");
+            var rendererType = el.getAttribute("data-sparrow-lottie-renderer") || "svg";
+            var direction = parseInt(el.getAttribute("data-sparrow-lottie-direction") || "1", 10);
+            var elId = el.id;
+
+            var anim = bodymovin.loadAnimation({
+                container: el,
+                renderer: rendererType,
+                loop: loop,
+                autoplay: autoplay,
+                path: src
+            });
+
+            anim.setSpeed(speed);
+            anim.setDirection(direction);
+
+            anim.addEventListener("complete", function() {
+                if (elId) send({type: "event", id: elId, event: "lottie", value: "complete"});
+            });
+
+            anim.addEventListener("loopComplete", function() {
+                if (elId) send({type: "event", id: elId, event: "lottie", value: "loopComplete"});
+            });
+
+            lottieInstances[elId] = anim;
+        }
+
         // --- Presence ---
         // Handles enter/exit animations for elements that appear/disappear.
-        // Activated by: data-sparrow-enter="<css-class>" on new elements.
-        // On removal: data-sparrow-exit="<css-class>" — waits for transition to end before removing.
+        // Supports multi-class transitions and from/to class swapping.
+        // data-sparrow-enter: space-separated classes to ADD on enter
+        // data-sparrow-enter-from: space-separated classes to REMOVE on enter
+        // data-sparrow-exit: space-separated classes to ADD on exit
+        // data-sparrow-exit-from: space-separated classes to REMOVE on exit
+
+        function splitClasses(str) {
+            return str ? str.split(" ").filter(Boolean) : [];
+        }
 
         function activatePresence(root) {
             var enters = root.querySelectorAll("[data-sparrow-enter]");
@@ -657,36 +841,144 @@ enum ClientRuntime {
                 var el = enters[i];
                 if (el.hasAttribute("data-sparrow-entered")) continue;
                 el.setAttribute("data-sparrow-entered", "");
-                var enterClass = el.getAttribute("data-sparrow-enter");
-                // Apply enter class on next frame so the transition triggers
-                requestAnimationFrame(function(element, cls) {
+                var toAdd = splitClasses(el.getAttribute("data-sparrow-enter"));
+                var toRemove = splitClasses(el.getAttribute("data-sparrow-enter-from"));
+                // Apply on next frame so the transition triggers from the initial state
+                requestAnimationFrame(function(element, add, remove) {
                     return function() {
-                        element.classList.add(cls);
+                        for (var j = 0; j < remove.length; j++) element.classList.remove(remove[j]);
+                        for (var j = 0; j < add.length; j++) element.classList.add(add[j]);
                     };
-                }(el, enterClass));
+                }(el, toAdd, toRemove));
             }
         }
 
-        // Override applyPatch to handle exit animations
+        // Override applyPatch to handle exit animations and withAnimation
         var _originalApplyPatch = applyPatch;
         applyPatch = function(patch) {
-            if (patch.op === "remove") {
+            // Handle withAnimation: add transition CSS before applying the patch
+            if (patch.animation) {
+                var root = document.getElementById("sparrow-root");
+                if (root) {
+                    root.style.setProperty("--sp-animation", patch.animation);
+                    root.classList.add("sp-animating");
+                    // Remove after transitions settle
+                    setTimeout(function() {
+                        root.classList.remove("sp-animating");
+                        root.style.removeProperty("--sp-animation");
+                    }, 1000);
+                }
+            }
+
+            // Handle content transitions
+            if (patch.op === "replace") {
                 var targetId = patch.target.replace("#", "");
                 var el = document.getElementById(targetId);
-                if (el && el.hasAttribute("data-sparrow-exit")) {
-                    var exitClass = el.getAttribute("data-sparrow-exit");
-                    el.classList.add(exitClass);
-                    el.addEventListener("transitionend", function handler() {
-                        el.removeEventListener("transitionend", handler);
-                        el.remove();
+                if (el) {
+                    var ct = el.querySelector("[data-sparrow-content-transition]");
+                    if (ct) {
+                        applyContentTransition(ct, patch, _originalApplyPatch);
+                        return;
+                    }
+                }
+            }
+
+            if (patch.op === "remove") {
+                var targetId2 = patch.target.replace("#", "");
+                var el2 = document.getElementById(targetId2);
+                if (el2 && el2.hasAttribute("data-sparrow-exit")) {
+                    var exitAdd = splitClasses(el2.getAttribute("data-sparrow-exit"));
+                    var exitRemove = splitClasses(el2.getAttribute("data-sparrow-exit-from"));
+                    for (var j = 0; j < exitRemove.length; j++) el2.classList.remove(exitRemove[j]);
+                    for (var j = 0; j < exitAdd.length; j++) el2.classList.add(exitAdd[j]);
+                    el2.addEventListener("transitionend", function handler() {
+                        el2.removeEventListener("transitionend", handler);
+                        el2.remove();
                     });
                     // Fallback: remove after 500ms if transition doesn't fire
-                    setTimeout(function() { if (el.parentNode) el.remove(); }, 500);
+                    setTimeout(function() { if (el2.parentNode) el2.remove(); }, 500);
                     return;
                 }
             }
             _originalApplyPatch(patch);
         };
+
+        // --- Content Transitions ---
+
+        function applyContentTransition(el, patch, fallback) {
+            var type = el.getAttribute("data-sparrow-content-transition");
+            if (type === "opacity") {
+                el.style.transition = "opacity 200ms ease";
+                el.style.opacity = "0";
+                setTimeout(function() {
+                    fallback(patch);
+                    el.style.opacity = "1";
+                    el.addEventListener("transitionend", function handler() {
+                        el.removeEventListener("transitionend", handler);
+                        el.style.transition = "";
+                    });
+                }, 200);
+            } else if (type === "numericUp" || type === "numericDown") {
+                // Quick fade for numeric text
+                el.style.transition = "opacity 100ms ease, transform 100ms ease";
+                el.style.opacity = "0";
+                el.style.transform = type === "numericUp" ? "translateY(8px)" : "translateY(-8px)";
+                setTimeout(function() {
+                    fallback(patch);
+                    el.style.transform = "translateY(0)";
+                    el.style.opacity = "1";
+                    el.addEventListener("transitionend", function handler() {
+                        el.removeEventListener("transitionend", handler);
+                        el.style.transition = "";
+                        el.style.transform = "";
+                    });
+                }, 100);
+            } else {
+                fallback(patch);
+            }
+        }
+
+        // --- Scroll Transitions ---
+        // Uses IntersectionObserver to animate elements when they enter the viewport.
+
+        var scrollObserver = null;
+
+        function activateScrollTransitions(root) {
+            var els = root.querySelectorAll("[data-sparrow-scroll-transition]:not([data-sparrow-scroll-init])");
+            if (els.length === 0) return;
+
+            if (!scrollObserver) {
+                scrollObserver = new IntersectionObserver(function(entries) {
+                    for (var i = 0; i < entries.length; i++) {
+                        if (entries[i].isIntersecting) {
+                            var el = entries[i].target;
+                            var toAdd = splitClasses(el.getAttribute("data-sparrow-scroll-to"));
+                            var toRemove = splitClasses(el.getAttribute("data-sparrow-scroll-from"));
+                            for (var j = 0; j < toRemove.length; j++) el.classList.remove(toRemove[j]);
+                            for (var j = 0; j < toAdd.length; j++) el.classList.add(toAdd[j]);
+                            scrollObserver.unobserve(el);
+                        }
+                    }
+                }, { threshold: 0.1 });
+            }
+
+            for (var i = 0; i < els.length; i++) {
+                els[i].setAttribute("data-sparrow-scroll-init", "");
+                scrollObserver.observe(els[i]);
+            }
+        }
+
+        // --- View Transitions (navigation) ---
+        // Wraps page/content replacements in document.startViewTransition()
+        // when the API is available, enabling matched geometry and page transitions.
+
+        function withViewTransition(fn) {
+            if (document.startViewTransition) {
+                document.startViewTransition(fn);
+            } else {
+                fn();
+            }
+        }
 
         // Hook into DOM patching to activate primitives after patches
         var _originalApplyPatches = applyPatches;
@@ -698,9 +990,18 @@ enum ClientRuntime {
 
         var _originalReplacePage = replacePage;
         replacePage = function(msg) {
-            _originalReplacePage(msg);
-            var root = document.getElementById("sparrow-root");
-            if (root) activatePrimitives(root);
+            withViewTransition(function() {
+                _originalReplacePage(msg);
+                var root = document.getElementById("sparrow-root");
+                if (root) activatePrimitives(root);
+            });
+        };
+
+        var _originalReplaceContent = replaceContent;
+        replaceContent = function(msg) {
+            withViewTransition(function() {
+                _originalReplaceContent(msg);
+            });
         };
 
         // =======================================

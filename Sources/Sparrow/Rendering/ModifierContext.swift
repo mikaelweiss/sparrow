@@ -8,6 +8,8 @@ public struct ModifierContext {
     public var htmlTag: String? = nil
     /// Custom HTML id from `.id("section")` modifier, for anchor/fragment links.
     public var customId: String? = nil
+    /// HTML data attributes from modifiers (e.g., animation/transition hooks).
+    public var dataAttributes: [String: String] = [:]
 
     public init() {}
 
@@ -16,12 +18,25 @@ public struct ModifierContext {
         htmlAttributes.sorted(by: { $0.key < $1.key }).map { (key: $0.key, value: $0.value) }
     }
 
+    /// Data attributes as ordered tuples for VNode extraAttrs.
+    var dataAttributePairs: [(key: String, value: String)] {
+        dataAttributes.sorted(by: { $0.key < $1.key }).map { (key: $0.key, value: $0.value) }
+    }
+
+    /// All extra attributes (html + data) combined for VNode rendering.
+    var allExtraAttributePairs: [(key: String, value: String)] {
+        htmlAttributePairs + dataAttributePairs
+    }
+
     /// Create a new context with an additional modifier applied.
     public func applying(_ modifier: any ViewModifier) -> ModifierContext {
         var copy = self
         copy.cssClasses.append(contentsOf: modifier.cssClasses)
         for (key, value) in modifier.inlineStyles {
             copy.inlineStyles[key] = value
+        }
+        for (key, value) in modifier.dataAttributes {
+            copy.dataAttributes[key] = value
         }
         for (key, value) in modifier.htmlAttributes {
             copy.htmlAttributes[key] = value

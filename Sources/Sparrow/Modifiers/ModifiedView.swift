@@ -23,6 +23,8 @@ public protocol ViewModifier: Sendable {
     /// Layer modifiers create a wrapper `<div>` so that ordering is respected.
     /// Flat modifiers (font, foreground color) accumulate onto the leaf element.
     var createsLayer: Bool { get }
+    /// HTML data attributes this modifier adds (e.g., for animation/transition hooks).
+    var dataAttributes: [String: String] { get }
     /// HTML attributes this modifier adds (e.g. aria-label, disabled, title).
     var htmlAttributes: [String: String] { get }
 }
@@ -31,6 +33,7 @@ extension ViewModifier {
     public var cssClasses: [String] { [] }
     public var inlineStyles: [String: String] { [:] }
     public var createsLayer: Bool { false }
+    public var dataAttributes: [String: String] { [:] }
     public var htmlAttributes: [String: String] { [:] }
 }
 
