@@ -14,6 +14,8 @@ public struct ClipShapeModifier: ViewModifier, Sendable {
         case .capsule: ["rounded-full"]
         }
     }
+
+    public var inlineStyles: [String: String] { ["overflow": "clip"] }
 }
 
 extension View {
