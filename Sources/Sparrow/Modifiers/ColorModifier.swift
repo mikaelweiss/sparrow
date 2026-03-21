@@ -15,6 +15,18 @@ public enum SemanticColor: Sendable {
     case warning
     case info
 
+    // MARK: Component surfaces (shadcn)
+    case card
+    case cardForeground
+    case popover
+    case popoverForeground
+    case muted
+    case mutedForeground
+    case destructiveForeground
+    case border
+    case input
+    case ring
+
     // MARK: Named palette (appearance-based)
     case red
     case orange
@@ -78,6 +90,16 @@ public enum SemanticColor: Sendable {
         case .success: "success"
         case .warning: "warning"
         case .info: "info"
+        case .card: "card"
+        case .cardForeground: "cardForeground"
+        case .popover: "popover"
+        case .popoverForeground: "popoverForeground"
+        case .muted: "muted"
+        case .mutedForeground: "mutedForeground"
+        case .destructiveForeground: "destructiveForeground"
+        case .border: "border"
+        case .input: "input"
+        case .ring: "ring"
         case .red: "red"
         case .orange: "orange"
         case .yellow: "yellow"
@@ -119,6 +141,18 @@ public enum SemanticColor: Sendable {
         case .success: "var(--success)"
         case .warning: "var(--warning)"
         case .info: "var(--info)"
+
+        // Component surfaces
+        case .card: forForeground ? "var(--card-foreground)" : "var(--card)"
+        case .cardForeground: "var(--card-foreground)"
+        case .popover: forForeground ? "var(--popover-foreground)" : "var(--popover)"
+        case .popoverForeground: "var(--popover-foreground)"
+        case .muted: forForeground ? "var(--muted-foreground)" : "var(--muted)"
+        case .mutedForeground: "var(--muted-foreground)"
+        case .destructiveForeground: "var(--destructive-foreground)"
+        case .border: "var(--border)"
+        case .input: "var(--input)"
+        case .ring: "var(--ring)"
 
         // Named palette
         case .red: "var(--color-red)"

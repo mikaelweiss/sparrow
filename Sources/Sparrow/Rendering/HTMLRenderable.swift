@@ -169,6 +169,90 @@ extension Section: VNodeRenderable {
     }
 }
 
+// MARK: - Table
+
+extension Table: VNodeRenderable {
+    func renderVNode(with renderer: HTMLRenderer, modifierContext: ModifierContext) -> VNode {
+        let id = renderer.resolveId(context: modifierContext)
+        let children = flattenChildren(content)
+        let childNodes = renderer.renderChildrenVNodes(children)
+        let tableId = renderer.renderState.allocateId()
+        let tableEl = ElementNode.build(tag: "table", id: tableId, classes: ["table"], children: childNodes)
+        let classes = ["table-wrapper"] + modifierContext.cssClasses
+        let el = ElementNode.build(tag: "div", id: id, classes: classes, styles: modifierContext.inlineStyles, extraAttrs: modifierContext.htmlAttributePairs, children: [.element(tableEl)])
+        return .element(el)
+    }
+}
+
+extension TableHeader: VNodeRenderable {
+    func renderVNode(with renderer: HTMLRenderer, modifierContext: ModifierContext) -> VNode {
+        let id = renderer.resolveId(context: modifierContext)
+        let children = flattenChildren(content)
+        let childNodes = renderer.renderChildrenVNodes(children)
+        let el = ElementNode.build(tag: "thead", id: id, children: childNodes)
+        return .element(el)
+    }
+}
+
+extension TableBody: VNodeRenderable {
+    func renderVNode(with renderer: HTMLRenderer, modifierContext: ModifierContext) -> VNode {
+        let id = renderer.resolveId(context: modifierContext)
+        let children = flattenChildren(content)
+        let childNodes = renderer.renderChildrenVNodes(children)
+        let el = ElementNode.build(tag: "tbody", id: id, children: childNodes)
+        return .element(el)
+    }
+}
+
+extension TableFooter: VNodeRenderable {
+    func renderVNode(with renderer: HTMLRenderer, modifierContext: ModifierContext) -> VNode {
+        let id = renderer.resolveId(context: modifierContext)
+        let children = flattenChildren(content)
+        let childNodes = renderer.renderChildrenVNodes(children)
+        let el = ElementNode.build(tag: "tfoot", id: id, children: childNodes)
+        return .element(el)
+    }
+}
+
+extension TableRow: VNodeRenderable {
+    func renderVNode(with renderer: HTMLRenderer, modifierContext: ModifierContext) -> VNode {
+        let id = renderer.resolveId(context: modifierContext)
+        let children = flattenChildren(content)
+        let childNodes = renderer.renderChildrenVNodes(children)
+        let classes = ["table-row"] + modifierContext.cssClasses
+        let el = ElementNode.build(tag: "tr", id: id, classes: classes, styles: modifierContext.inlineStyles, extraAttrs: modifierContext.htmlAttributePairs, children: childNodes)
+        return .element(el)
+    }
+}
+
+extension TableCell: VNodeRenderable {
+    func renderVNode(with renderer: HTMLRenderer, modifierContext: ModifierContext) -> VNode {
+        let id = renderer.resolveId(context: modifierContext)
+        let children = flattenChildren(content)
+        let childNodes = renderer.renderChildrenVNodes(children)
+        let classes = ["table-cell"] + modifierContext.cssClasses
+        let el = ElementNode.build(tag: "td", id: id, classes: classes, styles: modifierContext.inlineStyles, extraAttrs: modifierContext.htmlAttributePairs, children: childNodes)
+        return .element(el)
+    }
+}
+
+// MARK: - Nav
+
+extension Nav: VNodeRenderable {
+    func renderVNode(with renderer: HTMLRenderer, modifierContext: ModifierContext) -> VNode {
+        let id = renderer.resolveId(context: modifierContext)
+        let children = flattenChildren(content)
+        let childNodes = renderer.renderChildrenVNodes(children)
+        let classes = ["flex", "flex-col"] + modifierContext.cssClasses
+        var extraAttrs = modifierContext.htmlAttributePairs
+        if let label = ariaLabel {
+            extraAttrs.append((key: "aria-label", value: escapeHTML(label)))
+        }
+        let el = ElementNode.build(tag: "nav", id: id, classes: classes, styles: modifierContext.inlineStyles, extraAttrs: extraAttrs, children: childNodes)
+        return .element(el)
+    }
+}
+
 extension ForEach: VNodeRenderable {
     func renderVNode(with renderer: HTMLRenderer, modifierContext: ModifierContext) -> VNode {
         let nodes = data.map { element in
