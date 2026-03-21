@@ -139,7 +139,7 @@ public struct Route: Sendable {
     }
 
     /// Render the full HTML document for this route (SSR).
-    public func renderDocument(with renderer: HTMLRenderer, params: RouteParams = .empty) -> String {
+    public func renderDocument(with renderer: HTMLRenderer, params: RouteParams = .empty, themeCSS: String = "") -> String {
         let bodyHTML = renderFullBody(with: renderer, params: params)
         let devScript = DevReload.scriptTag
         let runtimeScript = ClientRuntime.script
@@ -150,7 +150,7 @@ public struct Route: Sendable {
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width, initial-scale=1">
             <title>\(escapeHTML(title ?? "Sparrow App"))</title>
-            <style>\(CSSGenerator.defaultStylesheet)</style>
+            <style>\(CSSGenerator.defaultStylesheet)\(themeCSS)</style>
         </head>
         <body>
             <div id="sparrow-root">

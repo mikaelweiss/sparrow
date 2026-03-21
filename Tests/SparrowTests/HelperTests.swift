@@ -99,7 +99,7 @@ struct HelperTests {
         // This is expected — flattenTuple is only called on actual tuple values.
         let single = Text("solo")
         let result = flattenTuple(single)
-        // Text has one stored property (content: String), which isn't a View
+        // Text has one stored property (spans: [TextSpan]), which isn't a View
         #expect(result.count == 0)
     }
 

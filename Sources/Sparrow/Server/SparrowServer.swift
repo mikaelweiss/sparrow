@@ -5,15 +5,48 @@ import HummingbirdWebSocket
 /// The Sparrow HTTP server. Serves rendered HTML pages and manages WebSocket connections.
 public struct SparrowServer: Sendable {
     let port: Int
+    let themeCSS: String
 
-    public init(port: Int = 5456) {
+    public init(port: Int = 5456, theme: Theme = .default) {
         self.port = port
+        self.themeCSS = CSSGenerator.stylesheet(for: theme)
     }
 
     /// Start the server with a set of routes.
     public func run(routes: [Route]) async throws {
         let httpRouter = Router()
         let allRoutes = routes
+        let themeCSS = self.themeCSS
+
+        // Static assets (fonts, images, etc.) served from Assets/ directory
+        let assetsDir = FileManager.default.currentDirectoryPath + "/Assets"
+        httpRouter.get("assets/{path+}") { request, _ -> Response in
+            let reqPath = request.uri.path
+            guard reqPath.hasPrefix("/assets/") else {
+                return Response(status: .notFound)
+            }
+            let relativePath = String(reqPath.dropFirst("/assets/".count))
+
+            // Prevent directory traversal
+            guard !relativePath.contains("..") else {
+                return Response(status: .forbidden)
+            }
+
+            let filePath = assetsDir + "/" + relativePath
+            guard FileManager.default.fileExists(atPath: filePath),
+                  let data = FileManager.default.contents(atPath: filePath) else {
+                return Response(status: .notFound)
+            }
+
+            return Response(
+                status: .ok,
+                headers: [
+                    .contentType: mimeType(for: relativePath),
+                    .cacheControl: "public, max-age=31536000, immutable",
+                ],
+                body: .init(byteBuffer: .init(data: data))
+            )
+        }
 
         // Health check
         httpRouter.get("/health") { _, _ -> Response in
@@ -41,7 +74,7 @@ public struct SparrowServer: Sendable {
 
         // Catch-all route handler — matches all GET requests against our routes
         httpRouter.get("**") { request, _ -> Response in
-            Self.handleHTTPRequest(path: request.uri.path, routes: allRoutes)
+            Self.handleHTTPRequest(path: request.uri.path, routes: allRoutes, themeCSS: themeCSS)
         }
 
         // WebSocket router for live interactivity
@@ -67,7 +100,7 @@ public struct SparrowServer: Sendable {
     }
 
     /// Match a request path against routes and render the response.
-    private static func handleHTTPRequest(path: String, routes: [Route]) -> Response {
+    private static func handleHTTPRequest(path: String, routes: [Route], themeCSS: String = "") -> Response {
         let (cleanPath, query) = parseURL(path)
 
         // Try matching each route
@@ -85,7 +118,7 @@ public struct SparrowServer: Sendable {
                     )
                 case .html:
                     let renderer = HTMLRenderer()
-                    let html = route.renderDocument(with: renderer, params: params)
+                    let html = route.renderDocument(with: renderer, params: params, themeCSS: themeCSS)
                     return Response(
                         status: .ok,
                         headers: [.contentType: route.contentType.header],
@@ -173,6 +206,23 @@ func matchRoute(_ path: String, query: [String: String] = [:], routes: [Route]) 
         }
     }
     return nil
+}
+
+private func mimeType(for path: String) -> String {
+    if path.hasSuffix(".woff2") { return "font/woff2" }
+    if path.hasSuffix(".woff") { return "font/woff" }
+    if path.hasSuffix(".ttf") { return "font/ttf" }
+    if path.hasSuffix(".otf") { return "font/otf" }
+    if path.hasSuffix(".png") { return "image/png" }
+    if path.hasSuffix(".jpg") || path.hasSuffix(".jpeg") { return "image/jpeg" }
+    if path.hasSuffix(".gif") { return "image/gif" }
+    if path.hasSuffix(".svg") { return "image/svg+xml" }
+    if path.hasSuffix(".webp") { return "image/webp" }
+    if path.hasSuffix(".ico") { return "image/x-icon" }
+    if path.hasSuffix(".css") { return "text/css" }
+    if path.hasSuffix(".js") { return "application/javascript" }
+    if path.hasSuffix(".json") { return "application/json" }
+    return "application/octet-stream"
 }
 
 // MARK: - WebSocket handler
