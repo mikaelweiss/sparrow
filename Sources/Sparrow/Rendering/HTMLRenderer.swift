@@ -58,6 +58,8 @@ public struct HTMLRenderer: Sendable {
         if let icon = view as? Icon { return renderIconVNode(icon, context: modifierContext) }
         if let navLink = view as? NavigationLink { return renderNavigationLinkVNode(navLink, context: modifierContext) }
         if let pv = view as? ProgressView { return renderProgressViewVNode(pv, context: modifierContext) }
+        if let rive = view as? RiveAnimation { return renderRiveAnimationVNode(rive, context: modifierContext) }
+        if let lottie = view as? LottieAnimation { return renderLottieAnimationVNode(lottie, context: modifierContext) }
         if view is Content { return renderContentVNode(context: modifierContext) }
         if view is EmptyView { return .fragment([]) }
         if let renderable = view as? any VNodeRenderable {
@@ -402,6 +404,104 @@ public struct HTMLRenderer: Sendable {
         return .element(el)
     }
 
+    // MARK: - Rive Animation
+
+    private func renderRiveAnimationVNode(_ rive: RiveAnimation, context: ModifierContext) -> VNode {
+        let id = resolveId(context: context)
+        let src: String
+        switch rive.source {
+        case .asset(let name): src = "/assets/\(escapeHTML(name))"
+        case .url(let url): src = escapeHTML(url)
+        }
+
+        var extraAttrs: [(key: String, value: String)] = [
+            ("data-sparrow-rive", src),
+            ("data-sparrow-rive-fit", rive.fit.rawValue),
+        ]
+        if let sm = rive.stateMachine {
+            extraAttrs.append(("data-sparrow-rive-sm", escapeHTML(sm)))
+        }
+        if let artboard = rive.artboard {
+            extraAttrs.append(("data-sparrow-rive-artboard", escapeHTML(artboard)))
+        }
+        if rive.autoplay {
+            extraAttrs.append(("data-sparrow-rive-autoplay", ""))
+        }
+        if !rive.inputs.isEmpty {
+            extraAttrs.append(("data-sparrow-rive-inputs", escapeHTML(serializeRiveInputs(rive.inputs))))
+        }
+
+        if !rive.eventHandlers.isEmpty {
+            let handlers = rive.eventHandlers
+            renderState.registerValueHandler(id: id) { eventName in
+                handlers[eventName]?()
+            }
+            extraAttrs.append(("data-sparrow-event", "rive"))
+        }
+
+        let el = ElementNode.build(
+            tag: "canvas", id: id,
+            classes: context.cssClasses,
+            styles: context.inlineStyles,
+            extraAttrs: extraAttrs
+        )
+        return .element(el)
+    }
+
+    // MARK: - Lottie Animation
+
+    private func renderLottieAnimationVNode(_ lottie: LottieAnimation, context: ModifierContext) -> VNode {
+        let id = resolveId(context: context)
+        let src: String
+        switch lottie.source {
+        case .asset(let name): src = "/assets/\(escapeHTML(name))"
+        case .url(let url): src = escapeHTML(url)
+        }
+
+        var extraAttrs: [(key: String, value: String)] = [
+            ("data-sparrow-lottie", src),
+        ]
+        if lottie.loop {
+            extraAttrs.append(("data-sparrow-lottie-loop", ""))
+        }
+        if lottie.autoplay {
+            extraAttrs.append(("data-sparrow-lottie-autoplay", ""))
+        }
+        if lottie.speed != 1.0 {
+            extraAttrs.append(("data-sparrow-lottie-speed", "\(lottie.speed)"))
+        }
+        if lottie.direction != .forward {
+            extraAttrs.append(("data-sparrow-lottie-direction", "\(lottie.direction.rawValue)"))
+        }
+        if lottie.renderer != .svg {
+            extraAttrs.append(("data-sparrow-lottie-renderer", lottie.renderer.rawValue))
+        }
+
+        let hasHandlers = lottie.onCompleteHandler != nil || lottie.onLoopCompleteHandler != nil
+        if hasHandlers {
+            let onComplete = lottie.onCompleteHandler
+            let onLoopComplete = lottie.onLoopCompleteHandler
+            renderState.registerValueHandler(id: id) { eventName in
+                switch eventName {
+                case "complete": onComplete?()
+                case "loopComplete": onLoopComplete?()
+                default: break
+                }
+            }
+            extraAttrs.append(("data-sparrow-event", "lottie"))
+        }
+
+        let el = ElementNode.build(
+            tag: "div", id: id,
+            classes: context.cssClasses,
+            styles: context.inlineStyles,
+            extraAttrs: extraAttrs
+        )
+        return .element(el)
+    }
+
+    // MARK: - Content
+
     private func renderContentVNode(context: ModifierContext) -> VNode {
         let contentChildren = renderState.contentSlotVNode.map { [$0] } ?? []
         let el = ElementNode.build(
@@ -426,4 +526,16 @@ func escapeHTML(_ string: String) -> String {
 
 func formatStyles(_ styles: [String: String]) -> String {
     styles.map { "\($0.key): \($0.value)" }.joined(separator: "; ")
+}
+
+func serializeRiveInputs(_ inputs: [String: RiveInputValue]) -> String {
+    let pairs = inputs.map { key, value in
+        let jsonKey = "\"\(key)\""
+        switch value {
+        case .bool(let b): return "\(jsonKey):\(b)"
+        case .number(let n): return "\(jsonKey):\(n)"
+        case .trigger: return "\(jsonKey):\"__trigger__\""
+        }
+    }
+    return "{\(pairs.joined(separator: ","))}"
 }

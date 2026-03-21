@@ -324,6 +324,9 @@ enum ClientRuntime {
             activatePresence(root);
             activateRovingFocus(root);
             activateFloating(root);
+            activateRive(root);
+            activateLottie(root);
+            updateRiveInputs(root);
         }
 
         // --- FocusTrap ---
@@ -645,6 +648,179 @@ enum ClientRuntime {
             var floats = document.querySelectorAll("[data-sparrow-floating-init]");
             for (var i = 0; i < floats.length; i++) positionFloating(floats[i]);
         });
+
+        // --- Script loader (shared) ---
+
+        function loadScript(url, onLoad) {
+            var s = document.createElement("script");
+            s.src = url;
+            s.onload = onLoad;
+            s.onerror = function() { console.error("Sparrow: failed to load " + url); };
+            document.head.appendChild(s);
+        }
+
+        // --- Rive Animations ---
+        // Lazy-loads the Rive WASM runtime from CDN when a RiveAnimation
+        // view is first encountered. Subsequent activations reuse the runtime.
+
+        var riveReady = false;
+        var riveQueue = [];
+        var riveInstances = {};
+
+        function activateRive(root) {
+            var els = root.querySelectorAll("[data-sparrow-rive]:not([data-sparrow-rive-init])");
+            if (els.length === 0) return;
+
+            function doInit() {
+                for (var i = 0; i < els.length; i++) initRiveElement(els[i]);
+            }
+
+            if (riveReady) { doInit(); return; }
+            riveQueue.push(doInit);
+            if (riveQueue.length > 1) return;
+            loadScript("https://unpkg.com/@rive-app/canvas@2.27.0", function() {
+                riveReady = true;
+                for (var i = 0; i < riveQueue.length; i++) riveQueue[i]();
+                riveQueue = [];
+            });
+        }
+
+        function initRiveElement(el) {
+            el.setAttribute("data-sparrow-rive-init", "");
+            var src = el.getAttribute("data-sparrow-rive");
+            var sm = el.getAttribute("data-sparrow-rive-sm");
+            var artboard = el.getAttribute("data-sparrow-rive-artboard");
+            var fitName = el.getAttribute("data-sparrow-rive-fit") || "contain";
+            var autoplay = el.hasAttribute("data-sparrow-rive-autoplay");
+            var elId = el.id;
+
+            var fitMap = {
+                "contain": rive.Fit.Contain,
+                "cover": rive.Fit.Cover,
+                "fill": rive.Fit.Fill,
+                "fitWidth": rive.Fit.FitWidth,
+                "fitHeight": rive.Fit.FitHeight,
+                "none": rive.Fit.None,
+                "scaleDown": rive.Fit.ScaleDown
+            };
+
+            var r = new rive.Rive({
+                src: src,
+                canvas: el,
+                autoplay: autoplay,
+                stateMachines: sm ? [sm] : undefined,
+                artboard: artboard || undefined,
+                layout: new rive.Layout({
+                    fit: fitMap[fitName] || rive.Fit.Contain
+                }),
+                onLoad: function() {
+                    r.resizeDrawingSurfaceToCanvas();
+                    applyRiveInputs(el, r, sm);
+                }
+            });
+
+            // Forward Rive Events (custom events authored in the Rive editor) to the server
+            if (r.on && rive.EventType) {
+                r.on(rive.EventType.RiveEvent, function(event) {
+                    if (elId && event.data) {
+                        send({type: "event", id: elId, event: "rive", value: event.data.name || ""});
+                    }
+                });
+            }
+
+            riveInstances[elId] = r;
+        }
+
+        function applyRiveInputs(el, riveInstance, sm) {
+            var inputsAttr = el.getAttribute("data-sparrow-rive-inputs");
+            if (!inputsAttr || !sm) return;
+            try {
+                var inputs = JSON.parse(inputsAttr);
+                var smInputs = riveInstance.stateMachineInputs(sm);
+                if (!smInputs) return;
+                for (var k in inputs) {
+                    for (var i = 0; i < smInputs.length; i++) {
+                        if (smInputs[i].name === k) {
+                            if (inputs[k] === "__trigger__") {
+                                smInputs[i].fire();
+                            } else {
+                                smInputs[i].value = inputs[k];
+                            }
+                            break;
+                        }
+                    }
+                }
+            } catch(e) {}
+        }
+
+        // Re-apply inputs after DOM patches (server may have updated state)
+        function updateRiveInputs(root) {
+            var els = root.querySelectorAll("[data-sparrow-rive-init]");
+            for (var i = 0; i < els.length; i++) {
+                var el = els[i];
+                var r = riveInstances[el.id];
+                var sm = el.getAttribute("data-sparrow-rive-sm");
+                if (r && sm) applyRiveInputs(el, r, sm);
+            }
+        }
+
+        // --- Lottie Animations ---
+        // Lazy-loads lottie-web from CDN when a LottieAnimation view is
+        // first encountered. Uses the bodymovin global for rendering.
+
+        var lottieReady = false;
+        var lottieQueue = [];
+        var lottieInstances = {};
+
+        function activateLottie(root) {
+            var els = root.querySelectorAll("[data-sparrow-lottie]:not([data-sparrow-lottie-init])");
+            if (els.length === 0) return;
+
+            function doInit() {
+                for (var i = 0; i < els.length; i++) initLottieElement(els[i]);
+            }
+
+            if (lottieReady) { doInit(); return; }
+            lottieQueue.push(doInit);
+            if (lottieQueue.length > 1) return;
+            loadScript("https://unpkg.com/lottie-web@5.12.2/build/player/lottie.min.js", function() {
+                lottieReady = true;
+                for (var i = 0; i < lottieQueue.length; i++) lottieQueue[i]();
+                lottieQueue = [];
+            });
+        }
+
+        function initLottieElement(el) {
+            el.setAttribute("data-sparrow-lottie-init", "");
+            var src = el.getAttribute("data-sparrow-lottie");
+            var loop = el.hasAttribute("data-sparrow-lottie-loop");
+            var autoplay = el.hasAttribute("data-sparrow-lottie-autoplay");
+            var speed = parseFloat(el.getAttribute("data-sparrow-lottie-speed") || "1");
+            var rendererType = el.getAttribute("data-sparrow-lottie-renderer") || "svg";
+            var direction = parseInt(el.getAttribute("data-sparrow-lottie-direction") || "1", 10);
+            var elId = el.id;
+
+            var anim = bodymovin.loadAnimation({
+                container: el,
+                renderer: rendererType,
+                loop: loop,
+                autoplay: autoplay,
+                path: src
+            });
+
+            anim.setSpeed(speed);
+            anim.setDirection(direction);
+
+            anim.addEventListener("complete", function() {
+                if (elId) send({type: "event", id: elId, event: "lottie", value: "complete"});
+            });
+
+            anim.addEventListener("loopComplete", function() {
+                if (elId) send({type: "event", id: elId, event: "lottie", value: "loopComplete"});
+            });
+
+            lottieInstances[elId] = anim;
+        }
 
         // --- Presence ---
         // Handles enter/exit animations for elements that appear/disappear.

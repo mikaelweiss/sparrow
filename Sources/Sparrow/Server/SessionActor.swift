@@ -89,7 +89,7 @@ actor SessionActor {
                 handler()
             }
 
-        case "input", "change":
+        case "input", "change", "rive", "lottie":
             guard let value, let handler = valueHandlers[id] else { return nil }
             StateStorage.$current.withValue(stateStore) {
                 handler(value)
