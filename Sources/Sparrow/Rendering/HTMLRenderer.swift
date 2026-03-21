@@ -326,7 +326,8 @@ public struct HTMLRenderer: Sendable {
         case .asset(let name): src = "/assets/\(escapeHTML(name))"
         case .url(let url): src = escapeHTML(url)
         }
-        return "        <img id=\"\(id)\" src=\"\(src)\"\(classAttr)\(styleAttr)>"
+        let alt = escapeHTML(img.alt)
+        return "        <img id=\"\(id)\" src=\"\(src)\" alt=\"\(alt)\"\(classAttr)\(styleAttr)>"
     }
 
     private func renderIcon(_ icon: Icon, context: ModifierContext) -> String {
@@ -340,13 +341,14 @@ public struct HTMLRenderer: Sendable {
 
     private func renderNavigationLink(_ navLink: NavigationLink, context: ModifierContext) -> String {
         let id = resolveId(context: context)
+        let isCurrent = navLink.current || renderState.currentPath == navLink.destination
         var classes = ["nav-link"] + context.cssClasses
-        if navLink.current {
+        if isCurrent {
             classes.append("nav-link-current")
         }
         let classAttr = " class=\"\(classes.joined(separator: " "))\""
         let styleAttr = context.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(context.inlineStyles))\""
-        let ariaAttr = navLink.current ? " aria-current=\"page\"" : ""
+        let ariaAttr = isCurrent ? " aria-current=\"page\"" : ""
         let escaped = escapeHTML(navLink.label)
         let dest = escapeHTML(navLink.destination)
         return "        <a id=\"\(id)\" href=\"\(dest)\" data-sparrow-nav\(classAttr)\(styleAttr)\(ariaAttr)>\(escaped)</a>"

@@ -130,7 +130,7 @@ private struct RenderResult {
 
 // MARK: - JSON helpers
 
-private func jsonEscape(_ string: String) -> String {
+func jsonEscape(_ string: String) -> String {
     var result = "\""
     for char in string {
         switch char {

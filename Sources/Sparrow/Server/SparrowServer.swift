@@ -110,7 +110,9 @@ public struct SparrowServer: Sendable {
 
                 switch route.contentType {
                 case .plain, .markdown:
-                    let text = route.renderBody(with: HTMLRenderer(), params: params)
+                    let renderer = HTMLRenderer()
+                    renderer.renderState.currentPath = cleanPath
+                    let text = route.renderBody(with: renderer, params: params)
                     return Response(
                         status: .ok,
                         headers: [.contentType: route.contentType.header],
@@ -118,6 +120,7 @@ public struct SparrowServer: Sendable {
                     )
                 case .html:
                     let renderer = HTMLRenderer()
+                    renderer.renderState.currentPath = cleanPath
                     let html = route.renderDocument(with: renderer, params: params, themeCSS: themeCSS)
                     return Response(
                         status: .ok,
@@ -251,7 +254,8 @@ private func handleWebSocket(
             if let (route, params) = matchRoute(path, query: query, routes: routes) {
                 currentLayoutId = route.layoutId
                 let renderBody: @Sendable (HTMLRenderer) -> String = { renderer in
-                    route.renderFullBody(with: renderer, params: params)
+                    renderer.renderState.currentPath = path
+                    return route.renderFullBody(with: renderer, params: params)
                 }
                 session = SessionActor(
                     sessionId: UUID().uuidString,
@@ -281,20 +285,23 @@ private func handleWebSocket(
             let (path, query) = parseURL(url)
 
             // Check for redirect
+            var redirected = false
             for route in routes where route.redirect != nil {
                 if let params = route.pattern.match(path),
                    let dest = route.resolveRedirect(params: params)
                 {
-                    let response = "{\"type\":\"redirect\",\"url\":\"\(dest)\"}"
+                    let response = "{\"type\":\"redirect\",\"url\":\(jsonEscape(dest))}"
                     try await outbound.write(.text(response))
-                    continue
+                    redirected = true
+                    break
                 }
             }
 
-            if let (route, params) = matchRoute(path, query: query, routes: routes) {
+            if !redirected, let (route, params) = matchRoute(path, query: query, routes: routes) {
                 let newLayoutId = route.layoutId
                 let renderBody: @Sendable (HTMLRenderer) -> String = { renderer in
-                    route.renderFullBody(with: renderer, params: params)
+                    renderer.renderState.currentPath = path
+                    return route.renderFullBody(with: renderer, params: params)
                 }
                 let title = route.title ?? "Sparrow App"
 
@@ -307,11 +314,7 @@ private func handleWebSocket(
                     let contentHTML = await existingSession.navigateContent(
                         newRenderBody: renderBody
                     )
-                    let escaped = contentHTML
-                        .replacingOccurrences(of: "\\", with: "\\\\")
-                        .replacingOccurrences(of: "\"", with: "\\\"")
-                        .replacingOccurrences(of: "\n", with: "\\n")
-                    let response = "{\"type\":\"content\",\"html\":\"\(escaped)\",\"url\":\"\(url)\",\"title\":\"\(title)\"}"
+                    let response = "{\"type\":\"content\",\"html\":\(jsonEscape(contentHTML)),\"url\":\(jsonEscape(url)),\"title\":\(jsonEscape(title))}"
                     try await outbound.write(.text(response))
                 } else {
                     // Different layout or no layout — full page replace
@@ -320,11 +323,7 @@ private func handleWebSocket(
                         renderBody: renderBody
                     )
                     let html = await session!.getHTML()
-                    let escaped = html
-                        .replacingOccurrences(of: "\\", with: "\\\\")
-                        .replacingOccurrences(of: "\"", with: "\\\"")
-                        .replacingOccurrences(of: "\n", with: "\\n")
-                    let response = "{\"type\":\"page\",\"html\":\"\(escaped)\",\"url\":\"\(url)\",\"title\":\"\(title)\"}"
+                    let response = "{\"type\":\"page\",\"html\":\(jsonEscape(html)),\"url\":\(jsonEscape(url)),\"title\":\(jsonEscape(title))}"
                     try await outbound.write(.text(response))
                 }
                 currentLayoutId = newLayoutId

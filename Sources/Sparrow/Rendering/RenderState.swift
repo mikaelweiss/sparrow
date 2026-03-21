@@ -14,6 +14,8 @@ final class RenderState: @unchecked Sendable {
     var idPrefix: String = "v"
     /// Pre-rendered page HTML injected at `Content()` inside a Layout.
     var contentSlot: String? = nil
+    /// The path being rendered, used to auto-detect active NavigationLinks.
+    var currentPath: String? = nil
 
     func allocateId() -> String {
         let count = counters[idPrefix, default: 0]

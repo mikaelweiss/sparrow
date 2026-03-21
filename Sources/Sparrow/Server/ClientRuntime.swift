@@ -24,7 +24,7 @@ enum ClientRuntime {
                 reconnectAttempts = 0;
                 hideIndicator();
                 // Tell server which page we're on
-                send({type: "init", url: location.pathname});
+                send({type: "init", url: location.pathname + location.search});
             };
 
             ws.onmessage = function(e) {
