@@ -1,5 +1,5 @@
-/// An increment/decrement control. Renders to paired buttons with a value display.
-public struct Stepper: PrimitiveView, Sendable {
+/// An increment/decrement control. Composes Button and Text views.
+public struct Stepper: View, Sendable {
     public let label: String
     public let value: Int
     public let range: ClosedRange<Int>
@@ -22,4 +22,35 @@ public struct Stepper: PrimitiveView, Sendable {
         self.onIncrement = onIncrement
         self.onDecrement = onDecrement
     }
+
+    public var body: some View {
+        HStack(spacing: 12) {
+            Text(label)
+                .modifier(StepperLabelStyleModifier())
+            HStack(spacing: 0) {
+                Button("−", variant: .outline, size: .icon, action: onDecrement)
+                Text("\(value)")
+                    .modifier(StepperValueStyleModifier())
+                Button("+", variant: .outline, size: .icon, action: onIncrement)
+            }
+            .modifier(StepperControlsStyleModifier())
+        }
+        .modifier(StepperStyleModifier())
+    }
+}
+
+struct StepperStyleModifier: ViewModifier, Sendable {
+    var cssClasses: [String] { ["stepper"] }
+}
+
+struct StepperLabelStyleModifier: ViewModifier, Sendable {
+    var cssClasses: [String] { ["stepper-label"] }
+}
+
+struct StepperControlsStyleModifier: ViewModifier, Sendable {
+    var cssClasses: [String] { ["stepper-controls"] }
+}
+
+struct StepperValueStyleModifier: ViewModifier, Sendable {
+    var cssClasses: [String] { ["stepper-value"] }
 }

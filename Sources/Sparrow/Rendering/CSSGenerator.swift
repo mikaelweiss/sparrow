@@ -351,8 +351,8 @@ public enum CSSGenerator {
        COMPONENTS
        ============================================ */
 
-    /* Divider */
-    .divider { border: none; border-top: 1px solid var(--border); width: 100%; }
+    /* Separator / Divider (shadcn) */
+    .divider { border: none; border-top: 1px solid var(--border); width: 100%; flex-shrink: 0; }
 
     /* Link */
     .link {
@@ -366,7 +366,7 @@ public enum CSSGenerator {
     }
     .link:hover { text-decoration-color: var(--primary); }
 
-    /* Button */
+    /* Button — base */
     .btn {
         display: inline-flex;
         align-items: center;
@@ -378,20 +378,34 @@ public enum CSSGenerator {
         font-weight: 500;
         line-height: 1.25rem;
         font-family: var(--font-body);
-        height: 2.25rem;
-        padding: 0.5rem 1rem;
-        background: var(--primary);
-        color: var(--primary-foreground);
         border: 1px solid transparent;
         cursor: pointer;
         transition-property: color, background-color, border-color;
         transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
         transition-duration: 150ms;
     }
-    .btn:hover { opacity: 0.9; }
     .btn:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
-    .btn:active { opacity: 0.8; }
     .btn:disabled { pointer-events: none; opacity: 0.5; }
+
+    /* Button variants (shadcn) */
+    .btn-default { background: var(--primary); color: var(--primary-foreground); }
+    .btn-default:hover { opacity: 0.9; }
+    .btn-destructive { background: var(--destructive); color: var(--destructive-foreground); }
+    .btn-destructive:hover { opacity: 0.9; }
+    .btn-outline { border-color: var(--input); background: var(--background); color: var(--foreground); }
+    .btn-outline:hover { background: var(--accent); color: var(--accent-foreground); }
+    .btn-secondary { background: var(--secondary); color: var(--secondary-foreground); }
+    .btn-secondary:hover { opacity: 0.8; }
+    .btn-ghost { background: transparent; color: var(--foreground); }
+    .btn-ghost:hover { background: var(--accent); color: var(--accent-foreground); }
+    .btn-link { background: transparent; color: var(--primary); text-decoration: underline; text-underline-offset: 4px; }
+    .btn-link:hover { text-decoration: underline; }
+
+    /* Button sizes (shadcn) */
+    .btn-md { height: 2.25rem; padding: 0.5rem 1rem; }
+    .btn-sm { height: 2rem; padding: 0.25rem 0.75rem; font-size: 0.75rem; border-radius: calc(var(--radius) - 4px); }
+    .btn-lg { height: 2.75rem; padding: 0.5rem 2rem; font-size: 1rem; border-radius: var(--radius); }
+    .btn-icon { height: 2.25rem; width: 2.25rem; padding: 0; }
 
     /* Clip shapes */
     .clip-circle { border-radius: 9999px; aspect-ratio: 1; padding: var(--spacing-2); }
@@ -584,8 +598,32 @@ public enum CSSGenerator {
     .textarea::placeholder { color: var(--muted-foreground); }
     .textarea:focus { outline: none; border-color: var(--ring); box-shadow: 0 0 0 2px var(--ring); }
 
-    /* Toggle */
+    /* Toggle / Switch (shadcn) */
     .toggle { display: inline-flex; align-items: center; gap: var(--spacing-2); cursor: pointer; font-size: 0.875rem; }
+    .toggle input[type="checkbox"] {
+        appearance: none; -webkit-appearance: none;
+        width: 2.75rem; height: 1.5rem;
+        border-radius: 9999px;
+        background: var(--input);
+        position: relative;
+        cursor: pointer;
+        transition: background-color 150ms;
+        flex-shrink: 0;
+    }
+    .toggle input[type="checkbox"]::after {
+        content: "";
+        position: absolute;
+        top: 2px; left: 2px;
+        width: 1.25rem; height: 1.25rem;
+        border-radius: 9999px;
+        background: var(--background);
+        box-shadow: var(--shadow-sm);
+        transition: transform 150ms;
+    }
+    .toggle input[type="checkbox"]:checked { background: var(--primary); }
+    .toggle input[type="checkbox"]:checked::after { transform: translateX(1.25rem); }
+    .toggle input[type="checkbox"]:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+    .toggle input[type="checkbox"]:disabled { opacity: 0.5; cursor: not-allowed; }
 
     /* Picker / Select */
     .picker {
@@ -602,8 +640,26 @@ public enum CSSGenerator {
     }
     .picker:focus { outline: none; border-color: var(--ring); box-shadow: 0 0 0 2px var(--ring); }
 
-    /* Slider */
-    .slider { width: 100%; cursor: pointer; accent-color: var(--primary); }
+    /* Slider (shadcn) */
+    .slider {
+        width: 100%; cursor: pointer;
+        appearance: none; -webkit-appearance: none;
+        height: 0.5rem;
+        border-radius: 9999px;
+        background: var(--secondary);
+    }
+    .slider::-webkit-slider-thumb {
+        appearance: none; -webkit-appearance: none;
+        width: 1.25rem; height: 1.25rem;
+        border-radius: 9999px;
+        background: var(--background);
+        border: 2px solid var(--primary);
+        cursor: pointer;
+        transition: background-color 150ms;
+    }
+    .slider::-webkit-slider-thumb:hover { background: var(--accent); }
+    .slider:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+    .slider:disabled { opacity: 0.5; cursor: not-allowed; }
 
     /* Image */
     .img { max-width: 100%; height: auto; }
@@ -644,15 +700,19 @@ public enum CSSGenerator {
     .section { display: flex; flex-direction: column; gap: var(--spacing-3); }
     .section-header { font-size: 1.125rem; line-height: 1; font-weight: 600; letter-spacing: -0.025em; font-family: var(--font-body); }
 
-    /* Card */
+    /* Card (shadcn) */
     .card {
         border-radius: var(--radius);
         border: 1px solid var(--border);
         background: var(--card);
         color: var(--card-foreground);
         box-shadow: var(--shadow-sm);
-        padding: var(--spacing-6);
     }
+    .card-header { display: flex; flex-direction: column; gap: 0.375rem; padding: 1.5rem; }
+    .card-title { font-size: 1.5rem; font-weight: 600; line-height: 1; letter-spacing: -0.025em; }
+    .card-description { font-size: 0.875rem; color: var(--muted-foreground); }
+    .card-content { padding: 1.5rem; padding-top: 0; }
+    .card-footer { display: flex; align-items: center; padding: 1.5rem; padding-top: 0; }
 
     /* Modal / Dialog */
     .modal {
@@ -664,7 +724,10 @@ public enum CSSGenerator {
         max-width: 32rem;
         width: 100%;
     }
-    .modal::backdrop { background: rgb(0 0 0 / 0.8); }
+    .modal::backdrop { background: transparent; }
+    .modal-overlay { position: fixed; inset: 0; z-index: 300; display: flex; align-items: center; justify-content: center; }
+    .modal-backdrop { position: fixed; inset: 0; z-index: 299; background: rgb(0 0 0 / 0.8); }
+    .sheet-overlay { position: fixed; inset: 0; z-index: 300; }
 
     /* Sheet */
     .sheet {
@@ -710,8 +773,10 @@ public enum CSSGenerator {
         font-size: 0.875rem;
         line-height: 1.25rem;
     }
+    .alert-destructive { border-color: var(--destructive); color: var(--destructive); }
+    .alert-destructive .alert-title { color: var(--destructive); }
     .alert-title { font-weight: 500; line-height: 1.5; letter-spacing: -0.025em; margin-bottom: 0.25rem; }
-    .alert-message { font-size: 0.875rem; line-height: 1.25rem; color: var(--muted-foreground); }
+    .alert-description { font-size: 0.875rem; line-height: 1.25rem; color: var(--muted-foreground); }
 
     /* Toast (sonner style) */
     .toast {
@@ -750,9 +815,11 @@ public enum CSSGenerator {
         transition-duration: 150ms;
     }
     .badge-default { background: var(--primary); color: var(--primary-foreground); }
+    .badge-secondary { background: var(--secondary); color: var(--secondary-foreground); }
+    .badge-destructive { background: var(--destructive); color: var(--destructive-foreground); }
+    .badge-outline { background: transparent; color: var(--foreground); border-color: var(--border); }
     .badge-success { background: var(--success); color: var(--success-foreground); }
     .badge-warning { background: var(--warning); color: var(--warning-foreground); }
-    .badge-error { background: var(--destructive); color: var(--destructive-foreground); }
     .badge-info { background: var(--info); color: var(--info-foreground); }
 
     /* Progress */
@@ -830,15 +897,54 @@ public enum CSSGenerator {
     }
     .segmented-btn-active:hover { background: var(--background); }
 
-    /* Radio Group */
+    /* Radio Group (shadcn) */
     .radio-group { border: none; display: flex; flex-direction: column; gap: var(--spacing-3); padding: 0; }
     .radio-legend { font-size: 0.875rem; font-weight: 500; margin-bottom: var(--spacing-1); font-family: var(--font-body); }
     .radio-option { display: flex; align-items: center; gap: var(--spacing-2); cursor: pointer; font-size: 0.875rem; font-family: var(--font-body); }
-    .radio-option input[type="radio"] { accent-color: var(--primary); width: 1rem; height: 1rem; }
+    .radio-option input[type="radio"] {
+        appearance: none; -webkit-appearance: none;
+        width: 1rem; height: 1rem;
+        border-radius: 9999px;
+        border: 1px solid var(--primary);
+        background: transparent;
+        cursor: pointer;
+        position: relative;
+        flex-shrink: 0;
+    }
+    .radio-option input[type="radio"]:checked::after {
+        content: "";
+        position: absolute;
+        top: 50%; left: 50%;
+        transform: translate(-50%, -50%);
+        width: 0.625rem; height: 0.625rem;
+        border-radius: 9999px;
+        background: var(--primary);
+    }
+    .radio-option input[type="radio"]:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+    .radio-option input[type="radio"]:disabled { opacity: 0.5; cursor: not-allowed; }
 
-    /* Checkbox */
+    /* Checkbox (shadcn) */
     .checkbox { display: flex; align-items: center; gap: var(--spacing-2); cursor: pointer; font-size: 0.875rem; font-family: var(--font-body); }
-    .checkbox input[type="checkbox"] { accent-color: var(--primary); width: 1rem; height: 1rem; }
+    .checkbox input[type="checkbox"] {
+        appearance: none; -webkit-appearance: none;
+        width: 1rem; height: 1rem;
+        border-radius: calc(var(--radius) - 4px);
+        border: 1px solid var(--primary);
+        background: transparent;
+        cursor: pointer;
+        position: relative;
+        flex-shrink: 0;
+    }
+    .checkbox input[type="checkbox"]:checked { background: var(--primary); border-color: var(--primary); }
+    .checkbox input[type="checkbox"]:checked::after {
+        content: "";
+        position: absolute; inset: 0;
+        display: flex; align-items: center; justify-content: center;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E");
+        background-repeat: no-repeat; background-position: center;
+    }
+    .checkbox input[type="checkbox"]:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+    .checkbox input[type="checkbox"]:disabled { opacity: 0.5; cursor: not-allowed; }
 
     /* Combobox */
     .combobox { cursor: text; }

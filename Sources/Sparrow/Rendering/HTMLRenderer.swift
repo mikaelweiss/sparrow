@@ -53,10 +53,6 @@ public struct HTMLRenderer: Sendable {
         if view is Divider {
             return renderDivider(context: modifierContext)
         }
-        // Label
-        if let label = view as? Label {
-            return renderLabel(label, context: modifierContext)
-        }
         // Markdown
         if let md = view as? Markdown {
             return renderMarkdown(md, context: modifierContext)
@@ -101,29 +97,9 @@ public struct HTMLRenderer: Sendable {
         if let navLink = view as? NavigationLink {
             return renderNavigationLink(navLink, context: modifierContext)
         }
-        // Alert
-        if let alert = view as? Alert {
-            return renderAlert(alert, context: modifierContext)
-        }
-        // Toast
-        if let toast = view as? Toast {
-            return renderToast(toast, context: modifierContext)
-        }
-        // Badge
-        if let badge = view as? Badge {
-            return renderBadge(badge, context: modifierContext)
-        }
         // ProgressView
         if let pv = view as? ProgressView {
             return renderProgressView(pv, context: modifierContext)
-        }
-        // Spinner
-        if view is Spinner {
-            return renderSpinner(context: modifierContext)
-        }
-        // Stepper
-        if let stepper = view as? Stepper {
-            return renderStepper(stepper, context: modifierContext)
         }
         // SegmentedControl
         if let seg = view as? SegmentedControl {
@@ -153,10 +129,6 @@ public struct HTMLRenderer: Sendable {
         if let sk = view as? Skeleton {
             return renderSkeleton(sk, context: modifierContext)
         }
-        // Banner
-        if let banner = view as? Banner {
-            return renderBanner(banner, context: modifierContext)
-        }
         // Gauge
         if let gauge = view as? Gauge {
             return renderGauge(gauge, context: modifierContext)
@@ -164,10 +136,6 @@ public struct HTMLRenderer: Sendable {
         // Accordion
         if let acc = view as? Accordion {
             return renderAccordion(acc, context: modifierContext)
-        }
-        // Breadcrumb
-        if let bc = view as? Breadcrumb {
-            return renderBreadcrumb(bc, context: modifierContext)
         }
         // Pagination
         if let pg = view as? Pagination {
@@ -209,8 +177,8 @@ public struct HTMLRenderer: Sendable {
         let id = renderState.allocateId()
         renderState.registerHandler(id: id, handler: button.action)
 
-        let classes = ["btn"] + context.cssClasses
-        let classAttr = classes.isEmpty ? "" : " class=\"\(classes.joined(separator: " "))\""
+        let classes = ["btn", button.variant.cssClass, button.size.cssClass] + context.cssClasses
+        let classAttr = " class=\"\(classes.joined(separator: " "))\""
         let styleAttr = context.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(context.inlineStyles))\""
         let escaped = escapeHTML(button.label)
         return "        <button id=\"\(id)\"\(classAttr) data-sparrow-event=\"click\"\(styleAttr)>\(escaped)</button>"
@@ -240,15 +208,6 @@ public struct HTMLRenderer: Sendable {
         return "        <hr id=\"\(id)\"\(classAttr)>"
     }
 
-    private func renderLabel(_ label: Label, context: ModifierContext) -> String {
-        let id = renderState.allocateId()
-        let classes = ["label"] + context.cssClasses
-        let classAttr = " class=\"\(classes.joined(separator: " "))\""
-        let styleAttr = context.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(context.inlineStyles))\""
-        let escapedTitle = escapeHTML(label.title)
-        let escapedIcon = escapeHTML(label.icon)
-        return "        <span id=\"\(id)\"\(classAttr)\(styleAttr)><span class=\"label-icon\">\(escapedIcon)</span> \(escapedTitle)</span>"
-    }
 
     private func renderMarkdown(_ md: Markdown, context: ModifierContext) -> String {
         let id = renderState.allocateId()
@@ -400,48 +359,8 @@ public struct HTMLRenderer: Sendable {
         return "        <a id=\"\(id)\" href=\"\(dest)\" data-sparrow-nav\(classAttr)\(styleAttr)\(ariaAttr)>\(escaped)</a>"
     }
 
-    private func renderAlert(_ alert: Alert, context: ModifierContext) -> String {
-        let id = renderState.allocateId()
-        let classes = ["alert"] + context.cssClasses
-        let classAttr = " class=\"\(classes.joined(separator: " "))\""
-        let styleAttr = context.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(context.inlineStyles))\""
-        let titleHTML = escapeHTML(alert.title)
-        let messageHTML = alert.message.isEmpty ? "" : "\n            <p class=\"alert-message\">\(escapeHTML(alert.message))</p>"
-        return "        <div id=\"\(id)\" role=\"alert\"\(classAttr)\(styleAttr)>\n            <p class=\"alert-title\">\(titleHTML)</p>\(messageHTML)\n        </div>"
-    }
 
-    private func renderToast(_ toast: Toast, context: ModifierContext) -> String {
-        let id = renderState.allocateId()
-        let styleName: String
-        switch toast.style {
-        case .info: styleName = "info"
-        case .success: styleName = "success"
-        case .warning: styleName = "warning"
-        case .error: styleName = "error"
-        }
-        let classes = ["toast", "toast-\(styleName)"] + context.cssClasses
-        let classAttr = " class=\"\(classes.joined(separator: " "))\""
-        let styleAttr = context.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(context.inlineStyles))\""
-        let escaped = escapeHTML(toast.message)
-        return "        <div id=\"\(id)\"\(classAttr)\(styleAttr)>\(escaped)</div>"
-    }
 
-    private func renderBadge(_ badge: Badge, context: ModifierContext) -> String {
-        let id = renderState.allocateId()
-        let styleName: String
-        switch badge.style {
-        case .default: styleName = "default"
-        case .success: styleName = "success"
-        case .warning: styleName = "warning"
-        case .error: styleName = "error"
-        case .info: styleName = "info"
-        }
-        let classes = ["badge", "badge-\(styleName)"] + context.cssClasses
-        let classAttr = " class=\"\(classes.joined(separator: " "))\""
-        let styleAttr = context.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(context.inlineStyles))\""
-        let escaped = escapeHTML(badge.text)
-        return "        <span id=\"\(id)\"\(classAttr)\(styleAttr)>\(escaped)</span>"
-    }
 
     private func renderProgressView(_ pv: ProgressView, context: ModifierContext) -> String {
         let id = renderState.allocateId()
@@ -455,37 +374,7 @@ public struct HTMLRenderer: Sendable {
         }
     }
 
-    private func renderSpinner(context: ModifierContext) -> String {
-        let id = renderState.allocateId()
-        let classes = ["spinner"] + context.cssClasses
-        let classAttr = " class=\"\(classes.joined(separator: " "))\""
-        let styleAttr = context.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(context.inlineStyles))\""
-        return "        <div id=\"\(id)\"\(classAttr)\(styleAttr)></div>"
-    }
 
-    private func renderStepper(_ stepper: Stepper, context: ModifierContext) -> String {
-        let id = renderState.allocateId()
-        let decId = renderState.allocateId()
-        let incId = renderState.allocateId()
-        renderState.registerHandler(id: decId, handler: stepper.onDecrement)
-        renderState.registerHandler(id: incId, handler: stepper.onIncrement)
-        let classes = ["stepper"] + context.cssClasses
-        let classAttr = " class=\"\(classes.joined(separator: " "))\""
-        let styleAttr = context.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(context.inlineStyles))\""
-        let escaped = escapeHTML(stepper.label)
-        let disableDec = stepper.value <= stepper.range.lowerBound ? " disabled" : ""
-        let disableInc = stepper.value >= stepper.range.upperBound ? " disabled" : ""
-        return """
-                <div id="\(id)"\(classAttr)\(styleAttr)>
-                    <span class="stepper-label">\(escaped)</span>
-                    <div class="stepper-controls">
-                        <button id="\(decId)" class="stepper-btn" data-sparrow-event="click"\(disableDec)>−</button>
-                        <span class="stepper-value">\(stepper.value)</span>
-                        <button id="\(incId)" class="stepper-btn" data-sparrow-event="click"\(disableInc)>+</button>
-                    </div>
-                </div>
-        """
-    }
 
     private func renderSegmentedControl(_ seg: SegmentedControl, context: ModifierContext) -> String {
         let id = renderState.allocateId()
@@ -494,12 +383,15 @@ public struct HTMLRenderer: Sendable {
         let styleAttr = context.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(context.inlineStyles))\""
         let buttons = seg.options.map { opt in
             let segId = renderState.allocateId()
-            let selected = opt.value == seg.selection ? " segmented-btn-active" : ""
+            let isSelected = opt.value == seg.selection
+            let selectedCls = isSelected ? " segmented-btn-active" : ""
+            let ariaSelected = isSelected ? " aria-selected=\"true\"" : " aria-selected=\"false\""
+            let tabindex = isSelected ? " tabindex=\"0\"" : " tabindex=\"-1\""
             let escaped = escapeHTML(opt.label)
-            return "            <button id=\"\(segId)\" class=\"segmented-btn\(selected)\" data-sparrow-event=\"click\" data-value=\"\(escapeHTML(opt.value))\">\(escaped)</button>"
+            return "            <button id=\"\(segId)\" class=\"segmented-btn\(selectedCls)\" role=\"tab\"\(ariaSelected)\(tabindex) data-sparrow-roving-item data-sparrow-event=\"click\" data-value=\"\(escapeHTML(opt.value))\">\(escaped)</button>"
         }.joined(separator: "\n")
         return """
-                <div id="\(id)" role="tablist"\(classAttr)\(styleAttr)>
+                <div id="\(id)" role="tablist" data-sparrow-roving="horizontal"\(classAttr)\(styleAttr)>
         \(buttons)
                 </div>
         """
@@ -515,11 +407,11 @@ public struct HTMLRenderer: Sendable {
             let optId = renderState.allocateId()
             let checked = opt.value == radio.selection ? " checked" : ""
             let escaped = escapeHTML(opt.label)
-            return "            <label class=\"radio-option\"><input id=\"\(optId)\" type=\"radio\" name=\"\(groupName)\" value=\"\(escapeHTML(opt.value))\"\(checked) data-sparrow-event=\"change\"> \(escaped)</label>"
+            return "            <label class=\"radio-option\" data-sparrow-roving-item><input id=\"\(optId)\" type=\"radio\" name=\"\(groupName)\" value=\"\(escapeHTML(opt.value))\"\(checked) data-sparrow-event=\"change\"> \(escaped)</label>"
         }.joined(separator: "\n")
         let legend = escapeHTML(radio.label)
         return """
-                <fieldset id="\(id)"\(classAttr)\(styleAttr)>
+                <fieldset id="\(id)"\(classAttr)\(styleAttr) role="radiogroup" data-sparrow-roving="vertical">
                     <legend class="radio-legend">\(legend)</legend>
         \(options)
                 </fieldset>
@@ -600,21 +492,6 @@ public struct HTMLRenderer: Sendable {
         }
     }
 
-    private func renderBanner(_ banner: Banner, context: ModifierContext) -> String {
-        let id = renderState.allocateId()
-        let styleName: String
-        switch banner.style {
-        case .info: styleName = "info"
-        case .success: styleName = "success"
-        case .warning: styleName = "warning"
-        case .error: styleName = "error"
-        }
-        let classes = ["banner", "banner-\(styleName)"] + context.cssClasses
-        let classAttr = " class=\"\(classes.joined(separator: " "))\""
-        let styleAttr = context.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(context.inlineStyles))\""
-        let escaped = escapeHTML(banner.message)
-        return "        <div id=\"\(id)\" role=\"status\"\(classAttr)\(styleAttr)>\(escaped)</div>"
-    }
 
     private func renderGauge(_ gauge: Gauge, context: ModifierContext) -> String {
         let id = renderState.allocateId()
@@ -648,22 +525,6 @@ public struct HTMLRenderer: Sendable {
         """
     }
 
-    private func renderBreadcrumb(_ bc: Breadcrumb, context: ModifierContext) -> String {
-        let id = renderState.allocateId()
-        let classes = ["breadcrumb", "desktop-only"] + context.cssClasses
-        let classAttr = " class=\"\(classes.joined(separator: " "))\""
-        let styleAttr = context.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(context.inlineStyles))\""
-        let items = bc.items.enumerated().map { index, item in
-            let escaped = escapeHTML(item.label)
-            let isLast = index == bc.items.count - 1
-            if let dest = item.destination, !isLast {
-                return "<a href=\"\(escapeHTML(dest))\" data-sparrow-nav class=\"breadcrumb-link\">\(escaped)</a>"
-            } else {
-                return "<span class=\"breadcrumb-current\">\(escaped)</span>"
-            }
-        }.joined(separator: "<span class=\"breadcrumb-sep\" aria-hidden=\"true\">/</span>")
-        return "        <nav id=\"\(id)\" aria-label=\"Breadcrumb\"\(classAttr)\(styleAttr)>\(items)</nav>"
-    }
 
     private func renderPagination(_ pg: Pagination, context: ModifierContext) -> String {
         let id = renderState.allocateId()

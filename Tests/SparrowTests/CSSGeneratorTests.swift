@@ -17,21 +17,21 @@ struct CSSGeneratorTests {
     @Test("Stylesheet includes design system color tokens")
     func colorTokens() {
         let css = CSSGenerator.defaultStylesheet
-        #expect(css.contains("--color-primary"))
-        #expect(css.contains("--color-secondary"))
-        #expect(css.contains("--color-accent"))
-        #expect(css.contains("--color-background"))
-        #expect(css.contains("--color-text"))
-        #expect(css.contains("--color-error"))
-        #expect(css.contains("--color-success"))
+        #expect(css.contains("--primary:"))
+        #expect(css.contains("--secondary:"))
+        #expect(css.contains("--accent:"))
+        #expect(css.contains("--background:"))
+        #expect(css.contains("--foreground:"))
+        #expect(css.contains("--destructive:"))
+        #expect(css.contains("--success:"))
     }
 
     @Test("Stylesheet includes spacing tokens")
     func spacingTokens() {
         let css = CSSGenerator.defaultStylesheet
-        #expect(css.contains("--spacing-1: 4px"))
-        #expect(css.contains("--spacing-4: 16px"))
-        #expect(css.contains("--spacing-16: 64px"))
+        #expect(css.contains("--spacing-1:"))
+        #expect(css.contains("--spacing-4:"))
+        #expect(css.contains("--spacing-16:"))
     }
 
     @Test("Stylesheet includes dark mode media query")

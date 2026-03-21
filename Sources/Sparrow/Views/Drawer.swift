@@ -1,8 +1,13 @@
 /// A panel that slides in from the edge.
-/// On mobile: slides up from bottom. On desktop: slides in from the specified edge.
+///
+/// Uses client runtime primitives:
+/// - FocusTrap: traps Tab cycling within the drawer
+/// - DismissableLayer: Escape key and outside click dismiss
+/// - Presence: slide-in/out animations
 public struct Drawer<Content: View>: View {
     public typealias Body = Never
     public let isPresented: Bool
+    let isPresentedBinding: Binding<Bool>?
     public let edge: DrawerEdge
     public let content: Content
 
@@ -12,6 +17,18 @@ public struct Drawer<Content: View>: View {
         @ViewBuilder content: () -> Content
     ) {
         self.isPresented = isPresented
+        self.isPresentedBinding = nil
+        self.edge = edge
+        self.content = content()
+    }
+
+    public init(
+        isPresented: Binding<Bool>,
+        edge: DrawerEdge = .trailing,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.isPresented = isPresented.wrappedValue
+        self.isPresentedBinding = isPresented
         self.edge = edge
         self.content = content()
     }

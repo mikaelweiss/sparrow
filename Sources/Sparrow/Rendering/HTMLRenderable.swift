@@ -232,17 +232,28 @@ extension Card: HTMLRenderable {
 
 extension Modal: HTMLRenderable {
     func renderHTML(with renderer: HTMLRenderer, modifierContext: ModifierContext) -> String {
+        guard isPresented else { return "" }
         let id = renderer.renderState.allocateId()
+        let dismissId = renderer.renderState.allocateId()
+        // Register a dismiss handler that toggles the binding
+        let binding = self.isPresentedBinding
+        if let binding {
+            renderer.renderState.registerHandler(id: dismissId) {
+                binding.wrappedValue = false
+            }
+        }
         let children = flattenChildren(content)
         let childrenHTML = renderer.renderChildren(children)
         let classes = ["modal"] + modifierContext.cssClasses
         let classAttr = " class=\"\(classes.joined(separator: " "))\""
         let styleAttr = modifierContext.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(modifierContext.inlineStyles))\""
-        let openAttr = isPresented ? " open" : ""
         return """
-                <dialog id="\(id)"\(classAttr)\(styleAttr)\(openAttr)>
+                <div class="modal-overlay" data-sparrow-dismissable="\(dismissId)">
+                    <dialog id="\(id)"\(classAttr)\(styleAttr) open data-sparrow-focus-trap aria-modal="true" role="dialog" data-sparrow-enter="modal-enter" data-sparrow-exit="modal-exit">
         \(childrenHTML)
-                </dialog>
+                    </dialog>
+                </div>
+                <div class="modal-backdrop"></div>
         """
     }
 }
@@ -251,19 +262,26 @@ extension Modal: HTMLRenderable {
 
 extension Sheet: HTMLRenderable {
     func renderHTML(with renderer: HTMLRenderer, modifierContext: ModifierContext) -> String {
+        guard isPresented else { return "" }
         let id = renderer.renderState.allocateId()
+        let dismissId = renderer.renderState.allocateId()
+        if let binding = self.isPresentedBinding {
+            renderer.renderState.registerHandler(id: dismissId) {
+                binding.wrappedValue = false
+            }
+        }
         let children = flattenChildren(content)
         let childrenHTML = renderer.renderChildren(children)
-        var classes = ["sheet"] + modifierContext.cssClasses
-        if isPresented {
-            classes.append("sheet-open")
-        }
+        let classes = ["sheet", "sheet-open"] + modifierContext.cssClasses
         let classAttr = " class=\"\(classes.joined(separator: " "))\""
         let styleAttr = modifierContext.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(modifierContext.inlineStyles))\""
         return """
-                <div id="\(id)"\(classAttr)\(styleAttr)>
+                <div class="sheet-overlay" data-sparrow-dismissable="\(dismissId)">
+                    <div id="\(id)"\(classAttr)\(styleAttr) data-sparrow-focus-trap role="dialog" aria-modal="true">
         \(childrenHTML)
+                    </div>
                 </div>
+                <div class="modal-backdrop"></div>
         """
     }
 }
@@ -273,6 +291,7 @@ extension Sheet: HTMLRenderable {
 extension Menu: HTMLRenderable {
     func renderHTML(with renderer: HTMLRenderer, modifierContext: ModifierContext) -> String {
         let id = renderer.renderState.allocateId()
+        let triggerId = renderer.renderState.allocateId()
         let children = flattenChildren(content)
         let childrenHTML = renderer.renderChildren(children)
         let classes = ["menu"] + modifierContext.cssClasses
@@ -281,8 +300,8 @@ extension Menu: HTMLRenderable {
         let escaped = escapeHTML(label)
         return """
                 <div id="\(id)"\(classAttr)\(styleAttr)>
-                    <button class="menu-trigger">\(escaped)</button>
-                    <div class="menu-content">
+                    <button id="\(triggerId)" class="menu-trigger" aria-haspopup="true" data-sparrow-menu-trigger>\(escaped)</button>
+                    <div class="menu-content" role="menu" data-sparrow-dismissable="\(triggerId)">
         \(childrenHTML)
                     </div>
                 </div>
@@ -305,6 +324,7 @@ extension ForEach: HTMLRenderable {
 extension Tooltip: HTMLRenderable {
     func renderHTML(with renderer: HTMLRenderer, modifierContext: ModifierContext) -> String {
         let id = renderer.renderState.allocateId()
+        let tooltipId = renderer.renderState.allocateId()
         let children = flattenChildren(content)
         let childrenHTML = renderer.renderChildren(children)
         let classes = ["tooltip-wrapper", "desktop-only-hover"] + modifierContext.cssClasses
@@ -312,9 +332,9 @@ extension Tooltip: HTMLRenderable {
         let styleAttr = modifierContext.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(modifierContext.inlineStyles))\""
         let escaped = escapeHTML(text)
         return """
-                <div id="\(id)"\(classAttr)\(styleAttr)>
+                <div id="\(id)"\(classAttr)\(styleAttr) data-sparrow-tooltip>
         \(childrenHTML)
-                    <span class="tooltip-text" role="tooltip">\(escaped)</span>
+                    <span id="\(tooltipId)" class="tooltip-text" role="tooltip">\(escaped)</span>
                 </div>
         """
     }
@@ -373,19 +393,23 @@ extension HoverCard: HTMLRenderable {
 
 extension Drawer: HTMLRenderable {
     func renderHTML(with renderer: HTMLRenderer, modifierContext: ModifierContext) -> String {
+        guard isPresented else { return "" }
         let id = renderer.renderState.allocateId()
+        let dismissId = renderer.renderState.allocateId()
+        if let binding = self.isPresentedBinding {
+            renderer.renderState.registerHandler(id: dismissId) {
+                binding.wrappedValue = false
+            }
+        }
         let children = flattenChildren(content)
         let childrenHTML = renderer.renderChildren(children)
-        var classes = ["drawer", "drawer-\(edge.rawValue)"] + modifierContext.cssClasses
-        if isPresented {
-            classes.append("drawer-open")
-        }
+        let classes = ["drawer", "drawer-\(edge.rawValue)", "drawer-open"] + modifierContext.cssClasses
         let classAttr = " class=\"\(classes.joined(separator: " "))\""
         let styleAttr = modifierContext.inlineStyles.isEmpty ? "" : " style=\"\(formatStyles(modifierContext.inlineStyles))\""
         return """
                 <div id="\(id)"\(classAttr)\(styleAttr)>
-                    <div class="drawer-backdrop"></div>
-                    <div class="drawer-panel">
+                    <div class="drawer-backdrop" data-sparrow-dismissable="\(dismissId)"></div>
+                    <div class="drawer-panel" data-sparrow-focus-trap role="dialog" aria-modal="true">
         \(childrenHTML)
                     </div>
                 </div>
@@ -435,7 +459,9 @@ extension TabView: HTMLRenderable {
                 let isActive = tab.tag == selection
                 let activeCls = isActive ? " tab-btn-active" : ""
                 let iconHTML = tab.icon.map { "<span class=\"tab-icon\" data-icon=\"\(escapeHTML($0))\"></span>" } ?? ""
-                tabBarHTML += "            <button id=\"\(tabId)\" class=\"tab-btn\(activeCls)\" role=\"tab\" data-sparrow-event=\"click\">\(iconHTML)\(escapeHTML(tab.label))</button>\n"
+                let ariaSelected = isActive ? " aria-selected=\"true\"" : " aria-selected=\"false\""
+                let tabindex = isActive ? " tabindex=\"0\"" : " tabindex=\"-1\""
+                tabBarHTML += "            <button id=\"\(tabId)\" class=\"tab-btn\(activeCls)\" role=\"tab\"\(ariaSelected)\(tabindex) data-sparrow-roving-item data-sparrow-event=\"click\">\(iconHTML)\(escapeHTML(tab.label))</button>\n"
                 if isActive {
                     tabContentHTML = tab.renderContent(with: renderer)
                 }
@@ -447,7 +473,7 @@ extension TabView: HTMLRenderable {
 
         return """
                 <div id="\(id)"\(classAttr)\(styleAttr)>
-                    <div class="tab-bar" role="tablist">
+                    <div class="tab-bar" role="tablist" data-sparrow-roving="horizontal">
         \(tabBarHTML)            </div>
                     <div class="tab-content" role="tabpanel">
         \(tabContentHTML)
