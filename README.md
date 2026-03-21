@@ -1,6 +1,6 @@
 # Sparrow
 
-A batteries-included Swift web framework. SwiftUI-like code on the server, HTML/CSS in the browser. Zero JavaScript written by the developer.
+A Swift web platform. SwiftUI-like code on the server, HTML/CSS in the browser. Just build your app.
 
 ```swift
 struct HomePage: View {
@@ -8,7 +8,7 @@ struct HomePage: View {
         VStack {
             Text("Hello, Sparrow")
                 .font(.title)
-            Text("Ship in minutes.")
+            Text("Just build your app.")
                 .foregroundStyle(.secondary)
         }
         .padding()
@@ -19,7 +19,7 @@ struct HomePage: View {
 ## Why Sparrow
 
 - **Zero decision fatigue.** Router, state management, design system, auth, data layer — all built in. One answer for each, and it works.
-- **Beautiful by default.** The built-in design system produces professional UI out of the box. No design skills required.
+- **Beautiful by default.** The built-in design system produces professional UI out of the box. The defaults are good enough to ship.
 - **One language.** Swift for everything. UI, logic, data, auth, routing. No context-switching.
 - **No JavaScript.** A small client runtime (~5-10KB) handles WebSocket and DOM patching. You never touch it.
 - **LLM-friendly.** Small, consistent API surface. Strong types. One way to do things.

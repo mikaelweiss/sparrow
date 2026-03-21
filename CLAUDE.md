@@ -1,6 +1,6 @@
 # Sparrow
 
-A batteries-included Swift web framework. SwiftUI-like code on the server → HTML/CSS in the browser. Zero JS written by the developer.
+A Swift web platform. SwiftUI-like code on the server → HTML/CSS in the browser. Just build your app.
 
 ## Architecture
 

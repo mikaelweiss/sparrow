@@ -17,7 +17,7 @@ OUTPUT="${1:-$SCRIPT_DIR/llms.txt}"
     cat <<'EOF'
 # Sparrow
 
-> A batteries-included Swift web framework. SwiftUI-like code on the server → HTML/CSS in the browser.
+> A Swift web platform. SwiftUI-like code on the server → HTML/CSS in the browser.
 
 Sparrow uses a SwiftUI-like DSL to define views that render to semantic HTML and CSS. State lives on the server in Swift actors. A WebSocket connection pushes DOM patches to the browser. Developers write zero JavaScript and zero CSS.
 
