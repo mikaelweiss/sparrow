@@ -276,6 +276,9 @@ public enum CSSGenerator {
     .fg-primary { color: var(--primary); }
     .fg-secondary { color: var(--muted-foreground); }
     .fg-accent { color: var(--accent-foreground); }
+    .fg-background { color: var(--background); }
+    .fg-surface { color: var(--muted-foreground); }
+    .fg-surfaceSecondary { color: var(--accent-foreground); }
     .fg-text { color: var(--foreground); }
     .fg-textSecondary { color: var(--muted-foreground); }
     .fg-textTertiary { color: var(--muted-foreground); }
@@ -283,6 +286,7 @@ public enum CSSGenerator {
     .fg-success { color: var(--success); }
     .fg-warning { color: var(--warning); }
     .fg-info { color: var(--info); }
+    .fg-current { color: currentColor; }
     .fg-red { color: var(--color-red); }
     .fg-orange { color: var(--color-orange); }
     .fg-yellow { color: var(--color-yellow); }
@@ -305,11 +309,18 @@ public enum CSSGenerator {
        ============================================ */
     .bg-primary { background: var(--primary); }
     .bg-secondary { background: var(--secondary); }
+    .bg-accent { background: var(--accent); }
     .bg-surface { background: var(--muted); }
     .bg-surfaceSecondary { background: var(--accent); }
     .bg-background { background: var(--background); }
+    .bg-text { background: var(--foreground); }
+    .bg-textSecondary { background: var(--muted-foreground); }
+    .bg-textTertiary { background: var(--muted-foreground); }
     .bg-error { background: var(--destructive); }
     .bg-success { background: var(--success); }
+    .bg-warning { background: var(--warning); }
+    .bg-info { background: var(--info); }
+    .bg-current { background: currentColor; }
     .bg-red { background: var(--color-red); }
     .bg-orange { background: var(--color-orange); }
     .bg-yellow { background: var(--color-yellow); }
