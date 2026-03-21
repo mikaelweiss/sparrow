@@ -24,7 +24,7 @@ struct Patch: Sendable {
 actor SessionActor {
     let sessionId: String
     let stateStore: StateStorage
-    private let renderBody: @Sendable (HTMLRenderer) -> String
+    private var renderBody: @Sendable (HTMLRenderer) -> String
     private var lastHTML: String
     private var eventHandlers: [String: @Sendable () -> Void]
     private var valueHandlers: [String: @Sendable (String) -> Void]
@@ -47,6 +47,24 @@ actor SessionActor {
     /// Returns the current rendered HTML (for initial page sync).
     func getHTML() -> String {
         lastHTML
+    }
+
+    /// Navigate within the same layout — swap the render closure, re-render,
+    /// and return just the content HTML for the client to inject into #sparrow-content.
+    /// Layout DOM is preserved on the client; only content is replaced.
+    func navigateContent(
+        newRenderBody: @escaping @Sendable (HTMLRenderer) -> String
+    ) -> String {
+        self.renderBody = newRenderBody
+
+        // Full re-render to get correct lastHTML and all handlers
+        let result = Self.doRender(renderBody: renderBody, stateStore: stateStore)
+        self.lastHTML = result.html
+        self.eventHandlers = result.eventHandlers
+        self.valueHandlers = result.valueHandlers
+
+        // Return just the content portion (set during layout rendering)
+        return result.contentHTML
     }
 
     /// Handle a client event. Invokes the registered handler, re-renders, and
@@ -95,6 +113,7 @@ actor SessionActor {
         }
         return RenderResult(
             html: html,
+            contentHTML: renderer.renderState.contentSlot ?? html,
             eventHandlers: renderer.renderState.eventHandlers,
             valueHandlers: renderer.renderState.valueHandlers
         )
@@ -103,6 +122,8 @@ actor SessionActor {
 
 private struct RenderResult {
     let html: String
+    /// The content-only HTML (from contentSlot if layout was used, otherwise same as html).
+    let contentHTML: String
     let eventHandlers: [String: @Sendable () -> Void]
     let valueHandlers: [String: @Sendable (String) -> Void]
 }

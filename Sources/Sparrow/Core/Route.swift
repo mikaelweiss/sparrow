@@ -126,9 +126,13 @@ public struct Route: Sendable {
     }
 
     /// Render the full body HTML including layout if present.
+    /// Content elements get "c" prefix IDs, layout elements get "l" prefix,
+    /// so layout IDs stay stable across same-layout navigations.
     func renderFullBody(with renderer: HTMLRenderer, params: RouteParams = .empty) -> String {
         if let renderLayout = _renderLayout {
+            renderer.renderState.idPrefix = "c"
             let contentHTML = _renderBody(renderer, params)
+            renderer.renderState.idPrefix = "l"
             return renderLayout(renderer, contentHTML)
         }
         return _renderBody(renderer, params)

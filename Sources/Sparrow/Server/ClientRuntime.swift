@@ -88,6 +88,9 @@ enum ClientRuntime {
                 case "page":
                     replacePage(msg);
                     break;
+                case "content":
+                    replaceContent(msg);
+                    break;
                 case "redirect":
                     if (msg.url) {
                         send({type: "navigate", url: msg.url});
@@ -176,6 +179,26 @@ enum ClientRuntime {
             } else {
                 window.scrollTo(0, 0);
             }
+        }
+
+        function replaceContent(msg) {
+            var content = document.getElementById("sparrow-content");
+            if (content && msg.html) {
+                content.innerHTML = msg.html;
+            }
+            if (msg.title) {
+                document.title = msg.title;
+            }
+            if (pendingFragment) {
+                var target = document.getElementById(pendingFragment);
+                if (target) {
+                    target.scrollIntoView({behavior: "smooth"});
+                }
+                pendingFragment = null;
+            }
+            // Don't scroll to top — layout preserves position
+            var root = document.getElementById("sparrow-root");
+            if (root) activatePrimitives(root);
         }
 
         // --- Event capture (delegation on #sparrow-root) ---

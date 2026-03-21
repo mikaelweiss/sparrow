@@ -246,20 +246,38 @@ private func handleWebSocket(
                 let renderBody: @Sendable (HTMLRenderer) -> String = { renderer in
                     route.renderFullBody(with: renderer, params: params)
                 }
-                session = SessionActor(
-                    sessionId: UUID().uuidString,
-                    renderBody: renderBody
-                )
-                currentLayoutId = newLayoutId
-
-                let html = await session!.getHTML()
-                let escaped = html
-                    .replacingOccurrences(of: "\\", with: "\\\\")
-                    .replacingOccurrences(of: "\"", with: "\\\"")
-                    .replacingOccurrences(of: "\n", with: "\\n")
                 let title = route.title ?? "Sparrow App"
-                let response = "{\"type\":\"page\",\"html\":\"\(escaped)\",\"url\":\"\(url)\",\"title\":\"\(title)\"}"
-                try await outbound.write(.text(response))
+
+                // Same layout — swap content only, preserve layout DOM
+                if let existingSession = session,
+                   let oldLayout = currentLayoutId,
+                   let newLayout = newLayoutId,
+                   oldLayout == newLayout
+                {
+                    let contentHTML = await existingSession.navigateContent(
+                        newRenderBody: renderBody
+                    )
+                    let escaped = contentHTML
+                        .replacingOccurrences(of: "\\", with: "\\\\")
+                        .replacingOccurrences(of: "\"", with: "\\\"")
+                        .replacingOccurrences(of: "\n", with: "\\n")
+                    let response = "{\"type\":\"content\",\"html\":\"\(escaped)\",\"url\":\"\(url)\",\"title\":\"\(title)\"}"
+                    try await outbound.write(.text(response))
+                } else {
+                    // Different layout or no layout — full page replace
+                    session = SessionActor(
+                        sessionId: UUID().uuidString,
+                        renderBody: renderBody
+                    )
+                    let html = await session!.getHTML()
+                    let escaped = html
+                        .replacingOccurrences(of: "\\", with: "\\\\")
+                        .replacingOccurrences(of: "\"", with: "\\\"")
+                        .replacingOccurrences(of: "\n", with: "\\n")
+                    let response = "{\"type\":\"page\",\"html\":\"\(escaped)\",\"url\":\"\(url)\",\"title\":\"\(title)\"}"
+                    try await outbound.write(.text(response))
+                }
+                currentLayoutId = newLayoutId
             }
 
         case "ping":
