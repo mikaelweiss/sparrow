@@ -82,6 +82,7 @@ public enum CSSGenerator {
         --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
 
         --font-body: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+        --font-heading: var(--font-body);
         --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
     }
 
@@ -259,16 +260,45 @@ public enum CSSGenerator {
     /* ============================================
        TYPOGRAPHY
        ============================================ */
-    .font-largeTitle { font-size: 2.25rem; line-height: 2.5rem; font-weight: 700; letter-spacing: -0.025em; font-family: var(--font-body); }
-    .font-title { font-size: 1.875rem; line-height: 2.25rem; font-weight: 600; letter-spacing: -0.025em; font-family: var(--font-body); }
-    .font-title2 { font-size: 1.5rem; line-height: 2rem; font-weight: 600; letter-spacing: -0.025em; font-family: var(--font-body); }
-    .font-title3 { font-size: 1.25rem; line-height: 1.75rem; font-weight: 600; letter-spacing: -0.025em; font-family: var(--font-body); }
-    .font-headline { font-size: 1rem; line-height: 1.5rem; font-weight: 600; font-family: var(--font-body); }
+    .font-largeTitle { font-size: 2.25rem; line-height: 2.5rem; font-weight: 700; letter-spacing: -0.025em; font-family: var(--font-heading); }
+    .font-title { font-size: 1.875rem; line-height: 2.25rem; font-weight: 600; letter-spacing: -0.025em; font-family: var(--font-heading); }
+    .font-title2 { font-size: 1.5rem; line-height: 2rem; font-weight: 600; letter-spacing: -0.025em; font-family: var(--font-heading); }
+    .font-title3 { font-size: 1.25rem; line-height: 1.75rem; font-weight: 600; letter-spacing: -0.025em; font-family: var(--font-heading); }
+    .font-headline { font-size: 1rem; line-height: 1.5rem; font-weight: 600; font-family: var(--font-heading); }
     .font-body { font-size: 0.875rem; line-height: 1.25rem; font-weight: 400; font-family: var(--font-body); }
     .font-callout { font-size: 0.875rem; line-height: 1.25rem; font-weight: 400; font-family: var(--font-body); }
     .font-subheadline { font-size: 0.875rem; line-height: 1.25rem; font-weight: 400; font-family: var(--font-body); }
     .font-footnote { font-size: 0.75rem; line-height: 1rem; font-weight: 400; font-family: var(--font-body); }
     .font-caption { font-size: 0.75rem; line-height: 1rem; font-weight: 400; color: var(--muted-foreground); font-family: var(--font-body); }
+
+    /* Font weights */
+    .font-weight-100 { font-weight: 100; }
+    .font-weight-200 { font-weight: 200; }
+    .font-weight-300 { font-weight: 300; }
+    .font-weight-400 { font-weight: 400; }
+    .font-weight-500 { font-weight: 500; }
+    .font-weight-600 { font-weight: 600; }
+    .font-weight-700 { font-weight: 700; }
+    .font-weight-800 { font-weight: 800; }
+    .font-weight-900 { font-weight: 900; }
+
+    /* Font style */
+    .italic { font-style: italic; }
+
+    /* Text decoration */
+    .underline { text-decoration: underline; }
+    .line-through { text-decoration: line-through; }
+
+    /* Text transform */
+    .text-uppercase { text-transform: uppercase; }
+    .text-lowercase { text-transform: lowercase; }
+    .text-capitalize { text-transform: capitalize; }
+
+    /* Font design families */
+    .font-design-default { font-family: var(--font-body); }
+    .font-design-serif { font-family: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif; }
+    .font-design-monospaced { font-family: var(--font-mono); }
+    .font-design-rounded { font-family: ui-rounded, "SF Pro Rounded", system-ui, sans-serif; }
 
     /* ============================================
        FOREGROUND COLORS
@@ -1360,4 +1390,92 @@ public enum CSSGenerator {
         .mobile-only { display: none !important; }
     }
     """
+
+    /// Generate theme-specific CSS (appended after the base stylesheet).
+    /// Produces @font-face rules and CSS variable overrides.
+    public static func stylesheet(for theme: Theme) -> String {
+        var css = ""
+
+        // @font-face rules from registered font sources
+        for source in theme.fonts.sources {
+            css += fontFaceRule(for: source)
+        }
+
+        // CSS variable overrides
+        var rootVars: [String] = []
+
+        // Font family overrides
+        if theme.fonts.body != "system-ui" {
+            rootVars.append("--font-body: '\(theme.fonts.body)', ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"")
+        }
+        if theme.fonts.heading != "system-ui" {
+            rootVars.append("--font-heading: '\(theme.fonts.heading)', ui-sans-serif, system-ui, sans-serif")
+        }
+        if theme.fonts.mono != "ui-monospace" {
+            rootVars.append("--font-mono: '\(theme.fonts.mono)', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace")
+        }
+
+        // Color/token overrides
+        for (key, value) in theme.cssOverrides.sorted(by: { $0.key < $1.key }) {
+            rootVars.append("\(key): \(value)")
+        }
+
+        if !rootVars.isEmpty {
+            css += "\n:root {\n"
+            for v in rootVars {
+                css += "    \(v);\n"
+            }
+            css += "}\n"
+        }
+
+        // Dark mode overrides
+        if !theme.darkCSSOverrides.isEmpty {
+            css += "\n@media (prefers-color-scheme: dark) {\n    :root {\n"
+            for (key, value) in theme.darkCSSOverrides.sorted(by: { $0.key < $1.key }) {
+                css += "        \(key): \(value);\n"
+            }
+            css += "    }\n}\n"
+        }
+
+        return css
+    }
+
+    private static func fontFaceRule(for registration: FontRegistration) -> String {
+        let src: String
+        switch registration.source {
+        case .system:
+            return ""
+        case .local(let path):
+            let format = fontFormat(for: path)
+            src = "url('/assets/\(path)') format('\(format)')"
+        case .google(let family):
+            // Google fonts are fetched at build time and served locally
+            let filename = family.replacingOccurrences(of: " ", with: "-")
+            src = "url('/assets/fonts/\(filename).woff2') format('woff2')"
+        case .url(let url):
+            let format = fontFormat(for: url)
+            src = "url('\(url)') format('\(format)')"
+        }
+
+        var rule = "@font-face {\n"
+        rule += "    font-family: '\(registration.family)';\n"
+        rule += "    src: \(src);\n"
+        if let range = registration.weightRange {
+            rule += "    font-weight: \(range.lowerBound) \(range.upperBound);\n"
+        }
+        if let style = registration.style {
+            rule += "    font-style: \(style);\n"
+        }
+        rule += "    font-display: swap;\n"
+        rule += "}\n"
+        return rule
+    }
+
+    private static func fontFormat(for path: String) -> String {
+        if path.hasSuffix(".woff2") { return "woff2" }
+        if path.hasSuffix(".woff") { return "woff" }
+        if path.hasSuffix(".ttf") { return "truetype" }
+        if path.hasSuffix(".otf") { return "opentype" }
+        return "woff2"
+    }
 }

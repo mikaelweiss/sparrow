@@ -5,14 +5,17 @@ import HummingbirdWebSocket
 /// The Sparrow HTTP server. Serves rendered HTML pages and manages WebSocket connections.
 public struct SparrowServer: Sendable {
     let port: Int
+    let themeCSS: String
 
-    public init(port: Int = 5456) {
+    public init(port: Int = 5456, theme: Theme = .default) {
         self.port = port
+        self.themeCSS = CSSGenerator.stylesheet(for: theme)
     }
 
     /// Start the server with a set of routes.
     public func run(routes: [Route]) async throws {
         let httpRouter = Router()
+        let themeCSS = self.themeCSS
 
         for route in routes {
             let route = route
@@ -27,7 +30,7 @@ public struct SparrowServer: Sendable {
                     )
                 case .html:
                     let renderer = HTMLRenderer()
-                    let html = route.renderDocument(with: renderer)
+                    let html = route.renderDocument(with: renderer, themeCSS: themeCSS)
                     return Response(
                         status: .ok,
                         headers: [.contentType: route.contentType.header],
@@ -35,6 +38,36 @@ public struct SparrowServer: Sendable {
                     )
                 }
             }
+        }
+
+        // Static assets (fonts, images, etc.) served from Assets/ directory
+        let assetsDir = FileManager.default.currentDirectoryPath + "/Assets"
+        httpRouter.get("assets/{path+}") { request, _ -> Response in
+            let reqPath = request.uri.path
+            guard reqPath.hasPrefix("/assets/") else {
+                return Response(status: .notFound)
+            }
+            let relativePath = String(reqPath.dropFirst("/assets/".count))
+
+            // Prevent directory traversal
+            guard !relativePath.contains("..") else {
+                return Response(status: .forbidden)
+            }
+
+            let filePath = assetsDir + "/" + relativePath
+            guard FileManager.default.fileExists(atPath: filePath),
+                  let data = FileManager.default.contents(atPath: filePath) else {
+                return Response(status: .notFound)
+            }
+
+            return Response(
+                status: .ok,
+                headers: [
+                    .contentType: mimeType(for: relativePath),
+                    .cacheControl: "public, max-age=31536000, immutable",
+                ],
+                body: .init(byteBuffer: .init(data: data))
+            )
         }
 
         // Health check
@@ -83,6 +116,23 @@ public struct SparrowServer: Sendable {
         print("  Sparrow server running at http://127.0.0.1:\(port)")
         try await app.runService()
     }
+}
+
+private func mimeType(for path: String) -> String {
+    if path.hasSuffix(".woff2") { return "font/woff2" }
+    if path.hasSuffix(".woff") { return "font/woff" }
+    if path.hasSuffix(".ttf") { return "font/ttf" }
+    if path.hasSuffix(".otf") { return "font/otf" }
+    if path.hasSuffix(".png") { return "image/png" }
+    if path.hasSuffix(".jpg") || path.hasSuffix(".jpeg") { return "image/jpeg" }
+    if path.hasSuffix(".gif") { return "image/gif" }
+    if path.hasSuffix(".svg") { return "image/svg+xml" }
+    if path.hasSuffix(".webp") { return "image/webp" }
+    if path.hasSuffix(".ico") { return "image/x-icon" }
+    if path.hasSuffix(".css") { return "text/css" }
+    if path.hasSuffix(".js") { return "application/javascript" }
+    if path.hasSuffix(".json") { return "application/json" }
+    return "application/octet-stream"
 }
 
 // MARK: - WebSocket handler

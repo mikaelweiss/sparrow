@@ -160,6 +160,7 @@ public struct HTMLRenderer: Sendable {
 
     /// Text renders as the semantic HTML tag from its font modifier (h1 for .largeTitle,
     /// h2 for .title, etc.) or falls back to `<p>` if no font modifier is applied.
+    /// Supports inline styling via TextSpans for concatenated text.
     private func renderText(_ text: Text, context: ModifierContext) -> String {
         let id = renderState.allocateId()
         let classes = context.cssClasses
@@ -169,8 +170,33 @@ public struct HTMLRenderer: Sendable {
         let styleAttr = styles.isEmpty ? "" : " style=\"\(formatStyles(styles))\""
 
         let tag = context.htmlTag ?? "p"
-        let escaped = escapeHTML(text.content)
-        return "        <\(tag)\(idAttr)\(classAttr)\(styleAttr)>\(escaped)</\(tag)>"
+        let inner = renderTextSpans(text.spans)
+        return "        <\(tag)\(idAttr)\(classAttr)\(styleAttr)>\(inner)</\(tag)>"
+    }
+
+    private func renderTextSpans(_ spans: [TextSpan]) -> String {
+        if spans.count == 1 && !spans[0].hasInlineStyles {
+            return escapeHTML(spans[0].content)
+        }
+        return spans.map { renderSingleSpan($0) }.joined()
+    }
+
+    private func renderSingleSpan(_ span: TextSpan) -> String {
+        var html = escapeHTML(span.content)
+        if !span.hasInlineStyles { return html }
+
+        // Semantic tags for common styles
+        if span.isStrikethrough { html = "<del>\(html)</del>" }
+        if span.isUnderline { html = "<span class=\"underline\">\(html)</span>" }
+        if let weight = span.fontWeight {
+            if weight == .bold {
+                html = "<strong>\(html)</strong>"
+            } else {
+                html = "<span class=\"\(weight.cssClass)\">\(html)</span>"
+            }
+        }
+        if span.isItalic { html = "<em>\(html)</em>" }
+        return html
     }
 
     private func renderButton(_ button: Button, context: ModifierContext) -> String {

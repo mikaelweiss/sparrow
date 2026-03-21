@@ -75,28 +75,98 @@ Based on Apple's Dynamic Type sizes, adapted for web.
 
 ### Font Family
 
-Default: system font stack (`-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif`).
+Default: system font stack (`ui-sans-serif, system-ui, sans-serif`). Separate CSS variables for body (`--font-body`), headings (`--font-heading`), and monospaced (`--font-mono`).
 
 Customizable per-theme:
 
 ```swift
-// In Theme config
-fonts: FontConfig(
+// Simple — just set family names
+Theme.default.fonts(body: "Inter", heading: "Inter", mono: "JetBrains Mono")
+
+// Full control — register font sources for @font-face generation
+Theme.default.fonts(FontConfig(
     body: "Inter",
     heading: "Inter",
-    mono: "JetBrains Mono"
-)
+    mono: "JetBrains Mono",
+    sources: [
+        FontRegistration(
+            family: "Inter",
+            source: .local(path: "fonts/Inter-Variable.woff2"),
+            weightRange: 100...900
+        ),
+        FontRegistration(
+            family: "JetBrains Mono",
+            source: .google(family: "JetBrains Mono")
+        ),
+    ]
+))
 ```
+
+Font files go in `Assets/fonts/` and are served at `/assets/fonts/`.
+
+### Font Sources
+
+| Source | Description |
+|---|---|
+| `.system` | Platform default. No download |
+| `.local(path:)` | Self-hosted file in `Assets/`. WOFF2 recommended |
+| `.google(family:)` | Google Fonts — fetched at build time, served locally |
+| `.url(String)` | Remote URL to a font file |
+
+Variable fonts are first-class: a single file with `weightRange: 100...900` covers all weights.
 
 ### Using Typography
 
 ```swift
+// Type scale (size, weight, line-height from design tokens)
 Text("Title")
     .font(.title)
 
+// Arbitrary size with system font
 Text("Custom")
     .font(.system(size: 18, weight: .medium))
+
+// Custom font with explicit size (escape hatch)
+Text("Logo")
+    .font(.custom("Playfair Display", size: 48))
+
+// Change font family WITHOUT changing size (web-native, unlike SwiftUI)
+Text("Code snippet")
+    .fontDesign(.monospaced)
+
+Text("Branded text")
+    .fontFamily("Inter")
 ```
+
+### Text Modifiers
+
+Independent modifiers for weight, style, spacing, and case:
+
+```swift
+Text("Bold").bold()
+Text("Italic").italic()
+Text("Light").fontWeight(.light)
+Text("Spaced").tracking(0.05)
+Text("UPPER").textCase(.uppercase)
+Text("Underlined").underline()
+Text("Deleted").strikethrough()
+Text("Serif").fontDesign(.serif)
+```
+
+### Inline Text Styling
+
+Text-level modifiers return `Text` (not `ModifiedView`), enabling concatenation:
+
+```swift
+Text("Error: ").bold() + Text("something went wrong").italic()
+// Renders: <p><strong>Error: </strong><em>something went wrong</em></p>
+```
+
+Uses semantic HTML: `<strong>` for bold, `<em>` for italic, `<del>` for strikethrough.
+
+### Dynamic Font Sizes
+
+All type scale sizes use `rem` units, which scale with the user's browser font size preference — the web equivalent of iOS Dynamic Type. No developer action needed.
 
 ## Spacing Scale
 
@@ -160,38 +230,33 @@ Sparrow ships with one default theme that looks professional and clean. It cover
 
 ### Custom Themes
 
-Defined in `Sparrow.toml` or in a Swift `Theme` struct:
-
-```toml
-# Sparrow.toml
-[theme]
-primary = "#6366F1"
-secondary = "#8B5CF6"
-accent = "#F59E0B"
-background = "#FFFFFF"
-surface = "#F8FAFC"
-cornerRadius = "md"
-fontBody = "Inter"
-fontHeading = "Inter"
-
-[theme.dark]
-background = "#0F172A"
-surface = "#1E293B"
-```
-
-Or in Swift:
+Defined in Swift using the builder pattern:
 
 ```swift
 extension Theme {
-    static let custom = Theme(
-        primary: "#6366F1",
-        secondary: "#8B5CF6",
-        accent: "#F59E0B",
-        cornerRadius: .md,
-        fonts: FontConfig(body: "Inter", heading: "Inter")
-    )
+    static let app = Theme.default
+        .primary("#6366F1")
+        .secondary("#8B5CF6")
+        .accent("#F59E0B")
+        .fonts(body: "Inter", heading: "Inter", mono: "JetBrains Mono")
+        .dark { dark in
+            dark.background("#0F172A")
+                .surface("#1E293B")
+        }
 }
 ```
+
+Used in your App:
+
+```swift
+@main
+struct MyApp: App {
+    var theme: Theme { .app }
+    var routes: [Route] { ... }
+}
+```
+
+If `theme` is omitted, `Theme.default` is used (system fonts, built-in colors).
 
 ### Theme Propagation
 
