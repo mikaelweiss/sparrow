@@ -21,7 +21,16 @@ When you switch files in Zed, the extension notifies the preview server to show 
 
 ## Development
 
+Install as a dev extension directly in Zed (preferred — Zed handles the build):
+
+1. Open Zed's extensions panel (`zed: extensions` in command palette)
+2. Click **Install Dev Extension**
+3. Select the `zed-extension/` directory
+
+To build manually:
+
 ```bash
+rustup target add wasm32-wasip2
 cd zed-extension
-cargo build --target wasm32-wasi
+cargo build --target wasm32-wasip2
 ```
