@@ -444,13 +444,31 @@ public struct HTMLRenderer: Sendable {
     private func renderIconVNode(_ icon: Icon, context: ModifierContext) -> VNode {
         let id = resolveId(context: context)
         let classes = ["icon"] + context.cssClasses
-        var extraAttrs: [(key: String, value: String)] = [("data-icon", escapeHTML(icon.systemName))]
+        let registry = IconConfiguration.registry
+        guard let svgInner = registry?.svg(for: icon.systemName) else {
+            // Unknown icon — render an empty span with data-icon for debugging
+            let el = ElementNode.build(
+                tag: "span", id: id, classes: classes,
+                styles: context.inlineStyles,
+                extraAttrs: [("data-icon-missing", escapeHTML(icon.systemName))]
+            )
+            return .element(el)
+        }
+        let viewBox = registry?.viewBox(for: icon.systemName) ?? "0 0 24 24"
+        var extraAttrs: [(key: String, value: String)] = [
+            ("xmlns", "http://www.w3.org/2000/svg"),
+            ("viewBox", viewBox),
+            ("width", "1em"),
+            ("height", "1em"),
+            ("aria-hidden", "true"),
+        ]
         extraAttrs.append(contentsOf: context.htmlAttributePairs)
         let el = ElementNode.build(
-            tag: "span", id: id,
+            tag: "svg", id: id,
             classes: classes,
             styles: context.inlineStyles,
-            extraAttrs: extraAttrs
+            extraAttrs: extraAttrs,
+            children: [.text(svgInner)]
         )
         return .element(el)
     }

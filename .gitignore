@@ -1,4 +1,5 @@
 .build/
+.sparrow/
 .env
 .DS_Store
 Package.resolved

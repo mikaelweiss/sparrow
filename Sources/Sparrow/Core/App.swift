@@ -4,6 +4,7 @@ public protocol App {
     @RouteBuilder var routes: [Route] { get }
     var port: Int { get }
     var theme: Theme { get }
+    var iconSet: IconSet { get }
 }
 
 extension App {
@@ -13,9 +14,23 @@ extension App {
     /// Default theme uses system fonts and the built-in color palette.
     public var theme: Theme { .default }
 
+    /// Default icon set: Lucide.
+    public var iconSet: IconSet { .lucide }
+
     /// Entry point — starts the Sparrow server.
     public static func main() async throws {
         let app = Self.init()
+
+        // Load icons for the configured icon set
+        let registry: any IconRegistry
+        switch app.iconSet {
+        case .custom(let makeRegistry):
+            registry = makeRegistry()
+        default:
+            registry = try await IconifyLoader.load(prefix: app.iconSet.prefix)
+        }
+        IconConfiguration.registry = registry
+
         let server = SparrowServer(port: app.port, theme: app.theme)
         print("  Starting Sparrow...")
         try await server.run(routes: app.routes)

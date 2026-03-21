@@ -349,6 +349,7 @@ public struct New: ParsableCommand {
         // .gitignore
         let gitignore = """
         .build/
+        .sparrow/
         Package.resolved
         .env
         .DS_Store
