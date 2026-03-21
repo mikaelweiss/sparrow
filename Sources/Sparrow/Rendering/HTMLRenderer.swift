@@ -59,6 +59,10 @@ public struct HTMLRenderer: Sendable {
         if let field = view as? SecureField { return renderSecureFieldVNode(field, context: modifierContext) }
         if let editor = view as? TextEditor { return renderTextEditorVNode(editor, context: modifierContext) }
         if let toggle = view as? Toggle { return renderToggleVNode(toggle, context: modifierContext) }
+        if let checkbox = view as? Checkbox { return renderCheckboxVNode(checkbox, context: modifierContext) }
+        if let radio = view as? RadioGroup { return renderRadioGroupVNode(radio, context: modifierContext) }
+        if let th = view as? TableHead { return renderTableHeadVNode(th, context: modifierContext) }
+        if let caption = view as? TableCaption { return renderTableCaptionVNode(caption, context: modifierContext) }
         if let picker = view as? Picker { return renderPickerVNode(picker, context: modifierContext) }
         if let slider = view as? Slider { return renderSliderVNode(slider, context: modifierContext) }
         if let dp = view as? DatePicker { return renderDatePickerVNode(dp, context: modifierContext) }
@@ -71,6 +75,65 @@ public struct HTMLRenderer: Sendable {
         if let phaseAnim = view as? any _PhaseAnimatorRenderable { return renderPhaseAnimatorVNode(phaseAnim, context: modifierContext) }
         if let kfAnim = view as? any _KeyframeAnimatorRenderable { return renderKeyframeAnimatorVNode(kfAnim, context: modifierContext) }
         if view is Content { return renderContentVNode(context: modifierContext) }
+        // Component PrimitiveViews
+        if let v = view as? BreadcrumbLink { return renderBreadcrumbLinkVNode(v, context: modifierContext) }
+        if let v = view as? BreadcrumbSeparator { return renderBreadcrumbSeparatorVNode(v, context: modifierContext) }
+        if let v = view as? BreadcrumbPage { return renderBreadcrumbPageVNode(v, context: modifierContext) }
+        if let v = view as? AvatarImage { return renderAvatarImageVNode(v, context: modifierContext) }
+        if let v = view as? AvatarFallback { return renderAvatarFallbackVNode(v, context: modifierContext) }
+        if let v = view as? Label { return renderLabelVNode(v, context: modifierContext) }
+        if let v = view as? Skeleton { return renderSkeletonVNode(v, context: modifierContext) }
+        if let v = view as? TabsTrigger { return renderTabsTriggerVNode(v, context: modifierContext) }
+        if let v = view as? AccordionTrigger { return renderAccordionTriggerVNode(v, context: modifierContext) }
+        if let v = view as? CollapsibleTrigger { return renderCollapsibleTriggerVNode(v, context: modifierContext) }
+        if let v = view as? ToggleGroupItem { return renderToggleGroupItemVNode(v, context: modifierContext) }
+        if let v = view as? ToggleButton { return renderToggleButtonVNode(v, context: modifierContext) }
+        if let v = view as? DialogTitle { return renderDialogTitleVNode(v, context: modifierContext) }
+        if let v = view as? DialogDescription { return renderDialogDescriptionVNode(v, context: modifierContext) }
+        if let v = view as? DialogClose { return renderDialogCloseVNode(v, context: modifierContext) }
+        if let v = view as? DropdownMenuItem { return renderDropdownMenuItemVNode(v, context: modifierContext) }
+        if view is DropdownMenuSeparator { return renderDropdownMenuSeparatorVNode(context: modifierContext) }
+        if let v = view as? DropdownMenuLabel { return renderDropdownMenuLabelVNode(v, context: modifierContext) }
+        if let v = view as? SelectMenu { return renderSelectMenuVNode(v, context: modifierContext) }
+        if let v = view as? CommandItem { return renderCommandItemVNode(v, context: modifierContext) }
+        if view is CommandSeparator { return renderCommandSeparatorVNode(context: modifierContext) }
+        if let v = view as? CommandEmpty { return renderCommandEmptyVNode(v, context: modifierContext) }
+        if let v = view as? Pagination { return renderPaginationVNode(v, context: modifierContext) }
+        if let v = view as? AlertDialogAction { return renderAlertDialogActionVNode(v, context: modifierContext) }
+        if let v = view as? AlertDialogCancel { return renderAlertDialogCancelVNode(v, context: modifierContext) }
+        if let v = view as? Spinner { return renderSpinnerVNode(v, context: modifierContext) }
+        if let v = view as? Kbd { return renderKbdVNode(v, context: modifierContext) }
+        if let v = view as? FieldDescription { return renderFieldDescriptionVNode(v, context: modifierContext) }
+        if let v = view as? FieldError { return renderFieldErrorVNode(v, context: modifierContext) }
+        if let v = view as? MenubarTrigger { return renderMenubarTriggerVNode(v, context: modifierContext) }
+        if let v = view as? MenubarItem { return renderMenubarItemVNode(v, context: modifierContext) }
+        if view is MenubarSeparator { return renderDropdownMenuSeparatorVNode(context: modifierContext) }
+        if let v = view as? NavigationMenuTrigger { return renderNavMenuTriggerVNode(v, context: modifierContext) }
+        if let v = view as? NavigationMenuLink { return renderNavMenuLinkVNode(v, context: modifierContext) }
+        if let v = view as? Combobox { return renderComboboxVNode(v, context: modifierContext) }
+        if let v = view as? InputOTP { return renderInputOTPVNode(v, context: modifierContext) }
+        if let v = view as? ResizableHandle { return renderResizableHandleVNode(v, context: modifierContext) }
+        if let v = view as? Calendar { return renderCalendarVNode(v, context: modifierContext) }
+        if let v = view as? CarouselPrevious { return renderCarouselNavVNode(v.action, label: "\u{2039}", cssClass: "carousel-prev", context: modifierContext) }
+        if let v = view as? CarouselNext { return renderCarouselNavVNode(v.action, label: "\u{203A}", cssClass: "carousel-next", context: modifierContext) }
+        if let v = view as? any _DataTableRenderable { return v.renderDataTableVNode(with: self, modifierContext: modifierContext) }
+        if let v = view as? SidebarGroupLabel { return renderSidebarGroupLabelVNode(v, context: modifierContext) }
+        if let v = view as? SidebarMenuButton { return renderSidebarMenuButtonVNode(v, context: modifierContext) }
+        if let v = view as? SidebarTrigger { return renderSidebarTriggerVNode(v, context: modifierContext) }
+        if let v = view as? Toaster { return renderToasterVNode(v, context: modifierContext) }
+        if let v = view as? DrawerTitle { return renderDrawerTitleVNode(v, context: modifierContext) }
+        if let v = view as? DrawerDescription { return renderDrawerDescriptionVNode(v, context: modifierContext) }
+        if let v = view as? TypographyH1 { return renderTypographyVNode(v.text, tag: "h1", cssClass: "typography-h1", context: modifierContext) }
+        if let v = view as? TypographyH2 { return renderTypographyVNode(v.text, tag: "h2", cssClass: "typography-h2", context: modifierContext) }
+        if let v = view as? TypographyH3 { return renderTypographyVNode(v.text, tag: "h3", cssClass: "typography-h3", context: modifierContext) }
+        if let v = view as? TypographyH4 { return renderTypographyVNode(v.text, tag: "h4", cssClass: "typography-h4", context: modifierContext) }
+        if let v = view as? TypographyP { return renderTypographyVNode(v.text, tag: "p", cssClass: "typography-p", context: modifierContext) }
+        if let v = view as? TypographyLead { return renderTypographyVNode(v.text, tag: "p", cssClass: "typography-lead", context: modifierContext) }
+        if let v = view as? TypographyLarge { return renderTypographyVNode(v.text, tag: "div", cssClass: "typography-large", context: modifierContext) }
+        if let v = view as? TypographySmall { return renderTypographyVNode(v.text, tag: "small", cssClass: "typography-small", context: modifierContext) }
+        if let v = view as? TypographyMuted { return renderTypographyVNode(v.text, tag: "p", cssClass: "typography-muted", context: modifierContext) }
+        if let v = view as? TypographyInlineCode { return renderTypographyVNode(v.text, tag: "code", cssClass: "typography-code", context: modifierContext) }
+        if let v = view as? TypographyBlockquote { return renderTypographyVNode(v.text, tag: "blockquote", cssClass: "typography-blockquote", context: modifierContext) }
         if view is EmptyView { return .fragment([]) }
         if let renderable = view as? any VNodeRenderable {
             return renderable.renderVNode(with: self, modifierContext: modifierContext)
@@ -121,6 +184,16 @@ public struct HTMLRenderer: Sendable {
 
         // Render the leaf view with accumulated flat modifier context
         var node = renderView(leaf, modifierContext: context)
+
+        // Emit scoped <style> for StateStyleModifiers (hover, focus, etc.)
+        if !context.scopedStyles.isEmpty {
+            let elementId = extractVNodeId(node)
+            if let elementId, !elementId.isEmpty {
+                let css = context.scopedStyles.map { $0.scopedCSS(for: elementId) }.joined(separator: " ")
+                let styleNode = VNode.element(ElementNode.build(tag: "style", id: "", children: [.text(css)]))
+                node = .fragment([styleNode, node])
+            }
+        }
 
         // Wrap with layer divs from innermost to outermost
         for layer in layers.reversed() {
@@ -657,6 +730,155 @@ public struct HTMLRenderer: Sendable {
         return .fragment([styleNode, .element(wrapperEl)])
     }
 
+    // MARK: - Table primitives
+
+    private func renderTableHeadVNode(_ th: TableHead, context: ModifierContext) -> VNode {
+        let id = resolveId(context: context)
+        let classes = ["table-head"] + context.cssClasses
+        let el = ElementNode.build(
+            tag: "th", id: id,
+            classes: classes,
+            styles: context.inlineStyles,
+            extraAttrs: context.htmlAttributePairs,
+            children: [.text(escapeHTML(th.text))]
+        )
+        return .element(el)
+    }
+
+    private func renderTableCaptionVNode(_ caption: TableCaption, context: ModifierContext) -> VNode {
+        let id = resolveId(context: context)
+        let classes = ["table-caption"] + context.cssClasses
+        let el = ElementNode.build(
+            tag: "caption", id: id,
+            classes: classes,
+            styles: context.inlineStyles,
+            extraAttrs: context.htmlAttributePairs,
+            children: [.text(escapeHTML(caption.text))]
+        )
+        return .element(el)
+    }
+
+    // MARK: - Checkbox
+
+    private func renderCheckboxVNode(_ checkbox: Checkbox, context: ModifierContext) -> VNode {
+        let labelId = resolveId(context: context)
+        let buttonId = renderState.allocateId()
+        let binding = checkbox.isChecked
+        renderState.registerHandler(id: buttonId) { binding.wrappedValue.toggle() }
+
+        let checked = binding.wrappedValue
+        let state = checked ? "checked" : "unchecked"
+
+        let indicatorId = renderState.allocateId()
+        let indicatorEl = ElementNode.build(
+            tag: "span", id: indicatorId,
+            classes: ["checkbox-indicator"],
+            extraAttrs: [("data-state", state)],
+            children: [.text("\u{2713}")]
+        )
+
+        let buttonEl = ElementNode.build(
+            tag: "button", id: buttonId,
+            classes: ["checkbox-root"],
+            extraAttrs: [
+                ("type", "button"),
+                ("role", "checkbox"),
+                ("aria-checked", checked ? "true" : "false"),
+                ("data-state", state),
+                ("data-sparrow-event", "click"),
+            ],
+            children: [.element(indicatorEl)]
+        )
+
+        var labelChildren: [VNode] = [.element(buttonEl)]
+        if let labelText = checkbox.label {
+            let spanId = renderState.allocateId()
+            let labelSpan = ElementNode.build(
+                tag: "span", id: spanId,
+                classes: ["checkbox-label"],
+                children: [.text(escapeHTML(labelText))]
+            )
+            labelChildren.append(.element(labelSpan))
+        }
+
+        let classes = ["checkbox"] + context.cssClasses
+        let el = ElementNode.build(
+            tag: "label", id: labelId,
+            classes: classes,
+            styles: context.inlineStyles,
+            extraAttrs: context.htmlAttributePairs,
+            children: labelChildren
+        )
+        return .element(el)
+    }
+
+    // MARK: - RadioGroup
+
+    private func renderRadioGroupVNode(_ radio: RadioGroup, context: ModifierContext) -> VNode {
+        let groupId = resolveId(context: context)
+        let binding = radio.selection
+        let selected = binding.wrappedValue
+
+        let orientationDir = radio.orientation == .vertical ? "vertical" : "horizontal"
+        var groupClasses = ["radio-group"] + context.cssClasses
+        if radio.orientation == .horizontal {
+            groupClasses.append("radio-group-horizontal")
+        }
+
+        let itemNodes: [VNode] = radio.options.map { option in
+            let itemId = renderState.allocateId()
+            let buttonId = renderState.allocateId()
+            let isSelected = option.value == selected
+            let state = isSelected ? "checked" : "unchecked"
+
+            let optionValue = option.value
+            renderState.registerHandler(id: buttonId) { binding.wrappedValue = optionValue }
+
+            let indicatorId = renderState.allocateId()
+            let indicatorEl = ElementNode.build(
+                tag: "span", id: indicatorId,
+                classes: ["radio-indicator"],
+                extraAttrs: [("data-state", state)]
+            )
+
+            let buttonEl = ElementNode.build(
+                tag: "button", id: buttonId,
+                classes: ["radio-root"],
+                extraAttrs: [
+                    ("type", "button"),
+                    ("role", "radio"),
+                    ("aria-checked", isSelected ? "true" : "false"),
+                    ("data-state", state),
+                    ("data-sparrow-roving-item", ""),
+                    ("data-sparrow-event", "click"),
+                ],
+                children: [.element(indicatorEl)]
+            )
+
+            let labelSpanId = renderState.allocateId()
+            let labelSpan = ElementNode.build(
+                tag: "span", id: labelSpanId,
+                classes: ["radio-label"],
+                children: [.text(escapeHTML(option.label))]
+            )
+
+            return .element(ElementNode.build(
+                tag: "label", id: itemId,
+                classes: ["radio-item"],
+                children: [.element(buttonEl), .element(labelSpan)]
+            ))
+        }
+
+        let el = ElementNode.build(
+            tag: "div", id: groupId,
+            classes: groupClasses,
+            styles: context.inlineStyles,
+            extraAttrs: [("role", "radiogroup"), ("data-sparrow-roving", orientationDir)] + context.htmlAttributePairs,
+            children: itemNodes
+        )
+        return .element(el)
+    }
+
     // MARK: - Content
 
     private func renderContentVNode(context: ModifierContext) -> VNode {
@@ -666,6 +888,649 @@ public struct HTMLRenderer: Sendable {
             classes: context.cssClasses, styles: context.inlineStyles,
             children: contentChildren
         )
+        return .element(el)
+    }
+
+    // MARK: - VNode ID extraction
+
+    private func extractVNodeId(_ node: VNode) -> String? {
+        switch node {
+        case .element(let el): return el.id.isEmpty ? nil : el.id
+        case .fragment(let nodes):
+            for n in nodes {
+                if let id = extractVNodeId(n) { return id }
+            }
+            return nil
+        case .text: return nil
+        }
+    }
+
+    // MARK: - Component PrimitiveView renderers
+
+    private func renderBreadcrumbLinkVNode(_ v: BreadcrumbLink, context: ModifierContext) -> VNode {
+        let id = resolveId(context: context)
+        let classes = ["breadcrumb-link"] + context.cssClasses
+        var extraAttrs: [(key: String, value: String)] = []
+        if let href = v.href {
+            extraAttrs.append(("href", escapeHTML(href)))
+        }
+        extraAttrs.append(contentsOf: context.allExtraAttributePairs)
+        let tag = v.href != nil ? "a" : "span"
+        let el = ElementNode.build(tag: tag, id: id, classes: classes, styles: context.inlineStyles, extraAttrs: extraAttrs, children: [.text(escapeHTML(v.text))])
+        return .element(el)
+    }
+
+    private func renderBreadcrumbSeparatorVNode(_ v: BreadcrumbSeparator, context: ModifierContext) -> VNode {
+        let id = resolveId(context: context)
+        let classes = ["breadcrumb-separator"] + context.cssClasses
+        var extraAttrs: [(key: String, value: String)] = [("role", "presentation"), ("aria-hidden", "true")]
+        extraAttrs.append(contentsOf: context.allExtraAttributePairs)
+        let el = ElementNode.build(tag: "li", id: id, classes: classes, styles: context.inlineStyles, extraAttrs: extraAttrs, children: [.text("/")])
+        return .element(el)
+    }
+
+    private func renderBreadcrumbPageVNode(_ v: BreadcrumbPage, context: ModifierContext) -> VNode {
+        let id = resolveId(context: context)
+        let classes = ["breadcrumb-page"] + context.cssClasses
+        var extraAttrs: [(key: String, value: String)] = [("aria-current", "page")]
+        extraAttrs.append(contentsOf: context.allExtraAttributePairs)
+        let el = ElementNode.build(tag: "span", id: id, classes: classes, styles: context.inlineStyles, extraAttrs: extraAttrs, children: [.text(escapeHTML(v.text))])
+        return .element(el)
+    }
+
+    private func renderAvatarImageVNode(_ v: AvatarImage, context: ModifierContext) -> VNode {
+        let id = resolveId(context: context)
+        let classes = ["avatar-image"] + context.cssClasses
+        var extraAttrs: [(key: String, value: String)] = [("src", escapeHTML(v.src)), ("alt", escapeHTML(v.alt))]
+        extraAttrs.append(contentsOf: context.allExtraAttributePairs)
+        let el = ElementNode.build(tag: "img", id: id, classes: classes, styles: context.inlineStyles, extraAttrs: extraAttrs)
+        return .element(el)
+    }
+
+    private func renderAvatarFallbackVNode(_ v: AvatarFallback, context: ModifierContext) -> VNode {
+        let id = resolveId(context: context)
+        let classes = ["avatar-fallback"] + context.cssClasses
+        let el = ElementNode.build(tag: "span", id: id, classes: classes, styles: context.inlineStyles, extraAttrs: context.allExtraAttributePairs, children: [.text(escapeHTML(v.text))])
+        return .element(el)
+    }
+
+    private func renderLabelVNode(_ v: Label, context: ModifierContext) -> VNode {
+        let id = resolveId(context: context)
+        let classes = ["label"] + context.cssClasses
+        var extraAttrs: [(key: String, value: String)] = []
+        if let htmlFor = v.htmlFor { extraAttrs.append(("for", escapeHTML(htmlFor))) }
+        extraAttrs.append(contentsOf: context.allExtraAttributePairs)
+        let el = ElementNode.build(tag: "label", id: id, classes: classes, styles: context.inlineStyles, extraAttrs: extraAttrs, children: [.text(escapeHTML(v.text))])
+        return .element(el)
+    }
+
+    private func renderSkeletonVNode(_ v: Skeleton, context: ModifierContext) -> VNode {
+        let id = resolveId(context: context)
+        var classes = ["skeleton"] + context.cssClasses
+        if v.rounded { classes.append("skeleton-round") }
+        var styles = context.inlineStyles
+        if let w = v.width { styles["width"] = w }
+        if let h = v.height { styles["height"] = h }
+        let el = ElementNode.build(tag: "div", id: id, classes: classes, styles: styles, extraAttrs: context.allExtraAttributePairs)
+        return .element(el)
+    }
+
+    private func renderTabsTriggerVNode(_ v: TabsTrigger, context: ModifierContext) -> VNode {
+        let id = resolveId(context: context)
+        renderState.registerHandler(id: id, handler: v.onSelect)
+        let state = v.isSelected ? "active" : "inactive"
+        let classes = ["tabs-trigger"] + context.cssClasses
+        var extraAttrs: [(key: String, value: String)] = [
+            ("role", "tab"),
+            ("data-state", state),
+            ("data-sparrow-roving-item", ""),
+            ("data-sparrow-event", "click"),
+        ]
+        if v.isSelected { extraAttrs.append(("aria-selected", "true")) }
+        extraAttrs.append(contentsOf: context.allExtraAttributePairs)
+        let el = ElementNode.build(tag: "button", id: id, classes: classes, styles: context.inlineStyles, extraAttrs: extraAttrs, children: [.text(escapeHTML(v.label))])
+        return .element(el)
+    }
+
+    private func renderAccordionTriggerVNode(_ v: AccordionTrigger, context: ModifierContext) -> VNode {
+        let headerId = resolveId(context: context)
+        let buttonId = renderState.allocateId()
+        renderState.registerHandler(id: buttonId, handler: v.onToggle)
+        let state = v.isOpen ? "open" : "closed"
+        let spanId = renderState.allocateId()
+        let textSpan = ElementNode.build(tag: "span", id: spanId, children: [.text(escapeHTML(v.text))])
+        let chevronId = renderState.allocateId()
+        let chevron = ElementNode.build(tag: "span", id: chevronId, classes: ["accordion-chevron"], extraAttrs: [("data-state", state)], children: [.text("\u{25BE}")])
+        let buttonEl = ElementNode.build(
+            tag: "button", id: buttonId,
+            classes: ["accordion-trigger"],
+            extraAttrs: [("data-state", state), ("aria-expanded", v.isOpen ? "true" : "false"), ("data-sparrow-event", "click")],
+            children: [.element(textSpan), .element(chevron)]
+        )
+        let el = ElementNode.build(tag: "h3", id: headerId, classes: ["accordion-header"] + context.cssClasses, children: [.element(buttonEl)])
+        return .element(el)
+    }
+
+    private func renderCollapsibleTriggerVNode(_ v: CollapsibleTrigger, context: ModifierContext) -> VNode {
+        let id = resolveId(context: context)
+        renderState.registerHandler(id: id, handler: v.onToggle)
+        let state = v.isOpen ? "open" : "closed"
+        let classes = ["collapsible-trigger"] + context.cssClasses
+        let extraAttrs: [(key: String, value: String)] = [
+            ("data-state", state),
+            ("data-sparrow-event", "click"),
+        ] + context.allExtraAttributePairs
+        let el = ElementNode.build(tag: "button", id: id, classes: classes, styles: context.inlineStyles, extraAttrs: extraAttrs, children: [.text(escapeHTML(v.label))])
+        return .element(el)
+    }
+
+    private func renderToggleGroupItemVNode(_ v: ToggleGroupItem, context: ModifierContext) -> VNode {
+        let id = resolveId(context: context)
+        renderState.registerHandler(id: id, handler: v.onToggle)
+        let state = v.isSelected ? "on" : "off"
+        let classes = ["toggle-group-item"] + context.cssClasses
+        let extraAttrs: [(key: String, value: String)] = [
+            ("data-state", state),
+            ("data-sparrow-roving-item", ""),
+            ("data-sparrow-event", "click"),
+        ] + context.allExtraAttributePairs
+        let el = ElementNode.build(tag: "button", id: id, classes: classes, styles: context.inlineStyles, extraAttrs: extraAttrs, children: [.text(escapeHTML(v.label))])
+        return .element(el)
+    }
+
+    private func renderToggleButtonVNode(_ v: ToggleButton, context: ModifierContext) -> VNode {
+        let id = resolveId(context: context)
+        renderState.registerHandler(id: id, handler: v.onToggle)
+        let state = v.isPressed ? "on" : "off"
+        let classes = ["toggle-btn", v.variant.cssClass, v.size.cssClass] + context.cssClasses
+        var extraAttrs: [(key: String, value: String)] = [
+            ("data-state", state),
+            ("aria-pressed", v.isPressed ? "true" : "false"),
+            ("data-sparrow-event", "click"),
+        ]
+        extraAttrs.append(contentsOf: context.allExtraAttributePairs)
+        let el = ElementNode.build(tag: "button", id: id, classes: classes, styles: context.inlineStyles, extraAttrs: extraAttrs, children: [.text(escapeHTML(v.label))])
+        return .element(el)
+    }
+
+    private func renderDialogTitleVNode(_ v: DialogTitle, context: ModifierContext) -> VNode {
+        let id = resolveId(context: context)
+        let classes = ["dialog-title"] + context.cssClasses
+        let el = ElementNode.build(tag: "div", id: id, classes: classes, styles: context.inlineStyles, extraAttrs: context.allExtraAttributePairs, children: [.text(escapeHTML(v.text))])
+        return .element(el)
+    }
+
+    private func renderDialogDescriptionVNode(_ v: DialogDescription, context: ModifierContext) -> VNode {
+        let id = resolveId(context: context)
+        let classes = ["dialog-description"] + context.cssClasses
+        let el = ElementNode.build(tag: "div", id: id, classes: classes, styles: context.inlineStyles, extraAttrs: context.allExtraAttributePairs, children: [.text(escapeHTML(v.text))])
+        return .element(el)
+    }
+
+    private func renderDialogCloseVNode(_ v: DialogClose, context: ModifierContext) -> VNode {
+        let id = resolveId(context: context)
+        renderState.registerHandler(id: id, handler: v.onClose)
+        let classes = ["dialog-close"] + context.cssClasses
+        let extraAttrs: [(key: String, value: String)] = [("data-sparrow-event", "click")] + context.allExtraAttributePairs
+        let el = ElementNode.build(tag: "button", id: id, classes: classes, styles: context.inlineStyles, extraAttrs: extraAttrs, children: [.text(escapeHTML(v.label))])
+        return .element(el)
+    }
+
+    private func renderDropdownMenuItemVNode(_ v: DropdownMenuItem, context: ModifierContext) -> VNode {
+        let id = resolveId(context: context)
+        renderState.registerHandler(id: id, handler: v.action)
+        let classes = ["dropdown-item"] + context.cssClasses
+        let extraAttrs: [(key: String, value: String)] = [
+            ("role", "menuitem"),
+            ("data-sparrow-roving-item", ""),
+            ("data-sparrow-event", "click"),
+        ] + context.allExtraAttributePairs
+        let el = ElementNode.build(tag: "button", id: id, classes: classes, styles: context.inlineStyles, extraAttrs: extraAttrs, children: [.text(escapeHTML(v.label))])
+        return .element(el)
+    }
+
+    private func renderDropdownMenuSeparatorVNode(context: ModifierContext) -> VNode {
+        let id = resolveId(context: context)
+        let el = ElementNode.build(tag: "div", id: id, classes: ["dropdown-separator"] + context.cssClasses)
+        return .element(el)
+    }
+
+    private func renderDropdownMenuLabelVNode(_ v: DropdownMenuLabel, context: ModifierContext) -> VNode {
+        let id = resolveId(context: context)
+        let classes = ["dropdown-label"] + context.cssClasses
+        let el = ElementNode.build(tag: "div", id: id, classes: classes, styles: context.inlineStyles, extraAttrs: context.allExtraAttributePairs, children: [.text(escapeHTML(v.text))])
+        return .element(el)
+    }
+
+    private func renderSelectMenuVNode(_ v: SelectMenu, context: ModifierContext) -> VNode {
+        let id = resolveId(context: context)
+        let triggerId = renderState.allocateId()
+        renderState.registerHandler(id: triggerId, handler: v.onToggle)
+        let selected = v.selection.wrappedValue
+        let displayLabel = v.options.first(where: { $0.value == selected })?.label
+
+        let valueId = renderState.allocateId()
+        let valueClasses = displayLabel != nil ? ["select-value"] : ["select-value", "select-placeholder"]
+        let valueEl = ElementNode.build(tag: "span", id: valueId, classes: valueClasses, children: [.text(escapeHTML(displayLabel ?? v.placeholder))])
+        let chevronId = renderState.allocateId()
+        let chevronEl = ElementNode.build(tag: "span", id: chevronId, classes: ["select-chevron"], children: [.text("\u{25BE}")])
+        let triggerEl = ElementNode.build(
+            tag: "button", id: triggerId,
+            classes: ["select-trigger"],
+            extraAttrs: [("data-sparrow-event", "click")],
+            children: [.element(valueEl), .element(chevronEl)]
+        )
+
+        var allChildren: [VNode] = [.element(triggerEl)]
+
+        if v.isOpen {
+            let binding = v.selection
+            let contentId = renderState.allocateId()
+            let dismissHandler = v.onDismiss
+            renderState.registerHandler(id: contentId, handler: dismissHandler)
+            let optionNodes: [VNode] = v.options.map { opt in
+                let optId = renderState.allocateId()
+                let isSelected = opt.value == selected
+                let optValue = opt.value
+                renderState.registerHandler(id: optId) {
+                    binding.wrappedValue = optValue
+                    dismissHandler()
+                }
+                var optAttrs: [(key: String, value: String)] = [
+                    ("data-sparrow-roving-item", ""),
+                    ("data-sparrow-event", "click"),
+                ]
+                if isSelected { optAttrs.append(("aria-selected", "true")) }
+                var optChildren: [VNode] = []
+                if isSelected {
+                    let checkId = renderState.allocateId()
+                    optChildren.append(.element(ElementNode.build(tag: "span", id: checkId, classes: ["select-item-check"], children: [.text("\u{2713}")])))
+                }
+                optChildren.append(.text(escapeHTML(opt.label)))
+                return .element(ElementNode.build(tag: "div", id: optId, classes: ["select-item"], extraAttrs: optAttrs, children: optChildren))
+            }
+            let contentAttrs: [(key: String, value: String)] = [
+                ("data-sparrow-floating", "bottom"),
+                ("data-sparrow-floating-anchor", triggerId),
+                ("data-sparrow-dismissable", triggerId),
+                ("data-sparrow-roving", "vertical"),
+            ]
+            let contentEl = ElementNode.build(tag: "div", id: contentId, classes: ["select-content"], extraAttrs: contentAttrs, children: optionNodes)
+            allChildren.append(.element(contentEl))
+        }
+
+        let classes = ["select-menu"] + context.cssClasses
+        let el = ElementNode.build(tag: "div", id: id, classes: classes, styles: context.inlineStyles, extraAttrs: context.allExtraAttributePairs, children: allChildren)
+        return .element(el)
+    }
+
+    private func renderCommandItemVNode(_ v: CommandItem, context: ModifierContext) -> VNode {
+        let id = resolveId(context: context)
+        renderState.registerHandler(id: id, handler: v.action)
+        let classes = ["command-item"] + context.cssClasses
+        let extraAttrs: [(key: String, value: String)] = [
+            ("data-sparrow-roving-item", ""),
+            ("data-sparrow-event", "click"),
+        ] + context.allExtraAttributePairs
+        let el = ElementNode.build(tag: "button", id: id, classes: classes, styles: context.inlineStyles, extraAttrs: extraAttrs, children: [.text(escapeHTML(v.label))])
+        return .element(el)
+    }
+
+    private func renderCommandSeparatorVNode(context: ModifierContext) -> VNode {
+        let id = resolveId(context: context)
+        let el = ElementNode.build(tag: "div", id: id, classes: ["command-separator"] + context.cssClasses)
+        return .element(el)
+    }
+
+    private func renderCommandEmptyVNode(_ v: CommandEmpty, context: ModifierContext) -> VNode {
+        let id = resolveId(context: context)
+        let classes = ["command-empty"] + context.cssClasses
+        let el = ElementNode.build(tag: "div", id: id, classes: classes, styles: context.inlineStyles, extraAttrs: context.allExtraAttributePairs, children: [.text(escapeHTML(v.text))])
+        return .element(el)
+    }
+
+    private func renderPaginationVNode(_ v: Pagination, context: ModifierContext) -> VNode {
+        let id = resolveId(context: context)
+        var children: [VNode] = []
+
+        // Previous button
+        let prevId = renderState.allocateId()
+        if v.currentPage > 1 {
+            let prevPage = v.currentPage - 1
+            renderState.registerHandler(id: prevId) { v.onPageChange(prevPage) }
+            let prevEl = ElementNode.build(tag: "button", id: prevId, classes: ["pagination-item"], extraAttrs: [("data-sparrow-event", "click")], children: [.text("\u{2039}")])
+            children.append(.element(prevEl))
+        }
+
+        // Page numbers
+        let windowStart = max(1, v.currentPage - 2)
+        let windowEnd = min(v.totalPages, v.currentPage + 2)
+
+        if windowStart > 1 {
+            let oneId = renderState.allocateId()
+            renderState.registerHandler(id: oneId) { v.onPageChange(1) }
+            children.append(.element(ElementNode.build(tag: "button", id: oneId, classes: ["pagination-item"], extraAttrs: [("data-sparrow-event", "click")], children: [.text("1")])))
+            if windowStart > 2 {
+                let ellipsisId = renderState.allocateId()
+                children.append(.element(ElementNode.build(tag: "span", id: ellipsisId, classes: ["pagination-ellipsis"], children: [.text("\u{2026}")])))
+            }
+        }
+
+        for page in windowStart...windowEnd {
+            let pageId = renderState.allocateId()
+            let pageNum = page
+            renderState.registerHandler(id: pageId) { v.onPageChange(pageNum) }
+            var classes = ["pagination-item"]
+            if page == v.currentPage { classes.append("pagination-item-active") }
+            children.append(.element(ElementNode.build(tag: "button", id: pageId, classes: classes, extraAttrs: [("data-sparrow-event", "click")], children: [.text("\(page)")])))
+        }
+
+        if windowEnd < v.totalPages {
+            if windowEnd < v.totalPages - 1 {
+                let ellipsisId = renderState.allocateId()
+                children.append(.element(ElementNode.build(tag: "span", id: ellipsisId, classes: ["pagination-ellipsis"], children: [.text("\u{2026}")])))
+            }
+            let lastId = renderState.allocateId()
+            renderState.registerHandler(id: lastId) { v.onPageChange(v.totalPages) }
+            children.append(.element(ElementNode.build(tag: "button", id: lastId, classes: ["pagination-item"], extraAttrs: [("data-sparrow-event", "click")], children: [.text("\(v.totalPages)")])))
+        }
+
+        // Next button
+        if v.currentPage < v.totalPages {
+            let nextId = renderState.allocateId()
+            let nextPage = v.currentPage + 1
+            renderState.registerHandler(id: nextId) { v.onPageChange(nextPage) }
+            let nextEl = ElementNode.build(tag: "button", id: nextId, classes: ["pagination-item"], extraAttrs: [("data-sparrow-event", "click")], children: [.text("\u{203A}")])
+            children.append(.element(nextEl))
+        }
+
+        let classes = ["pagination"] + context.cssClasses
+        let el = ElementNode.build(tag: "nav", id: id, classes: classes, styles: context.inlineStyles, extraAttrs: [("aria-label", "pagination")] + context.allExtraAttributePairs, children: children)
+        return .element(el)
+    }
+
+    // MARK: - AlertDialog
+
+    private func renderAlertDialogActionVNode(_ v: AlertDialogAction, context: ModifierContext) -> VNode {
+        let id = resolveId(context: context)
+        renderState.registerHandler(id: id, handler: v.action)
+        let classes = ["btn", "btn-default", "btn-md"] + context.cssClasses
+        let el = ElementNode.build(tag: "button", id: id, classes: classes, extraAttrs: [("data-sparrow-event", "click")], children: [.text(escapeHTML(v.label))])
+        return .element(el)
+    }
+
+    private func renderAlertDialogCancelVNode(_ v: AlertDialogCancel, context: ModifierContext) -> VNode {
+        let id = resolveId(context: context)
+        renderState.registerHandler(id: id, handler: v.action)
+        let classes = ["btn", "btn-outline", "btn-md"] + context.cssClasses
+        let el = ElementNode.build(tag: "button", id: id, classes: classes, extraAttrs: [("data-sparrow-event", "click")], children: [.text(escapeHTML(v.label))])
+        return .element(el)
+    }
+
+    // MARK: - Spinner
+
+    private func renderSpinnerVNode(_ v: Spinner, context: ModifierContext) -> VNode {
+        let id = resolveId(context: context)
+        let classes = ["spinner", v.size.cssClass] + context.cssClasses
+        let el = ElementNode.build(tag: "div", id: id, classes: classes, styles: context.inlineStyles, extraAttrs: context.allExtraAttributePairs)
+        return .element(el)
+    }
+
+    // MARK: - Kbd
+
+    private func renderKbdVNode(_ v: Kbd, context: ModifierContext) -> VNode {
+        let id = resolveId(context: context)
+        let classes = ["kbd"] + context.cssClasses
+        let el = ElementNode.build(tag: "kbd", id: id, classes: classes, styles: context.inlineStyles, extraAttrs: context.allExtraAttributePairs, children: [.text(escapeHTML(v.keys))])
+        return .element(el)
+    }
+
+    // MARK: - Field
+
+    private func renderFieldDescriptionVNode(_ v: FieldDescription, context: ModifierContext) -> VNode {
+        let id = resolveId(context: context)
+        let classes = ["field-description"] + context.cssClasses
+        let el = ElementNode.build(tag: "p", id: id, classes: classes, children: [.text(escapeHTML(v.text))])
+        return .element(el)
+    }
+
+    private func renderFieldErrorVNode(_ v: FieldError, context: ModifierContext) -> VNode {
+        let id = resolveId(context: context)
+        let classes = ["field-error"] + context.cssClasses
+        let el = ElementNode.build(tag: "p", id: id, classes: classes, extraAttrs: [("role", "alert")], children: [.text(escapeHTML(v.text))])
+        return .element(el)
+    }
+
+    // MARK: - Menubar
+
+    private func renderMenubarTriggerVNode(_ v: MenubarTrigger, context: ModifierContext) -> VNode {
+        let id = resolveId(context: context)
+        let classes = ["menubar-trigger"] + context.cssClasses
+        let attrs: [(key: String, value: String)] = [("role", "menuitem"), ("data-sparrow-roving-item", ""), ("data-sparrow-event", "click")]
+        let el = ElementNode.build(tag: "button", id: id, classes: classes, extraAttrs: attrs, children: [.text(escapeHTML(v.label))])
+        return .element(el)
+    }
+
+    private func renderMenubarItemVNode(_ v: MenubarItem, context: ModifierContext) -> VNode {
+        let id = resolveId(context: context)
+        renderState.registerHandler(id: id, handler: v.action)
+        let classes = ["dropdown-item"] + context.cssClasses
+        var children: [VNode] = [.text(escapeHTML(v.label))]
+        if let shortcut = v.shortcut {
+            let kbdId = renderState.allocateId()
+            let kbd = ElementNode.build(tag: "kbd", id: kbdId, classes: ["menubar-shortcut"], children: [.text(escapeHTML(shortcut))])
+            children.append(.element(kbd))
+        }
+        let attrs: [(key: String, value: String)] = [("role", "menuitem"), ("data-sparrow-roving-item", ""), ("data-sparrow-event", "click")]
+        let el = ElementNode.build(tag: "button", id: id, classes: classes, extraAttrs: attrs, children: children)
+        return .element(el)
+    }
+
+    // MARK: - NavigationMenu
+
+    private func renderNavMenuTriggerVNode(_ v: NavigationMenuTrigger, context: ModifierContext) -> VNode {
+        let id = resolveId(context: context)
+        let classes = ["nav-menu-trigger"] + context.cssClasses
+        let state = v.isOpen ? "open" : "closed"
+        let attrs: [(key: String, value: String)] = [("data-state", state), ("data-sparrow-event", "click")]
+        let el = ElementNode.build(tag: "button", id: id, classes: classes, extraAttrs: attrs, children: [.text(escapeHTML(v.label))])
+        return .element(el)
+    }
+
+    private func renderNavMenuLinkVNode(_ v: NavigationMenuLink, context: ModifierContext) -> VNode {
+        let id = resolveId(context: context)
+        let classes = ["nav-menu-link"] + context.cssClasses
+        let el = ElementNode.build(tag: "a", id: id, classes: classes, extraAttrs: [("href", escapeHTML(v.href)), ("data-sparrow-nav", "")], children: [.text(escapeHTML(v.label))])
+        return .element(el)
+    }
+
+    // MARK: - Combobox
+
+    private func renderComboboxVNode(_ v: Combobox, context: ModifierContext) -> VNode {
+        let id = resolveId(context: context)
+        let triggerId = renderState.allocateId()
+        renderState.registerHandler(id: triggerId, handler: v.onToggle)
+        let selectedLabel = v.options.first(where: { $0.value == v.selection.wrappedValue })?.label
+        let triggerText = selectedLabel ?? v.placeholder
+        let triggerEl = ElementNode.build(tag: "button", id: triggerId, classes: ["select-trigger"], extraAttrs: [("role", "combobox"), ("aria-expanded", v.isOpen ? "true" : "false"), ("data-sparrow-event", "click")], children: [.text(escapeHTML(triggerText))])
+        var allChildren: [VNode] = [.element(triggerEl)]
+
+        if v.isOpen {
+            let contentId = renderState.allocateId()
+            // Search input
+            let inputId = renderState.allocateId()
+            let searchBinding = v.search
+            renderState.registerValueHandler(id: inputId) { value in searchBinding.wrappedValue = value }
+            let inputEl = ElementNode.build(tag: "input", id: inputId, classes: ["command-input"], extraAttrs: [("placeholder", escapeHTML(v.placeholder)), ("data-sparrow-event", "input"), ("data-sparrow-debounce", "150"), ("value", escapeHTML(v.search.wrappedValue))])
+            let inputWrapper = ElementNode.build(tag: "div", id: renderState.allocateId(), classes: ["command-input-wrapper"], children: [.element(inputEl)])
+            // Options
+            var optionNodes: [VNode] = []
+            for opt in v.options {
+                let optId = renderState.allocateId()
+                let isSelected = opt.value == v.selection.wrappedValue
+                let selBinding = v.selection
+                let optValue = opt.value
+                renderState.registerHandler(id: optId) { selBinding.wrappedValue = optValue }
+                let attrs: [(key: String, value: String)] = [("role", "option"), ("aria-selected", isSelected ? "true" : "false"), ("data-sparrow-roving-item", ""), ("data-sparrow-event", "click")]
+                let optEl = ElementNode.build(tag: "div", id: optId, classes: ["command-item"], extraAttrs: attrs, children: [.text(escapeHTML(opt.label))])
+                optionNodes.append(.element(optEl))
+            }
+            let listEl = ElementNode.build(tag: "div", id: renderState.allocateId(), classes: ["command-list"], extraAttrs: [("data-sparrow-roving", "vertical")], children: optionNodes)
+            let contentAttrs: [(key: String, value: String)] = [("data-sparrow-floating", "bottom"), ("data-sparrow-floating-anchor", triggerId), ("data-sparrow-dismissable", triggerId)]
+            let contentEl = ElementNode.build(tag: "div", id: contentId, classes: ["command"], extraAttrs: contentAttrs, children: [.element(inputWrapper), .element(listEl)])
+            allChildren.append(.element(contentEl))
+        }
+
+        let classes = ["combobox"] + context.cssClasses
+        let el = ElementNode.build(tag: "div", id: id, classes: classes, styles: context.inlineStyles, extraAttrs: context.allExtraAttributePairs, children: allChildren)
+        return .element(el)
+    }
+
+    // MARK: - InputOTP
+
+    private func renderInputOTPVNode(_ v: InputOTP, context: ModifierContext) -> VNode {
+        let id = resolveId(context: context)
+        let current = v.value.wrappedValue
+        var slots: [VNode] = []
+        for i in 0..<v.maxLength {
+            let slotId = renderState.allocateId()
+            let char = i < current.count ? String(current[current.index(current.startIndex, offsetBy: i)]) : ""
+            let isFilled = !char.isEmpty
+            var classes = ["otp-slot"]
+            if isFilled { classes.append("otp-slot-filled") }
+            let slotEl = ElementNode.build(tag: "div", id: slotId, classes: classes, children: [.text(escapeHTML(char))])
+            slots.append(.element(slotEl))
+        }
+        // Hidden input for actual value
+        let inputId = renderState.allocateId()
+        let binding = v.value
+        renderState.registerValueHandler(id: inputId) { newValue in binding.wrappedValue = newValue }
+        let inputEl = ElementNode.build(tag: "input", id: inputId, classes: ["otp-input"], extraAttrs: [("type", "text"), ("inputmode", "numeric"), ("maxlength", "\(v.maxLength)"), ("value", escapeHTML(current)), ("data-sparrow-event", "input"), ("autocomplete", "one-time-code")])
+        let classes = ["otp-group"] + context.cssClasses
+        var children: [VNode] = slots
+        children.append(.element(inputEl))
+        let el = ElementNode.build(tag: "div", id: id, classes: classes, styles: context.inlineStyles, extraAttrs: context.allExtraAttributePairs, children: children)
+        return .element(el)
+    }
+
+    // MARK: - Resizable
+
+    private func renderResizableHandleVNode(_ v: ResizableHandle, context: ModifierContext) -> VNode {
+        let id = resolveId(context: context)
+        var classes = ["resizable-handle"] + context.cssClasses
+        var children: [VNode] = []
+        if v.withHandle {
+            classes.append("resizable-handle-visible")
+            let gripId = renderState.allocateId()
+            let grip = ElementNode.build(tag: "div", id: gripId, classes: ["resizable-grip"])
+            children.append(.element(grip))
+        }
+        let el = ElementNode.build(tag: "div", id: id, classes: classes, extraAttrs: [("data-panel-resize-handle", "")], children: children)
+        return .element(el)
+    }
+
+    // MARK: - Calendar
+
+    private func renderCalendarVNode(_ v: Calendar, context: ModifierContext) -> VNode {
+        let id = resolveId(context: context)
+        let classes = ["calendar"] + context.cssClasses
+        // Calendar renders a month grid — server provides the current month string
+        // and selected date. Client-side navigation via prev/next month buttons.
+        let el = ElementNode.build(tag: "div", id: id, classes: classes, styles: context.inlineStyles, extraAttrs: [("role", "application"), ("aria-label", "Calendar")] + context.allExtraAttributePairs)
+        return .element(el)
+    }
+
+    // MARK: - Carousel nav
+
+    private func renderCarouselNavVNode(_ action: @escaping @Sendable () -> Void, label: String, cssClass: String, context: ModifierContext) -> VNode {
+        let id = resolveId(context: context)
+        renderState.registerHandler(id: id, handler: action)
+        let classes = ["btn", "btn-outline", "btn-icon", cssClass] + context.cssClasses
+        let el = ElementNode.build(tag: "button", id: id, classes: classes, extraAttrs: [("data-sparrow-event", "click")], children: [.text(label)])
+        return .element(el)
+    }
+
+    // MARK: - Sidebar
+
+    private func renderSidebarGroupLabelVNode(_ v: SidebarGroupLabel, context: ModifierContext) -> VNode {
+        let id = resolveId(context: context)
+        let classes = ["sidebar-group-label"] + context.cssClasses
+        let el = ElementNode.build(tag: "div", id: id, classes: classes, children: [.text(escapeHTML(v.text))])
+        return .element(el)
+    }
+
+    private func renderSidebarMenuButtonVNode(_ v: SidebarMenuButton, context: ModifierContext) -> VNode {
+        let id = resolveId(context: context)
+        renderState.registerHandler(id: id, handler: v.action)
+        var classes = ["sidebar-menu-button"] + context.cssClasses
+        if v.isActive { classes.append("sidebar-menu-button-active") }
+        let el = ElementNode.build(tag: "button", id: id, classes: classes, extraAttrs: [("data-sparrow-event", "click"), ("data-active", v.isActive ? "true" : "false")], children: [.text(escapeHTML(v.label))])
+        return .element(el)
+    }
+
+    private func renderSidebarTriggerVNode(_ v: SidebarTrigger, context: ModifierContext) -> VNode {
+        let id = resolveId(context: context)
+        renderState.registerHandler(id: id, handler: v.onToggle)
+        let classes = ["sidebar-trigger"] + context.cssClasses
+        let el = ElementNode.build(tag: "button", id: id, classes: classes, extraAttrs: [("data-sparrow-event", "click")], children: [.text("\u{2630}")])
+        return .element(el)
+    }
+
+    // MARK: - Toaster
+
+    private func renderToasterVNode(_ v: Toaster, context: ModifierContext) -> VNode {
+        let id = resolveId(context: context)
+        var toastNodes: [VNode] = []
+        for toast in v.toasts {
+            let toastId = renderState.allocateId()
+            let dismissId = renderState.allocateId()
+            let toastIdStr = toast.id
+            renderState.registerHandler(id: dismissId) { v.onDismiss(toastIdStr) }
+            var children: [VNode] = []
+            let titleId = renderState.allocateId()
+            children.append(.element(ElementNode.build(tag: "div", id: titleId, classes: ["toast-title"], children: [.text(escapeHTML(toast.title))])))
+            if let desc = toast.description {
+                let descId = renderState.allocateId()
+                children.append(.element(ElementNode.build(tag: "div", id: descId, classes: ["toast-description"], children: [.text(escapeHTML(desc))])))
+            }
+            if let action = toast.action {
+                let actionId = renderState.allocateId()
+                renderState.registerHandler(id: actionId, handler: action.action)
+                children.append(.element(ElementNode.build(tag: "button", id: actionId, classes: ["toast-action"], extraAttrs: [("data-sparrow-event", "click")], children: [.text(escapeHTML(action.label))])))
+            }
+            let closeBtn = ElementNode.build(tag: "button", id: dismissId, classes: ["toast-close"], extraAttrs: [("data-sparrow-event", "click")], children: [.text("\u{2715}")])
+            children.append(.element(closeBtn))
+            let classes = ["toast", toast.variant.cssClass]
+            let toastEl = ElementNode.build(tag: "div", id: toastId, classes: classes, extraAttrs: [("role", "alert")], children: children)
+            toastNodes.append(.element(toastEl))
+        }
+        let classes = ["toaster"] + context.cssClasses
+        let el = ElementNode.build(tag: "div", id: id, classes: classes, styles: context.inlineStyles, extraAttrs: context.allExtraAttributePairs, children: toastNodes)
+        return .element(el)
+    }
+
+    // MARK: - Drawer primitives
+
+    private func renderDrawerTitleVNode(_ v: DrawerTitle, context: ModifierContext) -> VNode {
+        let id = resolveId(context: context)
+        let classes = ["drawer-title"] + context.cssClasses
+        let el = ElementNode.build(tag: "div", id: id, classes: classes, children: [.text(escapeHTML(v.text))])
+        return .element(el)
+    }
+
+    private func renderDrawerDescriptionVNode(_ v: DrawerDescription, context: ModifierContext) -> VNode {
+        let id = resolveId(context: context)
+        let classes = ["drawer-description"] + context.cssClasses
+        let el = ElementNode.build(tag: "div", id: id, classes: classes, children: [.text(escapeHTML(v.text))])
+        return .element(el)
+    }
+
+    // MARK: - Typography
+
+    private func renderTypographyVNode(_ text: String, tag: String, cssClass: String, context: ModifierContext) -> VNode {
+        let id = resolveId(context: context)
+        let classes = [cssClass] + context.cssClasses
+        let el = ElementNode.build(tag: tag, id: id, classes: classes, styles: context.inlineStyles, extraAttrs: context.allExtraAttributePairs, children: [.text(escapeHTML(text))])
         return .element(el)
     }
 

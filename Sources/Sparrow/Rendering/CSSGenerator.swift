@@ -64,9 +64,13 @@ public enum CSSGenerator {
         --sidebar-ring: hsl(240 5.9% 10%);
 
         --spacing-0: 0;
+        --spacing-0_5: 0.125rem;
         --spacing-1: 0.25rem;
+        --spacing-1_5: 0.375rem;
         --spacing-2: 0.5rem;
+        --spacing-2_5: 0.625rem;
         --spacing-3: 0.75rem;
+        --spacing-3_5: 0.875rem;
         --spacing-4: 1rem;
         --spacing-5: 1.25rem;
         --spacing-6: 1.5rem;
@@ -156,9 +160,13 @@ public enum CSSGenerator {
 
     /* Gap */
     .gap-0 { gap: var(--spacing-0); }
+    .gap-0_5 { gap: var(--spacing-0_5); }
     .gap-1 { gap: var(--spacing-1); }
+    .gap-1_5 { gap: var(--spacing-1_5); }
     .gap-2 { gap: var(--spacing-2); }
+    .gap-2_5 { gap: var(--spacing-2_5); }
     .gap-3 { gap: var(--spacing-3); }
+    .gap-3_5 { gap: var(--spacing-3_5); }
     .gap-4 { gap: var(--spacing-4); }
     .gap-5 { gap: var(--spacing-5); }
     .gap-6 { gap: var(--spacing-6); }
@@ -168,6 +176,30 @@ public enum CSSGenerator {
     .gap-16 { gap: var(--spacing-16); }
 
     /* Padding */
+    .p-0_5 { padding: var(--spacing-0_5); }
+    .p-1_5 { padding: var(--spacing-1_5); }
+    .p-2_5 { padding: var(--spacing-2_5); }
+    .p-3_5 { padding: var(--spacing-3_5); }
+    .px-0_5 { padding-left: var(--spacing-0_5); padding-right: var(--spacing-0_5); }
+    .px-1_5 { padding-left: var(--spacing-1_5); padding-right: var(--spacing-1_5); }
+    .px-2_5 { padding-left: var(--spacing-2_5); padding-right: var(--spacing-2_5); }
+    .px-3_5 { padding-left: var(--spacing-3_5); padding-right: var(--spacing-3_5); }
+    .py-0_5 { padding-top: var(--spacing-0_5); padding-bottom: var(--spacing-0_5); }
+    .py-1_5 { padding-top: var(--spacing-1_5); padding-bottom: var(--spacing-1_5); }
+    .py-2_5 { padding-top: var(--spacing-2_5); padding-bottom: var(--spacing-2_5); }
+    .py-3_5 { padding-top: var(--spacing-3_5); padding-bottom: var(--spacing-3_5); }
+    .pt-0_5 { padding-top: var(--spacing-0_5); }
+    .pt-1_5 { padding-top: var(--spacing-1_5); }
+    .pt-2_5 { padding-top: var(--spacing-2_5); }
+    .pb-0_5 { padding-bottom: var(--spacing-0_5); }
+    .pb-1_5 { padding-bottom: var(--spacing-1_5); }
+    .pb-2_5 { padding-bottom: var(--spacing-2_5); }
+    .pl-0_5 { padding-left: var(--spacing-0_5); }
+    .pl-1_5 { padding-left: var(--spacing-1_5); }
+    .pl-2_5 { padding-left: var(--spacing-2_5); }
+    .pr-0_5 { padding-right: var(--spacing-0_5); }
+    .pr-1_5 { padding-right: var(--spacing-1_5); }
+    .pr-2_5 { padding-right: var(--spacing-2_5); }
     .p-0 { padding: var(--spacing-0); }
     .p-1 { padding: var(--spacing-1); }
     .p-2 { padding: var(--spacing-2); }
@@ -314,6 +346,16 @@ public enum CSSGenerator {
     .fg-success { color: var(--success); }
     .fg-warning { color: var(--warning); }
     .fg-info { color: var(--info); }
+    .fg-card { color: var(--card-foreground); }
+    .fg-cardForeground { color: var(--card-foreground); }
+    .fg-popover { color: var(--popover-foreground); }
+    .fg-popoverForeground { color: var(--popover-foreground); }
+    .fg-muted { color: var(--muted-foreground); }
+    .fg-mutedForeground { color: var(--muted-foreground); }
+    .fg-destructiveForeground { color: var(--destructive-foreground); }
+    .fg-border { color: var(--border); }
+    .fg-input { color: var(--input); }
+    .fg-ring { color: var(--ring); }
     .fg-current { color: currentColor; }
     .fg-red { color: var(--color-red); }
     .fg-orange { color: var(--color-orange); }
@@ -348,6 +390,16 @@ public enum CSSGenerator {
     .bg-success { background: var(--success); }
     .bg-warning { background: var(--warning); }
     .bg-info { background: var(--info); }
+    .bg-card { background: var(--card); }
+    .bg-cardForeground { background: var(--card-foreground); }
+    .bg-popover { background: var(--popover); }
+    .bg-popoverForeground { background: var(--popover-foreground); }
+    .bg-muted { background: var(--muted); }
+    .bg-mutedForeground { background: var(--muted-foreground); }
+    .bg-destructiveForeground { background: var(--destructive-foreground); }
+    .bg-border { background: var(--border); }
+    .bg-input { background: var(--input); }
+    .bg-ring { background: var(--ring); }
     .bg-current { background: currentColor; }
     .bg-red { background: var(--color-red); }
     .bg-orange { background: var(--color-orange); }
@@ -867,6 +919,13 @@ public enum CSSGenerator {
     .border-white { border-color: var(--color-white); }
     .border-black { border-color: var(--color-black); }
     .border-clear { border-color: transparent; }
+    .border-card { border-color: var(--card); }
+    .border-popover { border-color: var(--popover); }
+    .border-muted { border-color: var(--muted); }
+    .border-border { border-color: var(--border); }
+    .border-input { border-color: var(--input); }
+    .border-ring { border-color: var(--ring); }
+    .border-destructiveForeground { border-color: var(--destructive-foreground); }
     .border-current { border-color: currentColor; }
 
     /* ============================================
@@ -897,6 +956,9 @@ public enum CSSGenerator {
     .cursor-none { cursor: none; }
     .pointer-events-auto { pointer-events: auto; }
     .pointer-events-none { pointer-events: none; }
+
+    /* Focus Ring */
+    .focus-ring:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
 
     /* ============================================
        HOVER EFFECTS
@@ -932,6 +994,44 @@ public enum CSSGenerator {
     .list-sidebar { list-style: none; padding-left: 0; }
     .list-separator-hidden { border-bottom: none; }
     .list-separator-visible { border-bottom: 1px solid var(--border); }
+
+    /* ============================================
+       TABLE (shadcn)
+       ============================================ */
+    .table-wrapper { position: relative; width: 100%; overflow: auto; }
+    .table { width: 100%; caption-side: bottom; font-size: 0.875rem; border-collapse: collapse; }
+    .table-head { height: 2.5rem; padding: 0 0.5rem; text-align: left; vertical-align: middle; font-weight: 500; color: var(--muted-foreground); border-bottom: 1px solid var(--border); }
+    .table-row { border-bottom: 1px solid var(--border); transition: background-color 150ms; }
+    .table-row:hover { background: color-mix(in srgb, var(--muted) 50%, transparent); }
+    .table-cell { padding: 0.5rem; vertical-align: middle; }
+    .table-caption { margin-top: 1rem; font-size: 0.875rem; color: var(--muted-foreground); }
+    .table tfoot .table-row { border-bottom: none; }
+    .table tfoot .table-cell { font-weight: 500; }
+
+    /* ============================================
+       CHECKBOX (shadcn)
+       ============================================ */
+    .checkbox { display: flex; align-items: center; gap: var(--spacing-2); cursor: pointer; }
+    .checkbox-root { display: flex; align-items: center; justify-content: center; height: 1rem; width: 1rem; flex-shrink: 0; border-radius: calc(var(--radius) - 4px); border: 1px solid var(--primary); background: transparent; cursor: pointer; padding: 0; transition: background-color 150ms, border-color 150ms; }
+    .checkbox-root[data-state="checked"] { background: var(--primary); color: var(--primary-foreground); border-color: var(--primary); }
+    .checkbox-root:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+    .checkbox-root:disabled { cursor: not-allowed; opacity: 0.5; }
+    .checkbox-indicator { display: none; font-size: 0.75rem; line-height: 1; }
+    .checkbox-indicator[data-state="checked"] { display: flex; }
+    .checkbox-label { font-size: 0.875rem; line-height: 1.25rem; }
+
+    /* ============================================
+       RADIOGROUP (shadcn)
+       ============================================ */
+    .radio-group { display: flex; flex-direction: column; gap: var(--spacing-2); }
+    .radio-group-horizontal { flex-direction: row; }
+    .radio-item { display: flex; align-items: center; gap: var(--spacing-2); cursor: pointer; }
+    .radio-root { display: flex; align-items: center; justify-content: center; height: 1rem; width: 1rem; flex-shrink: 0; border-radius: 9999px; border: 1px solid var(--primary); background: transparent; cursor: pointer; padding: 0; transition: border-color 150ms; }
+    .radio-root:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+    .radio-root:disabled { cursor: not-allowed; opacity: 0.5; }
+    .radio-indicator { display: none; width: 0.5rem; height: 0.5rem; border-radius: 9999px; background: var(--primary); }
+    .radio-indicator[data-state="checked"] { display: block; }
+    .radio-label { font-size: 0.875rem; line-height: 1.25rem; }
 
     /* ============================================
        SCROLL
@@ -993,6 +1093,363 @@ public enum CSSGenerator {
     .safe-area-ignore-trailing { padding-right: env(safe-area-inset-right); }
     .safe-area-ignore-horizontal { padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right); }
     .safe-area-ignore-vertical { padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
+
+    /* ============================================
+       BREADCRUMB (shadcn)
+       ============================================ */
+    .breadcrumb-link { font-size: 0.875rem; color: var(--muted-foreground); text-decoration: none; transition: color 150ms; }
+    .breadcrumb-link:hover { color: var(--foreground); }
+    .breadcrumb-separator { font-size: 0.875rem; color: var(--muted-foreground); }
+    .breadcrumb-page { font-size: 0.875rem; color: var(--foreground); }
+
+    /* ============================================
+       AVATAR (shadcn)
+       ============================================ */
+    .avatar-image { aspect-ratio: 1; width: 100%; height: 100%; object-fit: cover; }
+    .avatar-fallback { display: flex; width: 100%; height: 100%; align-items: center; justify-content: center; border-radius: 9999px; background: var(--muted); color: var(--muted-foreground); font-size: 0.875rem; font-weight: 500; }
+
+    /* ============================================
+       LABEL (shadcn)
+       ============================================ */
+    .label { font-size: 0.875rem; font-weight: 500; line-height: 1; }
+
+    /* ============================================
+       SKELETON (shadcn)
+       ============================================ */
+    .skeleton { background: var(--muted); border-radius: calc(var(--radius) - 2px); animation: sp-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+    .skeleton-round { border-radius: 9999px; }
+
+    /* ============================================
+       TABS (shadcn)
+       ============================================ */
+    .tabs-trigger { display: inline-flex; align-items: center; justify-content: center; white-space: nowrap; border-radius: calc(var(--radius) - 4px); padding: 0.375rem 0.75rem; font-size: 0.875rem; font-weight: 500; color: var(--muted-foreground); background: transparent; border: none; cursor: pointer; transition: all 150ms; }
+    .tabs-trigger[data-state="active"] { background: var(--background); color: var(--foreground); box-shadow: var(--shadow-sm); }
+    .tabs-trigger:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+    .tabs-trigger:disabled { pointer-events: none; opacity: 0.5; }
+
+    /* ============================================
+       ACCORDION (shadcn)
+       ============================================ */
+    .accordion-header { display: flex; margin: 0; }
+    .accordion-trigger { display: flex; width: 100%; flex: 1; align-items: center; justify-content: space-between; padding: var(--spacing-4) 0; font-size: 0.875rem; font-weight: 500; text-align: left; background: none; border: none; cursor: pointer; color: var(--foreground); transition: all 150ms; }
+    .accordion-trigger:hover { text-decoration: underline; }
+    .accordion-trigger:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+    .accordion-chevron { font-size: 1rem; color: var(--muted-foreground); transition: transform 200ms; flex-shrink: 0; }
+    .accordion-chevron[data-state="open"] { transform: rotate(180deg); }
+
+    /* ============================================
+       COLLAPSIBLE
+       ============================================ */
+    .collapsible-trigger { display: flex; align-items: center; justify-content: space-between; width: 100%; padding: var(--spacing-2); font-size: 0.875rem; font-weight: 500; background: none; border: none; cursor: pointer; color: var(--foreground); border-radius: calc(var(--radius) - 2px); }
+    .collapsible-trigger:hover { background: var(--accent); }
+
+    /* ============================================
+       TOGGLE GROUP (shadcn)
+       ============================================ */
+    .toggle-group-item { display: inline-flex; align-items: center; justify-content: center; border-radius: calc(var(--radius) - 2px); padding: 0.5rem; font-size: 0.875rem; font-weight: 500; background: transparent; border: none; color: var(--muted-foreground); cursor: pointer; transition: background-color 150ms, color 150ms; }
+    .toggle-group-item:hover { background: var(--muted); }
+    .toggle-group-item[data-state="on"] { background: var(--accent); color: var(--accent-foreground); }
+    .toggle-group-item:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+
+    /* ============================================
+       TOGGLE BUTTON (shadcn)
+       ============================================ */
+    .toggle-btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; border-radius: calc(var(--radius) - 2px); font-size: 0.875rem; font-weight: 500; background: transparent; border: none; color: var(--muted-foreground); cursor: pointer; transition: background-color 150ms, color 150ms; }
+    .toggle-btn:hover { background: var(--muted); }
+    .toggle-btn[data-state="on"] { background: var(--accent); color: var(--accent-foreground); }
+    .toggle-btn:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+    .toggle-btn-default { background: transparent; }
+    .toggle-btn-outline { border: 1px solid var(--input); }
+    .toggle-btn-md { height: 2.25rem; padding: 0 0.625rem; }
+    .toggle-btn-sm { height: 2rem; padding: 0 0.5rem; font-size: 0.75rem; }
+    .toggle-btn-lg { height: 2.75rem; padding: 0 0.75rem; }
+
+    /* ============================================
+       DIALOG (shadcn)
+       ============================================ */
+    .dialog-overlay { position: fixed; inset: 0; z-index: 50; background: rgb(0 0 0 / 0.8); }
+    .dialog-content { position: fixed; left: 50%; top: 50%; z-index: 50; display: flex; flex-direction: column; gap: var(--spacing-4); transform: translate(-50%, -50%); width: 100%; max-width: 32rem; border-radius: var(--radius); border: 1px solid var(--border); background: var(--background); padding: var(--spacing-6); box-shadow: var(--shadow-lg); }
+    .dialog-title { font-size: 1.125rem; font-weight: 600; line-height: 1; letter-spacing: -0.025em; }
+    .dialog-description { font-size: 0.875rem; color: var(--muted-foreground); }
+    .dialog-close { position: absolute; right: var(--spacing-4); top: var(--spacing-4); border-radius: calc(var(--radius) - 4px); opacity: 0.7; background: none; border: none; cursor: pointer; font-size: 1rem; color: var(--foreground); padding: 0.25rem; }
+    .dialog-close:hover { opacity: 1; }
+    .dialog-close:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+
+    /* ============================================
+       SHEET (shadcn)
+       ============================================ */
+    .sheet-content { position: fixed; z-index: 50; display: flex; flex-direction: column; gap: var(--spacing-4); background: var(--background); padding: var(--spacing-6); box-shadow: var(--shadow-lg); }
+    .sheet-top { inset: 0 0 auto 0; border-bottom: 1px solid var(--border); }
+    .sheet-bottom { inset: auto 0 0 0; border-top: 1px solid var(--border); }
+    .sheet-left { inset: 0 auto 0 0; width: 75%; max-width: 24rem; border-right: 1px solid var(--border); }
+    .sheet-right { inset: 0 0 0 auto; width: 75%; max-width: 24rem; border-left: 1px solid var(--border); }
+
+    /* ============================================
+       TOOLTIP (shadcn)
+       ============================================ */
+    .tooltip-wrapper { position: relative; display: inline-flex; }
+    .tooltip-content { z-index: 50; overflow: hidden; border-radius: calc(var(--radius) - 2px); border: 1px solid var(--border); background: var(--popover); color: var(--popover-foreground); padding: 0.375rem 0.75rem; font-size: 0.875rem; box-shadow: var(--shadow-md); pointer-events: none; opacity: 0; transition: opacity 150ms; }
+    .tooltip-wrapper:hover > .tooltip-content, .tooltip-wrapper:focus-within > .tooltip-content { opacity: 1; pointer-events: auto; }
+
+    /* ============================================
+       DROPDOWN MENU (shadcn)
+       ============================================ */
+    .dropdown { position: relative; display: inline-flex; }
+    .dropdown-content { z-index: 50; min-width: 8rem; overflow: hidden; border-radius: calc(var(--radius) - 2px); border: 1px solid var(--border); background: var(--popover); color: var(--popover-foreground); padding: 0.25rem; box-shadow: var(--shadow-md); }
+    .dropdown-item { position: relative; display: flex; align-items: center; gap: 0.5rem; border-radius: calc(var(--radius) - 4px); padding: 0.375rem 0.5rem; font-size: 0.875rem; cursor: default; user-select: none; outline: none; transition: background-color 100ms, color 100ms; border: none; background: none; color: inherit; width: 100%; text-align: left; }
+    .dropdown-item:hover, .dropdown-item:focus { background: var(--accent); color: var(--accent-foreground); }
+    .dropdown-item:disabled { pointer-events: none; opacity: 0.5; }
+    .dropdown-label { padding: 0.375rem 0.5rem; font-size: 0.875rem; font-weight: 600; }
+    .dropdown-separator { margin: 0.25rem -0.25rem; height: 1px; background: var(--border); }
+
+    /* ============================================
+       SELECT (shadcn)
+       ============================================ */
+    .select-menu { position: relative; display: inline-flex; }
+    .select-trigger { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; border-radius: calc(var(--radius) - 2px); border: 1px solid var(--input); background: var(--background); padding: 0.5rem 0.75rem; height: 2.5rem; width: 100%; font-size: 0.875rem; color: var(--foreground); cursor: pointer; }
+    .select-trigger:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+    .select-trigger:disabled { cursor: not-allowed; opacity: 0.5; }
+    .select-value { flex: 1; text-align: left; overflow: hidden; text-overflow: ellipsis; }
+    .select-placeholder { color: var(--muted-foreground); }
+    .select-chevron { font-size: 0.75rem; color: var(--muted-foreground); }
+    .select-content { z-index: 50; min-width: 8rem; max-height: 24rem; overflow-y: auto; border-radius: calc(var(--radius) - 2px); border: 1px solid var(--border); background: var(--popover); color: var(--popover-foreground); padding: 0.25rem; box-shadow: var(--shadow-md); }
+    .select-item { position: relative; display: flex; align-items: center; border-radius: calc(var(--radius) - 4px); padding: 0.375rem 0.5rem 0.375rem 2rem; font-size: 0.875rem; cursor: pointer; outline: none; transition: background-color 100ms; }
+    .select-item:hover, .select-item:focus { background: var(--accent); color: var(--accent-foreground); }
+    .select-item[aria-selected="true"] { background: var(--accent); }
+    .select-item-check { position: absolute; left: 0.5rem; font-size: 0.75rem; }
+
+    /* ============================================
+       HOVER CARD (shadcn)
+       ============================================ */
+    .hover-card { position: relative; display: inline-flex; }
+    .hover-card-content { z-index: 50; width: 16rem; border-radius: calc(var(--radius) - 2px); border: 1px solid var(--border); background: var(--popover); color: var(--popover-foreground); padding: var(--spacing-4); box-shadow: var(--shadow-md); pointer-events: none; opacity: 0; visibility: hidden; transition: opacity 150ms; }
+    .hover-card:hover > .hover-card-content, .hover-card:focus-within > .hover-card-content { opacity: 1; visibility: visible; pointer-events: auto; }
+
+    /* ============================================
+       POPOVER (shadcn)
+       ============================================ */
+    .popover-wrapper { position: relative; display: inline-flex; }
+    .popover-content { z-index: 50; width: 18rem; border-radius: calc(var(--radius) - 2px); border: 1px solid var(--border); background: var(--popover); color: var(--popover-foreground); padding: var(--spacing-4); box-shadow: var(--shadow-md); outline: none; }
+
+    /* ============================================
+       COMMAND (shadcn)
+       ============================================ */
+    .command { display: flex; flex-direction: column; overflow: hidden; border-radius: var(--radius); background: var(--popover); color: var(--popover-foreground); }
+    .command-input-wrapper { display: flex; align-items: center; border-bottom: 1px solid var(--border); padding: 0 0.75rem; }
+    .command-input { display: flex; width: 100%; background: transparent; padding: 0.6875rem 0; font-size: 0.875rem; outline: none; border: none; color: var(--foreground); }
+    .command-input::placeholder { color: var(--muted-foreground); }
+    .command-list { max-height: 18.75rem; overflow-y: auto; padding: 0.25rem; }
+    .command-group { overflow: hidden; padding: 0.25rem; }
+    .command-group-heading { padding: 0.375rem 0.5rem; font-size: 0.75rem; font-weight: 500; color: var(--muted-foreground); }
+    .command-item { position: relative; display: flex; align-items: center; gap: 0.5rem; border-radius: calc(var(--radius) - 4px); padding: 0.375rem 0.5rem; font-size: 0.875rem; cursor: pointer; outline: none; border: none; background: none; color: inherit; width: 100%; text-align: left; }
+    .command-item:hover, .command-item:focus, .command-item[aria-selected="true"] { background: var(--accent); color: var(--accent-foreground); }
+    .command-separator { height: 1px; margin: 0.25rem -0.25rem; background: var(--border); }
+    .command-empty { padding: 1.5rem; text-align: center; font-size: 0.875rem; color: var(--muted-foreground); }
+
+    /* ============================================
+       PAGINATION (shadcn)
+       ============================================ */
+    .pagination-item { display: inline-flex; align-items: center; justify-content: center; min-width: 2.25rem; height: 2.25rem; border-radius: calc(var(--radius) - 2px); font-size: 0.875rem; cursor: pointer; border: none; background: transparent; color: var(--foreground); transition: background-color 150ms; }
+    .pagination-item:hover { background: var(--accent); color: var(--accent-foreground); }
+    .pagination-item-active { border: 1px solid var(--input); background: var(--background); }
+    .pagination-ellipsis { display: inline-flex; align-items: center; justify-content: center; min-width: 2.25rem; height: 2.25rem; color: var(--muted-foreground); }
+
+    /* ============================================
+       ALERT DIALOG (shadcn)
+       ============================================ */
+    .alert-dialog-overlay { position: fixed; inset: 0; z-index: 50; background: color-mix(in srgb, var(--foreground) 80%, transparent); }
+    .alert-dialog-content { position: fixed; left: 50%; top: 50%; z-index: 50; display: flex; flex-direction: column; gap: var(--spacing-4); transform: translate(-50%, -50%); width: 100%; max-width: 32rem; border-radius: var(--radius); border: 1px solid var(--border); background: var(--background); padding: var(--spacing-6); box-shadow: var(--shadow-lg); }
+
+    /* ============================================
+       ASPECT RATIO
+       ============================================ */
+    .aspect-ratio { position: relative; width: 100%; }
+
+    /* ============================================
+       SPINNER (shadcn)
+       ============================================ */
+    .spinner { border: 2px solid var(--border); border-top-color: var(--foreground); border-radius: 9999px; animation: sp-spin 0.6s linear infinite; }
+    .spinner-sm { width: 1rem; height: 1rem; }
+    .spinner-md { width: 1.5rem; height: 1.5rem; }
+    .spinner-lg { width: 2.5rem; height: 2.5rem; }
+
+    /* ============================================
+       KBD (shadcn)
+       ============================================ */
+    .kbd { display: inline-flex; align-items: center; justify-content: center; border-radius: calc(var(--radius) - 4px); border: 1px solid var(--border); background: var(--muted); padding: 0.125rem 0.375rem; font-family: var(--font-mono); font-size: 0.75rem; font-weight: 500; color: var(--muted-foreground); pointer-events: none; }
+
+    /* ============================================
+       BUTTON GROUP (shadcn)
+       ============================================ */
+    .btn-group { display: inline-flex; }
+    .btn-group > * { border-radius: 0; }
+    .btn-group > :first-child { border-top-left-radius: calc(var(--radius) - 2px); border-bottom-left-radius: calc(var(--radius) - 2px); }
+    .btn-group > :last-child { border-top-right-radius: calc(var(--radius) - 2px); border-bottom-right-radius: calc(var(--radius) - 2px); }
+    .btn-group > * + * { border-left: none; }
+
+    /* ============================================
+       EMPTY STATE
+       ============================================ */
+    .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--spacing-4); padding: var(--spacing-8); text-align: center; color: var(--muted-foreground); }
+
+    /* ============================================
+       FIELD (shadcn)
+       ============================================ */
+    .field { display: flex; flex-direction: column; gap: var(--spacing-2); }
+    .field-description { font-size: 0.875rem; color: var(--muted-foreground); }
+    .field-error { font-size: 0.875rem; font-weight: 500; color: var(--destructive); }
+
+    /* ============================================
+       INPUT GROUP (shadcn)
+       ============================================ */
+    .input-group { display: flex; align-items: center; border-radius: calc(var(--radius) - 2px); border: 1px solid var(--input); background: var(--background); }
+    .input-group:focus-within { border-color: var(--ring); box-shadow: 0 0 0 2px var(--ring); }
+    .input-group .input { border: none; box-shadow: none; }
+    .input-group .input:focus { box-shadow: none; }
+    .input-group-prefix { display: flex; align-items: center; padding: 0 0.75rem; color: var(--muted-foreground); font-size: 0.875rem; border-right: 1px solid var(--input); }
+    .input-group-suffix { display: flex; align-items: center; padding: 0 0.75rem; color: var(--muted-foreground); font-size: 0.875rem; border-left: 1px solid var(--input); }
+
+    /* ============================================
+       ITEM
+       ============================================ */
+    .item { display: flex; align-items: center; gap: var(--spacing-2); padding: var(--spacing-2); }
+
+    /* ============================================
+       CONTEXT MENU (shadcn)
+       ============================================ */
+    .context-menu { position: relative; }
+
+    /* ============================================
+       DRAWER (shadcn / vaul)
+       ============================================ */
+    .drawer-overlay { position: fixed; inset: 0; z-index: 50; background: color-mix(in srgb, var(--foreground) 80%, transparent); }
+    .drawer-content { position: fixed; bottom: 0; left: 0; right: 0; z-index: 50; display: flex; flex-direction: column; border-top-left-radius: calc(var(--radius) + 4px); border-top-right-radius: calc(var(--radius) + 4px); background: var(--background); }
+    .drawer-handle { margin: 0 auto; margin-top: var(--spacing-4); margin-bottom: var(--spacing-4); width: 3rem; height: 0.375rem; flex-shrink: 0; border-radius: 9999px; background: var(--muted); }
+    .drawer-header { display: flex; flex-direction: column; gap: var(--spacing-1); padding: var(--spacing-4); text-align: center; }
+    .drawer-footer { display: flex; flex-direction: column; gap: var(--spacing-2); padding: var(--spacing-4); }
+    .drawer-title { font-size: 1.125rem; font-weight: 600; line-height: 1; letter-spacing: -0.025em; }
+    .drawer-description { font-size: 0.875rem; color: var(--muted-foreground); }
+
+    /* ============================================
+       MENUBAR (shadcn)
+       ============================================ */
+    .menubar { display: flex; align-items: center; gap: var(--spacing-1); border-radius: calc(var(--radius) - 2px); border: 1px solid var(--border); background: var(--background); padding: var(--spacing-1); box-shadow: var(--shadow-sm); }
+    .menubar-menu { position: relative; }
+    .menubar-trigger { display: flex; align-items: center; border-radius: calc(var(--radius) - 4px); padding: 0.375rem 0.5rem; font-size: 0.875rem; font-weight: 500; cursor: pointer; outline: none; background: none; border: none; color: var(--foreground); transition: background-color 150ms; }
+    .menubar-trigger:hover { background: var(--accent); color: var(--accent-foreground); }
+    .menubar-trigger:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+    .menubar-content { z-index: 50; min-width: 12rem; overflow: hidden; border-radius: calc(var(--radius) - 2px); border: 1px solid var(--border); background: var(--popover); color: var(--popover-foreground); padding: 0.25rem; box-shadow: var(--shadow-md); }
+    .menubar-shortcut { margin-left: auto; font-size: 0.75rem; letter-spacing: 0.1em; color: var(--muted-foreground); }
+
+    /* ============================================
+       NAVIGATION MENU (shadcn)
+       ============================================ */
+    .nav-menu { position: relative; display: flex; align-items: center; }
+    .nav-menu-item { position: relative; }
+    .nav-menu-trigger { display: inline-flex; align-items: center; gap: 0.25rem; border-radius: calc(var(--radius) - 2px); padding: 0.5rem 0.75rem; font-size: 0.875rem; font-weight: 500; cursor: pointer; background: none; border: none; color: var(--foreground); transition: background-color 150ms; }
+    .nav-menu-trigger:hover { background: var(--accent); color: var(--accent-foreground); }
+    .nav-menu-trigger:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+    .nav-menu-content { position: absolute; top: 100%; left: 0; z-index: 50; width: max-content; border-radius: calc(var(--radius) - 2px); border: 1px solid var(--border); background: var(--popover); color: var(--popover-foreground); padding: var(--spacing-4); box-shadow: var(--shadow-md); }
+    .nav-menu-link { display: block; border-radius: calc(var(--radius) - 2px); padding: 0.5rem 0.75rem; font-size: 0.875rem; text-decoration: none; color: var(--foreground); transition: background-color 150ms; }
+    .nav-menu-link:hover { background: var(--accent); color: var(--accent-foreground); }
+
+    /* ============================================
+       COMBOBOX (shadcn)
+       ============================================ */
+    .combobox { position: relative; display: inline-flex; }
+
+    /* ============================================
+       INPUT OTP (shadcn)
+       ============================================ */
+    .otp-group { display: flex; align-items: center; gap: var(--spacing-2); }
+    .otp-slot { position: relative; display: flex; align-items: center; justify-content: center; width: 2.5rem; height: 2.5rem; border: 1px solid var(--input); border-radius: calc(var(--radius) - 2px); font-size: 1.25rem; font-weight: 500; text-align: center; transition: border-color 150ms; }
+    .otp-slot-filled { border-color: var(--foreground); }
+    .otp-input { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: text; }
+
+    /* ============================================
+       RESIZABLE (shadcn)
+       ============================================ */
+    .resizable-group { display: flex; overflow: hidden; }
+    .resizable-horizontal { flex-direction: row; }
+    .resizable-vertical { flex-direction: column; }
+    .resizable-panel { flex: 1 1 0%; overflow: auto; }
+    .resizable-handle { position: relative; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: var(--border); }
+    .resizable-horizontal > .resizable-handle { width: 2px; cursor: col-resize; }
+    .resizable-vertical > .resizable-handle { height: 2px; cursor: row-resize; }
+    .resizable-handle:hover { background: var(--primary); }
+    .resizable-handle-visible::after { content: ""; display: block; width: 0.5rem; height: 1.5rem; border-radius: 9999px; background: var(--border); }
+    .resizable-vertical > .resizable-handle-visible::after { width: 1.5rem; height: 0.5rem; }
+    .resizable-grip { display: flex; align-items: center; justify-content: center; }
+
+    /* ============================================
+       CALENDAR (shadcn)
+       ============================================ */
+    .calendar { padding: var(--spacing-3); }
+
+    /* ============================================
+       CAROUSEL (shadcn)
+       ============================================ */
+    .carousel { position: relative; width: 100%; }
+    .carousel-content { display: flex; gap: var(--spacing-4); }
+    .carousel-horizontal .carousel-content { flex-direction: row; }
+    .carousel-vertical .carousel-content { flex-direction: column; }
+    .carousel-item { min-width: 0; flex-shrink: 0; flex-grow: 0; flex-basis: 100%; }
+    .carousel-prev, .carousel-next { position: absolute; top: 50%; transform: translateY(-50%); z-index: 10; }
+    .carousel-prev { left: -1rem; }
+    .carousel-next { right: -1rem; }
+
+    /* ============================================
+       DATA TABLE
+       ============================================ */
+    .data-table { display: flex; flex-direction: column; gap: var(--spacing-4); }
+
+    /* ============================================
+       SIDEBAR (shadcn)
+       ============================================ */
+    .sidebar { display: flex; flex-direction: column; width: 16rem; flex-shrink: 0; border-right: 1px solid var(--sidebar-border); background: var(--sidebar-background); color: var(--sidebar-foreground); transition: width 200ms; }
+    .sidebar-right { border-right: none; border-left: 1px solid var(--sidebar-border); }
+    .sidebar-collapsed { width: 3rem; overflow: hidden; }
+    .sidebar-header { display: flex; flex-direction: column; gap: var(--spacing-2); padding: var(--spacing-4); }
+    .sidebar-content { display: flex; flex-direction: column; gap: var(--spacing-2); padding: var(--spacing-4); flex: 1; overflow-y: auto; }
+    .sidebar-footer { display: flex; flex-direction: column; gap: var(--spacing-2); padding: var(--spacing-4); }
+    .sidebar-group { display: flex; flex-direction: column; gap: var(--spacing-1); }
+    .sidebar-group-label { padding: var(--spacing-1) var(--spacing-2); font-size: 0.75rem; font-weight: 500; color: var(--sidebar-foreground); opacity: 0.7; }
+    .sidebar-menu-item { list-style: none; }
+    .sidebar-menu-button { display: flex; width: 100%; align-items: center; gap: var(--spacing-2); border-radius: calc(var(--radius) - 2px); padding: var(--spacing-1) var(--spacing-2); font-size: 0.875rem; cursor: pointer; background: none; border: none; color: var(--sidebar-foreground); text-align: left; transition: background-color 150ms, color 150ms; }
+    .sidebar-menu-button:hover { background: var(--sidebar-accent); color: var(--sidebar-accent-foreground); }
+    .sidebar-menu-button-active { background: var(--sidebar-accent); color: var(--sidebar-accent-foreground); font-weight: 500; }
+    .sidebar-trigger { display: inline-flex; align-items: center; justify-content: center; width: 2rem; height: 2rem; border-radius: calc(var(--radius) - 2px); background: none; border: none; cursor: pointer; color: var(--foreground); font-size: 1.25rem; }
+    .sidebar-trigger:hover { background: var(--accent); }
+
+    /* ============================================
+       TOAST / SONNER (shadcn)
+       ============================================ */
+    .toaster { position: fixed; bottom: var(--spacing-4); right: var(--spacing-4); z-index: 100; display: flex; flex-direction: column; gap: var(--spacing-2); max-width: 24rem; width: 100%; }
+    .toast { display: flex; align-items: center; gap: var(--spacing-3); border-radius: var(--radius); border: 1px solid var(--border); padding: var(--spacing-4); box-shadow: var(--shadow-lg); }
+    .toast-default { background: var(--background); color: var(--foreground); }
+    .toast-destructive { background: var(--destructive); color: var(--destructive-foreground); border-color: var(--destructive); }
+    .toast-success { background: var(--success); color: var(--success-foreground); border-color: var(--success); }
+    .toast-title { font-size: 0.875rem; font-weight: 600; }
+    .toast-description { font-size: 0.875rem; opacity: 0.9; }
+    .toast-action { margin-left: auto; display: inline-flex; align-items: center; border-radius: calc(var(--radius) - 2px); border: 1px solid var(--border); padding: 0.25rem 0.5rem; font-size: 0.75rem; font-weight: 500; cursor: pointer; background: transparent; color: inherit; transition: background-color 150ms; }
+    .toast-action:hover { background: var(--accent); }
+    .toast-close { margin-left: auto; border-radius: calc(var(--radius) - 4px); opacity: 0.5; background: none; border: none; cursor: pointer; font-size: 0.875rem; color: inherit; padding: 0.25rem; }
+    .toast-close:hover { opacity: 1; }
+
+    /* ============================================
+       TYPOGRAPHY (shadcn)
+       ============================================ */
+    .typography-h1 { font-size: 2.25rem; line-height: 2.5rem; font-weight: 800; letter-spacing: -0.025em; }
+    .typography-h2 { font-size: 1.875rem; line-height: 2.25rem; font-weight: 600; letter-spacing: -0.025em; border-bottom: 1px solid var(--border); padding-bottom: var(--spacing-2); }
+    .typography-h3 { font-size: 1.5rem; line-height: 2rem; font-weight: 600; letter-spacing: -0.025em; }
+    .typography-h4 { font-size: 1.25rem; line-height: 1.75rem; font-weight: 600; letter-spacing: -0.025em; }
+    .typography-p { line-height: 1.75; }
+    .typography-lead { font-size: 1.25rem; color: var(--muted-foreground); }
+    .typography-large { font-size: 1.125rem; font-weight: 600; }
+    .typography-small { font-size: 0.875rem; font-weight: 500; line-height: 1; }
+    .typography-muted { font-size: 0.875rem; color: var(--muted-foreground); }
+    .typography-code { position: relative; border-radius: calc(var(--radius) - 4px); background: var(--muted); padding: 0.2rem 0.4rem; font-family: var(--font-mono); font-size: 0.875rem; font-weight: 600; }
+    .typography-blockquote { margin-top: var(--spacing-6); border-left: 2px solid var(--border); padding-left: var(--spacing-6); font-style: italic; }
 
     /* ============================================
        RESPONSIVE — mobile (<768px)

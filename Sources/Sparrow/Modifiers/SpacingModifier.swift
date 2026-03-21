@@ -53,9 +53,13 @@ public struct PaddingModifier: ViewModifier, Sendable {
 func spacingToken(_ px: Int) -> String {
     switch px {
     case 0: "0"
+    case 2: "0_5"
     case 4: "1"
+    case 6: "1_5"
     case 8: "2"
+    case 10: "2_5"
     case 12: "3"
+    case 14: "3_5"
     case 16: "4"
     case 20: "5"
     case 24: "6"

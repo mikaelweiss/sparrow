@@ -45,6 +45,15 @@ public struct LineSpacingModifier: ViewModifier, Sendable {
     }
 }
 
+/// Line height as a unitless multiplier (e.g. 1.0 = leading-none, 1.5 = leading-normal).
+public struct LineHeightModifier: ViewModifier, Sendable {
+    public let height: Double
+
+    public var inlineStyles: [String: String] {
+        ["line-height": "\(height)"]
+    }
+}
+
 public struct TextSelectionModifier: ViewModifier, Sendable {
     public let enabled: Bool
 
@@ -76,6 +85,10 @@ extension View {
 
     public func lineSpacing(_ spacing: Double) -> ModifiedView<Self, LineSpacingModifier> {
         modifier(LineSpacingModifier(spacing: spacing))
+    }
+
+    public func lineHeight(_ height: Double) -> ModifiedView<Self, LineHeightModifier> {
+        modifier(LineHeightModifier(height: height))
     }
 
     public func textSelection(_ enabled: Bool) -> ModifiedView<Self, TextSelectionModifier> {

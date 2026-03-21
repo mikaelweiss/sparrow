@@ -36,6 +36,7 @@ public enum AccessibilityRole: Sendable {
     case tab, tabPanel, navigation, main, banner
     case complementary, contentInfo, form, search
     case alert, dialog, status, progressbar, none
+    case tablist, group, region, menu, menuitem, menubar
 
     var ariaValue: String {
         switch self {
@@ -59,6 +60,12 @@ public enum AccessibilityRole: Sendable {
         case .status: "status"
         case .progressbar: "progressbar"
         case .none: "none"
+        case .tablist: "tablist"
+        case .group: "group"
+        case .region: "region"
+        case .menu: "menu"
+        case .menuitem: "menuitem"
+        case .menubar: "menubar"
         }
     }
 }

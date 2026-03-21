@@ -10,6 +10,8 @@ public struct ModifierContext {
     public var customId: String? = nil
     /// HTML data attributes from modifiers (e.g., animation/transition hooks).
     public var dataAttributes: [String: String] = [:]
+    /// Scoped CSS rules from StateStyleModifier (hover, focus, etc.).
+    public var scopedStyles: [StateStyleModifier] = []
 
     public init() {}
 
@@ -48,6 +50,10 @@ public struct ModifierContext {
         // Check if this is an ID modifier and extract the custom ID
         if let idMod = modifier as? IDModifier {
             copy.customId = idMod.identifier
+        }
+        // Collect StateStyleModifiers for scoped CSS emission
+        if let stateMod = modifier as? StateStyleModifier {
+            copy.scopedStyles.append(stateMod)
         }
         return copy
     }
