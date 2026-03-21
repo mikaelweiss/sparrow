@@ -39,8 +39,8 @@ public struct CornerRadiusModifier: ViewModifier, Sendable {
     public var cssClasses: [String] { [radius.cssClass] }
     public var inlineStyles: [String: String] {
         switch shape {
-        case .round: ["overflow": "hidden"]
-        case .squircle: ["overflow": "hidden", "corner-shape": "squircle"]
+        case .round: ["overflow": "clip"]
+        case .squircle: ["overflow": "clip", "corner-shape": "squircle"]
         }
     }
 }
