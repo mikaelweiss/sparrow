@@ -143,8 +143,6 @@ public enum CSSGenerator {
         min-height: 100vh;
         display: flex;
         flex-direction: column;
-        align-items: center;
-        justify-content: center;
     }
 
     /* ============================================
@@ -1406,11 +1404,11 @@ public enum CSSGenerator {
     /* ============================================
        SIDEBAR (shadcn)
        ============================================ */
-    .sidebar { display: flex; flex-direction: column; width: 16rem; flex-shrink: 0; border-right: 1px solid var(--sidebar-border); background: var(--sidebar-background); color: var(--sidebar-foreground); transition: width 200ms; }
+    .sidebar { display: flex; flex-direction: column; width: 16rem; height: 100vh; position: sticky; top: 0; flex-shrink: 0; border-right: 1px solid var(--sidebar-border); background: var(--sidebar-background); color: var(--sidebar-foreground); transition: width 200ms; }
     .sidebar-right { border-right: none; border-left: 1px solid var(--sidebar-border); }
     .sidebar-collapsed { width: 3rem; overflow: hidden; }
     .sidebar-header { display: flex; flex-direction: column; gap: var(--spacing-2); padding: var(--spacing-4); }
-    .sidebar-content { display: flex; flex-direction: column; gap: var(--spacing-2); padding: var(--spacing-4); flex: 1; overflow-y: auto; }
+    .sidebar-content { display: flex; flex-direction: column; gap: var(--spacing-2); padding: var(--spacing-4); flex: 1; min-height: 0; overflow-y: auto; }
     .sidebar-footer { display: flex; flex-direction: column; gap: var(--spacing-2); padding: var(--spacing-4); }
     .sidebar-group { display: flex; flex-direction: column; gap: var(--spacing-1); }
     .sidebar-group-label { padding: var(--spacing-1) var(--spacing-2); font-size: 0.75rem; font-weight: 500; color: var(--sidebar-foreground); opacity: 0.7; }
