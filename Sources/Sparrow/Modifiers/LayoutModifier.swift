@@ -76,4 +76,16 @@ extension View {
     public func position(x: Double = 0, y: Double = 0) -> ModifiedView<Self, PositionModifier> {
         modifier(PositionModifier(x: x, y: y))
     }
+
+    public func flex(_ value: Int = 1) -> ModifiedView<Self, FlexModifier> {
+        modifier(FlexModifier(value: value))
+    }
+}
+
+public struct FlexModifier: ViewModifier, Sendable {
+    public let value: Int
+
+    public var inlineStyles: [String: String] {
+        ["flex": "\(value)", "min-height": "0"]
+    }
 }
