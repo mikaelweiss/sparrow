@@ -21,13 +21,14 @@ public struct VStack<Content: View>: View {
 extension VStack: Sendable where Content: Sendable {}
 
 public enum HorizontalAlignment: Sendable {
-    case leading, center, trailing
+    case leading, center, trailing, stretch
 
     var cssClass: String {
         switch self {
         case .leading: "items-start"
         case .center: "items-center"
         case .trailing: "items-end"
+        case .stretch: "items-stretch"
         }
     }
 }

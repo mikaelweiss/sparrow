@@ -120,6 +120,7 @@ public struct HTMLRenderer: Sendable {
         if let v = view as? SidebarGroupLabel { return renderSidebarGroupLabelVNode(v, context: modifierContext) }
         if let v = view as? SidebarMenuButton { return renderSidebarMenuButtonVNode(v, context: modifierContext) }
         if let v = view as? SidebarTrigger { return renderSidebarTriggerVNode(v, context: modifierContext) }
+        if let v = view as? SidebarRail { return renderSidebarRailVNode(v, context: modifierContext) }
         if let v = view as? Toaster { return renderToasterVNode(v, context: modifierContext) }
         if let v = view as? DrawerTitle { return renderDrawerTitleVNode(v, context: modifierContext) }
         if let v = view as? DrawerDescription { return renderDrawerDescriptionVNode(v, context: modifierContext) }
@@ -1473,6 +1474,14 @@ public struct HTMLRenderer: Sendable {
         renderState.registerHandler(id: id, handler: v.onToggle)
         let classes = ["sidebar-trigger"] + context.cssClasses
         let el = ElementNode.build(tag: "button", id: id, classes: classes, extraAttrs: [("data-sparrow-event", "click")], children: [.text("\u{2630}")])
+        return .element(el)
+    }
+
+    private func renderSidebarRailVNode(_ v: SidebarRail, context: ModifierContext) -> VNode {
+        let id = resolveId(context: context)
+        renderState.registerHandler(id: id, handler: v.onToggle)
+        let classes = ["sidebar-rail"] + context.cssClasses
+        let el = ElementNode.build(tag: "button", id: id, classes: classes, extraAttrs: [("data-sparrow-event", "click"), ("aria-label", "Toggle Sidebar")])
         return .element(el)
     }
 

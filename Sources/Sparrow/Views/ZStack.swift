@@ -41,6 +41,7 @@ public struct Alignment: Sendable {
         case .leading: "justify-start"
         case .center: "justify-center"
         case .trailing: "justify-end"
+        case .stretch: "justify-stretch"
         }
     }
 

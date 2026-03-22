@@ -155,6 +155,7 @@ public enum CSSGenerator {
     .items-start { align-items: flex-start; }
     .items-center { align-items: center; }
     .items-end { align-items: flex-end; }
+    .items-stretch { align-items: stretch; }
 
     /* Gap */
     .gap-0 { gap: var(--spacing-0); }
@@ -1404,20 +1405,27 @@ public enum CSSGenerator {
     /* ============================================
        SIDEBAR (shadcn)
        ============================================ */
-    .sidebar { display: flex; flex-direction: column; width: 16rem; height: 100vh; position: sticky; top: 0; flex-shrink: 0; border-right: 1px solid var(--sidebar-border); background: var(--sidebar-background); color: var(--sidebar-foreground); transition: width 200ms; }
-    .sidebar-right { border-right: none; border-left: 1px solid var(--sidebar-border); }
-    .sidebar-collapsed { width: 3rem; overflow: hidden; }
-    .sidebar-header { display: flex; flex-direction: column; gap: var(--spacing-2); padding: var(--spacing-4); }
-    .sidebar-content { display: flex; flex-direction: column; gap: var(--spacing-2); padding: var(--spacing-4); flex: 1; min-height: 0; overflow-y: auto; }
-    .sidebar-footer { display: flex; flex-direction: column; gap: var(--spacing-2); padding: var(--spacing-4); }
-    .sidebar-group { display: flex; flex-direction: column; gap: var(--spacing-1); }
+    .sidebar { display: flex; }
+    .sidebar-gap { position: relative; width: 16rem; flex-shrink: 0; transition: width 200ms ease-linear; background: transparent; }
+    .sidebar-container { position: fixed; top: 0; bottom: 0; left: 0; z-index: 10; width: 16rem; height: 100svh; transition: width 200ms ease-linear; }
+    .sidebar[data-side="right"] .sidebar-container { left: auto; right: 0; }
+    .sidebar-inner { display: flex; flex-direction: column; width: 100%; height: 100%; position: relative; background: var(--sidebar-background); color: var(--sidebar-foreground); border-right: 1px solid var(--sidebar-border); }
+    .sidebar[data-side="right"] .sidebar-inner { border-right: none; border-left: 1px solid var(--sidebar-border); }
+    .sidebar[data-state="collapsed"] .sidebar-gap { width: 3rem; }
+    .sidebar[data-state="collapsed"] .sidebar-container { width: 3rem; }
+    .sidebar[data-state="collapsed"] .sidebar-inner { overflow: hidden; }
     .sidebar-group-label { padding: var(--spacing-1) var(--spacing-2); font-size: 0.75rem; font-weight: 500; color: var(--sidebar-foreground); opacity: 0.7; }
     .sidebar-menu-item { list-style: none; }
-    .sidebar-menu-button { display: flex; width: 100%; align-items: center; gap: var(--spacing-2); border-radius: calc(var(--radius) - 2px); padding: var(--spacing-1) var(--spacing-2); font-size: 0.875rem; cursor: pointer; background: none; border: none; color: var(--sidebar-foreground); text-align: left; transition: background-color 150ms, color 150ms; }
+    .sidebar-menu-button { display: flex; width: 100%; align-items: center; gap: var(--spacing-2); border-radius: calc(var(--radius) - 2px); padding: var(--spacing-2); font-size: 0.875rem; cursor: pointer; background: none; border: none; color: var(--sidebar-foreground); text-align: left; transition: background-color 150ms, color 150ms; }
     .sidebar-menu-button:hover { background: var(--sidebar-accent); color: var(--sidebar-accent-foreground); }
     .sidebar-menu-button-active { background: var(--sidebar-accent); color: var(--sidebar-accent-foreground); font-weight: 500; }
     .sidebar-trigger { display: inline-flex; align-items: center; justify-content: center; width: 2rem; height: 2rem; border-radius: calc(var(--radius) - 2px); background: none; border: none; cursor: pointer; color: var(--foreground); font-size: 1.25rem; }
     .sidebar-trigger:hover { background: var(--accent); }
+    .sidebar-rail { position: absolute; top: 0; bottom: 0; z-index: 20; width: 1rem; background: none; border: none; padding: 0; cursor: col-resize; outline: none; }
+    .sidebar-rail::after { content: ''; position: absolute; top: 0; bottom: 0; left: 50%; width: 2px; background: transparent; transition: background-color 150ms; }
+    .sidebar-rail:hover::after { background: var(--sidebar-border); }
+    .sidebar[data-side="left"] .sidebar-rail { right: -0.5rem; }
+    .sidebar[data-side="right"] .sidebar-rail { left: -0.5rem; cursor: e-resize; }
 
     /* ============================================
        TOAST / SONNER (shadcn)

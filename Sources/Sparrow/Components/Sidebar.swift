@@ -1,5 +1,6 @@
 /// Sidebar layout matching ShadCN Sidebar.
-/// VNodeRenderable because it renders as `<aside>` (no primitive for that).
+/// VNodeRenderable because it produces a two-div structure (spacer + fixed container)
+/// that can't be expressed through body composition alone.
 public struct Sidebar<Content: View>: View {
     let side: SidebarSide
     let isCollapsed: Bool
@@ -15,19 +16,39 @@ public struct Sidebar<Content: View>: View {
 public struct SidebarHeader<Content: View>: View {
     let content: Content
     public init(@ViewBuilder content: () -> Content) { self.content = content() }
-    public var body: Never { fatalError() }
+
+    public var body: some View {
+        VStack(alignment: .stretch, spacing: 8) {
+            content
+        }
+        .padding(8)
+    }
 }
 
 public struct SidebarContent<Content: View>: View {
     let content: Content
     public init(@ViewBuilder content: () -> Content) { self.content = content() }
-    public var body: Never { fatalError() }
+
+    public var body: some View {
+        ScrollView {
+            VStack(alignment: .stretch, spacing: 8) {
+                content
+            }
+        }
+        .flex(1)
+    }
 }
 
 public struct SidebarFooter<Content: View>: View {
     let content: Content
     public init(@ViewBuilder content: () -> Content) { self.content = content() }
-    public var body: Never { fatalError() }
+
+    public var body: some View {
+        VStack(alignment: .stretch, spacing: 8) {
+            content
+        }
+        .padding(8)
+    }
 }
 
 public struct SidebarGroup<Content: View>: View {
@@ -37,7 +58,16 @@ public struct SidebarGroup<Content: View>: View {
         self.label = label
         self.content = content()
     }
-    public var body: Never { fatalError() }
+
+    public var body: some View {
+        VStack(alignment: .stretch) {
+            if let label {
+                SidebarGroupLabel(label)
+            }
+            content
+        }
+        .padding(8)
+    }
 }
 
 /// PrimitiveView — text label in sidebar.
@@ -49,71 +79,7 @@ public struct SidebarGroupLabel: PrimitiveView, Sendable {
 public struct SidebarMenuItem<Content: View>: View {
     let content: Content
     public init(@ViewBuilder content: () -> Content) { self.content = content() }
-    public var body: Never { fatalError() }
-}
-
-// MARK: - VNodeRenderable
-
-extension SidebarHeader: VNodeRenderable {
-    func renderVNode(with renderer: HTMLRenderer, modifierContext: ModifierContext) -> VNode {
-        let id = renderer.resolveId(context: modifierContext)
-        let children = flattenChildren(content)
-        let childNodes = renderer.renderChildrenVNodes(children)
-        let classes = ["sidebar-header"] + modifierContext.cssClasses
-        let el = ElementNode.build(tag: "div", id: id, classes: classes, styles: modifierContext.inlineStyles, extraAttrs: modifierContext.allExtraAttributePairs, children: childNodes)
-        return .element(el)
-    }
-}
-
-extension SidebarContent: VNodeRenderable {
-    func renderVNode(with renderer: HTMLRenderer, modifierContext: ModifierContext) -> VNode {
-        let id = renderer.resolveId(context: modifierContext)
-        let children = flattenChildren(content)
-        let childNodes = renderer.renderChildrenVNodes(children)
-        let classes = ["sidebar-content"] + modifierContext.cssClasses
-        let el = ElementNode.build(tag: "div", id: id, classes: classes, styles: modifierContext.inlineStyles, extraAttrs: modifierContext.allExtraAttributePairs, children: childNodes)
-        return .element(el)
-    }
-}
-
-extension SidebarFooter: VNodeRenderable {
-    func renderVNode(with renderer: HTMLRenderer, modifierContext: ModifierContext) -> VNode {
-        let id = renderer.resolveId(context: modifierContext)
-        let children = flattenChildren(content)
-        let childNodes = renderer.renderChildrenVNodes(children)
-        let classes = ["sidebar-footer"] + modifierContext.cssClasses
-        let el = ElementNode.build(tag: "div", id: id, classes: classes, styles: modifierContext.inlineStyles, extraAttrs: modifierContext.allExtraAttributePairs, children: childNodes)
-        return .element(el)
-    }
-}
-
-extension SidebarGroup: VNodeRenderable {
-    func renderVNode(with renderer: HTMLRenderer, modifierContext: ModifierContext) -> VNode {
-        let id = renderer.resolveId(context: modifierContext)
-        let children = flattenChildren(content)
-        let childNodes = renderer.renderChildrenVNodes(children)
-        let classes = ["sidebar-group"] + modifierContext.cssClasses
-        var allChildren: [VNode] = []
-        if let label {
-            let labelId = renderer.renderState.allocateId()
-            let labelEl = ElementNode.build(tag: "div", id: labelId, classes: ["sidebar-group-label"], children: [.text(escapeHTML(label))])
-            allChildren.append(.element(labelEl))
-        }
-        allChildren.append(contentsOf: childNodes)
-        let el = ElementNode.build(tag: "div", id: id, classes: classes, styles: modifierContext.inlineStyles, extraAttrs: modifierContext.allExtraAttributePairs, children: allChildren)
-        return .element(el)
-    }
-}
-
-extension SidebarMenuItem: VNodeRenderable {
-    func renderVNode(with renderer: HTMLRenderer, modifierContext: ModifierContext) -> VNode {
-        let id = renderer.resolveId(context: modifierContext)
-        let children = flattenChildren(content)
-        let childNodes = renderer.renderChildrenVNodes(children)
-        let classes = ["sidebar-menu-item"] + modifierContext.cssClasses
-        let el = ElementNode.build(tag: "div", id: id, classes: classes, styles: modifierContext.inlineStyles, extraAttrs: modifierContext.allExtraAttributePairs, children: childNodes)
-        return .element(el)
-    }
+    public var body: some View { content }
 }
 
 /// PrimitiveView — registers click handler.
@@ -134,6 +100,12 @@ public struct SidebarTrigger: PrimitiveView, Sendable {
     public init(onToggle: @escaping @Sendable () -> Void) { self.onToggle = onToggle }
 }
 
+/// PrimitiveView — clickable edge strip on sidebar border for toggling.
+public struct SidebarRail: PrimitiveView, Sendable {
+    public let onToggle: @Sendable () -> Void
+    public init(onToggle: @escaping @Sendable () -> Void) { self.onToggle = onToggle }
+}
+
 public enum SidebarSide: Sendable { case left, right }
 
 extension Sidebar: Sendable where Content: Sendable {}
@@ -143,18 +115,39 @@ extension SidebarFooter: Sendable where Content: Sendable {}
 extension SidebarGroup: Sendable where Content: Sendable {}
 extension SidebarMenuItem: Sendable where Content: Sendable {}
 
-// Sidebar renders as <aside> — no primitive for this tag.
+// Sidebar renders with the two-div trick: a spacer div in the flex flow
+// and a fixed container pinned to the viewport edge.
 extension Sidebar: VNodeRenderable {
     func renderVNode(with renderer: HTMLRenderer, modifierContext: ModifierContext) -> VNode {
         let id = renderer.resolveId(context: modifierContext)
+
+        // Spacer — reserves horizontal space in the parent flex layout
+        let gapId = renderer.renderState.allocateId()
+        let gap = ElementNode.build(tag: "div", id: gapId, classes: ["sidebar-gap"])
+
+        // Inner flex column — holds children
+        let innerId = renderer.renderState.allocateId()
         let children = flattenChildren(content)
         let childNodes = renderer.renderChildrenVNodes(children)
-        var classes = ["sidebar"] + modifierContext.cssClasses
-        if side == .right { classes.append("sidebar-right") }
-        if isCollapsed { classes.append("sidebar-collapsed") }
+        let inner = ElementNode.build(tag: "div", id: innerId, classes: ["sidebar-inner"], children: childNodes)
+
+        // Fixed container — visible sidebar pinned to viewport
+        let containerId = renderer.renderState.allocateId()
+        let container = ElementNode.build(tag: "aside", id: containerId, classes: ["sidebar-container"], children: [.element(inner)])
+
+        // Wrapper — coordinates data attributes for CSS descendant selectors
+        let classes = ["sidebar"] + modifierContext.cssClasses
         var extraAttrs = modifierContext.allExtraAttributePairs
         extraAttrs.append((key: "data-state", value: isCollapsed ? "collapsed" : "expanded"))
-        let el = ElementNode.build(tag: "aside", id: id, classes: classes, styles: modifierContext.inlineStyles, extraAttrs: extraAttrs, children: childNodes)
+        extraAttrs.append((key: "data-side", value: side == .left ? "left" : "right"))
+
+        let el = ElementNode.build(
+            tag: "div", id: id,
+            classes: classes,
+            styles: modifierContext.inlineStyles,
+            extraAttrs: extraAttrs,
+            children: [.element(gap), .element(container)]
+        )
         return .element(el)
     }
 }
